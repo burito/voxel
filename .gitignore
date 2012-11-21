@@ -1,0 +1,14 @@
+
+# compiler output
+*.o
+*.exe
+*.res
+convertoct
+convert
+polyview
+octview
+
+# data files
+*.msh
+*.obj
+*.oct
