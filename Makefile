@@ -1,16 +1,18 @@
-CFLAGS = -std=c99 -Wall -pedantic -g
+CFLAGS = -g -std=c99 -Wall -pedantic
+CFLAGS += -DGLEW_STATIC -I.
 CC = gcc
-
+PLATFORM = GL/glew.o
+LIBRARIES = -lm -lz
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
-LIBRARIES = -lm -lGL -lX11 -lGLU -lz -lXi
-PLATFORM = x11
+LIBRARIES += -lGL -lX11 -lGLU -lXi
+PLATFORM += x11.o
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
-PLATFORM = glew.o win32.res win32
-CFLAGS += -DWIN32 -DGLEW_STATIC
-LIBRARIES = -lgdi32 -lopengl32 -lz
+PLATFORM += win32.res win32.o
+CFLAGS += -DWIN32 
+LIBRARIES = -lgdi32 -lopengl32
 # LIBRARIES += -mwindows
 endif
 
@@ -24,10 +26,10 @@ convertoct: convertoct.o 3dmaths.o
 convert: convert.o 3dmaths.o
 	$(CC) $^ $(LIBRARIES) -o $@ 
 
-polyview: polyview.o $(PLATFORM).o
+polyview: polyview.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
-octview: octview.o shader.o voxel.o $(PLATFORM).o
+octview: octview.o shader.o voxel.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
 win32.res: win32.rc
@@ -54,12 +56,6 @@ testoct: convertoct
 	./convertoct data/xyzrgb-dragon.msh data/xyzrgb-dragon.oct
 
 # Housekeeping
-copytowin:
-	bash -c cp {*.{c,h},Makefile,data/render.*} /media/wd/code/voxel
-
-copyfromwin:
-	cp /media/wd/code/voxel/{*.{c,h},Makefile,data/render.*} ~/code/voxel
-
 clean:
 	rm -f *.o convert convertoct polyview octview *.exe win32.res
 
