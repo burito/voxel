@@ -11,4 +11,5 @@ octview
 # data files
 *.msh
 *.obj
+*.mtl
 *.oct
