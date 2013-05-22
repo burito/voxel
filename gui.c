@@ -89,6 +89,9 @@ widget* widget_shoot(widget *root, int2 pos)
 		int2 relative = { pos.x - root->pos.x, pos.y - root->pos.y };
 		ret = widget_shoot(root->child, relative);
 		if(ret)return ret;
+
+		root->delta.x = mouse_x - pos.x;
+		root->delta.y = mouse_y - pos.y;
 		return root;
 	}
 	else return widget_shoot(root->next, pos);
@@ -149,8 +152,27 @@ void widget_button_draw(widget *root)
 void widget_button_onclick(widget *root)
 {
 	root->clicked = 1;
+//	root->delta.x = mouse_x - root->pos.x;
+//	root->delta.y = mouse_y - root->pos.y;
+
 	printf("clicked %s\n", root->data);
 }
+
+void widget_button_release(widget *root)
+{
+	int2 test;
+	test.x = root->delta.x + root->pos.x;
+	test.y = root->delta.y + root->pos.y;
+	if(mouse_x > test.x)
+	if(mouse_x < test.x + root->size.x)
+	if(mouse_y > test.y)
+	if(mouse_y < test.y + root->size.y)
+	{
+		printf("end\n");
+	}
+
+}
+
 
 void widget_draw_window(widget *root)
 {
@@ -220,6 +242,7 @@ void widget_window_release(widget *root)
 	if(root->delta.y > 5)
 	if(root->delta.y < 30)
 	if( root->delta.x > (root->size.x - 50) )
+	if( root->delta.x < root->size.x )
 	{
 		printf("end\n");
 	}
@@ -285,6 +308,7 @@ int main_init(int argc, char *argv[])
 	item->data = "button alpha";
 	item->draw = widget_button_draw;
 	item->onclick = widget_button_onclick;
+	item->release = widget_button_release;
 
 	pos.x = 20; pos.y = 120;
 	item->next = widget_new(pos,size);
@@ -292,6 +316,7 @@ int main_init(int argc, char *argv[])
 	item->data = "button bravo";
 	item->draw = widget_button_draw;
 	item->onclick = widget_button_onclick;
+	item->release = widget_button_release;
 
 //	widget *item = 0;
 //	item = widget_new(pos, size);
