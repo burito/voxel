@@ -43,7 +43,7 @@ typedef struct widget
 	int noClick;
 	void (*click)(struct widget*);
 	void (*release)(struct widget*);
-	void (*on_click)(struct widget*);
+	void (*onclick)(struct widget*);
 	void (*draw)(struct widget*);
 	void *data;
 } widget;
@@ -72,7 +72,7 @@ void widget_kill(widget* root)
 	if(!root)return;
 	widget_kill(root->child);
 	widget_kill(root->next);
-	if(root->data)free(root->data);
+//	if(root->data)free(root->data);
 	free(root);
 }
 
@@ -134,6 +134,24 @@ void draw_rect(int w, int h)
 }
 
 
+void widget_button_draw(widget *root)
+{
+	float colour = 0.0f;
+	if(root->clicked)colour = 0.3f;
+	glColor4f(colour, colour, colour, 0.4f);
+	draw_rect(root->size.x, root->size.y);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	sth_begin_draw(stash);
+	sth_draw_text(stash, 0,24.0f, 20, -31, root->data, 0);
+	sth_end_draw(stash);
+}
+
+void widget_button_onclick(widget *root)
+{
+	root->clicked = 1;
+	printf("clicked %s\n", root->data);
+}
+
 void widget_draw_window(widget *root)
 {
 	GLfloat colour=0.4f;
@@ -163,7 +181,7 @@ void widget_draw_window(widget *root)
 //	glTranslatef(0, 0, 0);
 	glColor4f(colour, colour, colour, 1.0f);
 	draw_rect(root->size.x, -2);
-//	glTranslatef(0, -yoff, 0);
+	glTranslatef(0, 30, 0);
 
 }
 
@@ -256,8 +274,24 @@ int main_init(int argc, char *argv[])
 	widget_root->draw = widget_draw_window;
 	widget_root->data = "KITTENS";
 	widget_root->click = widget_window_click;
-	widget_root->on_click = widget_window_onclick;
+	widget_root->onclick = widget_window_onclick;
 	widget_root->release = widget_window_release;
+
+
+	pos.x = 20; pos.y = 50;
+	size.x = 200; size.y = 50;
+	widget *item = widget_new(pos,size);
+	widget_root->child = item;
+	item->data = "button alpha";
+	item->draw = widget_button_draw;
+	item->onclick = widget_button_onclick;
+
+	pos.x = 20; pos.y = 120;
+	item->next = widget_new(pos,size);
+	item = item->next;
+	item->data = "button bravo";
+	item->draw = widget_button_draw;
+	item->onclick = widget_button_onclick;
 
 //	widget *item = 0;
 //	item = widget_new(pos, size);
@@ -295,7 +329,7 @@ void main_loop(void)
 		int2 mouse = { mouse_x, mouse_y };
 		latched = widget_shoot(widget_root, mouse);
 		if(latched)
-		if(latched->on_click)latched->on_click(latched);
+		if(latched->onclick)latched->onclick(latched);
 	}
 
 	widget_draw(widget_root);
