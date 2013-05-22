@@ -18,7 +18,7 @@ endif
 
 
 # Build rules
-default: convert polyview octview convertoct
+default: convert polyview octview convertoct gui
 
 convertoct: convertoct.o 3dmaths.o
 	$(CC) $^ $(LIBRARIES) -o $@
