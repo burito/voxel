@@ -158,7 +158,7 @@ static void x11_window(void)
 	glViewport(0, 0, vid_width, vid_height);
 	if(!glXIsDirect(display, glx_context))
 	{
-		printf("DRI did not respont to hails.\n");
+		printf("DRI did not respond to hails.\n");
 	}
 }
 
