@@ -1,5 +1,5 @@
 CFLAGS = -g -std=c99 -Wall -pedantic
-CFLAGS += -DGLEW_STATIC -I.
+CFLAGS += -I.
 CC = gcc
 PLATFORM = GL/glew.o
 LIBRARIES = -lm -lz
@@ -57,5 +57,5 @@ testoct: convertoct
 
 # Housekeeping
 clean:
-	rm -f *.o convert convertoct polyview octview *.exe win32.res
+	@rm -f *.o GL/glew.o convert convertoct polyview octview *.exe win32.res
 
