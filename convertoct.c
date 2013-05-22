@@ -47,13 +47,13 @@ MESH* read_obj(char * filename)
 	char c;
 	float x,y,z;
 	int f1, f2, f3;
-	int ret = 1;
+	char *ret;
 	int nVert=0;
 	int nFace=0;
 
 	// count the verts & faces for alloc
-	while(ret) {
-		ret = (int)fgets(buf, 1024, fptr);
+	do {
+		ret = fgets(buf, 1024, fptr);
 		if(!ret)break;
 		switch(buf[0]) {
 		case 'v':
@@ -63,7 +63,7 @@ MESH* read_obj(char * filename)
 			nFace++;
 			break;
 		}
-	}
+	} while(ret);
 //	rewind(fptr);
 	fclose(fptr);
 	fptr = fopen(filename, "r");
@@ -74,9 +74,8 @@ MESH* read_obj(char * filename)
 
 	nVert = 0;
 	nFace = 0;
-	ret = 1;
-	while(ret) {
-		ret = (int)fgets(buf, 1024, fptr);
+	do {
+		ret = fgets(buf, 1024, fptr);
 		if(!ret)break;
 		switch(buf[0]) {
 		case 'v':
@@ -96,7 +95,7 @@ MESH* read_obj(char * filename)
 		default:
 			break;
 		}
-	}
+	} while(ret);
 	free(buf);
 	fclose(fptr);
 
