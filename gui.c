@@ -155,7 +155,7 @@ void widget_button_onclick(widget *root)
 //	root->delta.x = mouse_x - root->pos.x;
 //	root->delta.y = mouse_y - root->pos.y;
 
-	printf("clicked %s\n", root->data);
+	printf("clicked %s\n", (char*)root->data);
 }
 
 void widget_button_release(widget *root)
@@ -289,7 +289,6 @@ int main_init(int argc, char *argv[])
 	font_load(3,"data/gui/SourceSansPro-Bold.ttf");
 
 
-	int2 zero = {0, 0};
 	int2 pos = {100, 100};
 	int2 size = {400, 300};
 	
