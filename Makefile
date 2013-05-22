@@ -32,6 +32,9 @@ polyview: polyview.o $(PLATFORM)
 octview: octview.o shader.o voxel.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
+gui: gui.o fontstash.o $(PLATFORM)
+	$(CC) $^ $(LIBRARIES) -o $@
+
 win32.res: win32.rc
 	windres $^ -O coff -o $@
 
@@ -57,5 +60,5 @@ testoct: convertoct
 
 # Housekeeping
 clean:
-	@rm -f *.o GL/glew.o convert convertoct polyview octview *.exe win32.res
+	@rm -f *.o GL/glew.o convert convertoct polyview octview gui *.exe win32.res
 

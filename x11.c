@@ -134,7 +134,7 @@ static void x11_window(void)
 //		XGrabPointer(display, window, True,
 //				PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
 //				GrabModeAsync, GrabModeAsync, window, None, CurrentTime);
-		XDefineCursor(display, window, cursor_none);
+//		XDefineCursor(display, window, cursor_none);
 
 	}
 	else
