@@ -156,14 +156,9 @@ static void x11_window(void)
 
 	glXMakeCurrent(display, window, glx_context);
 	glViewport(0, 0, vid_width, vid_height);
-	if(glXIsDirect(display, glx_context))
+	if(!glXIsDirect(display, glx_context))
 	{
-		printf("OpenGL w/ DRI init ok!\n");
-	}
-	else
-	{
-		printf("OpenGL init ok!\n");
-
+		printf("DRI did not respont to hails.\n");
 	}
 }
 
