@@ -269,6 +269,12 @@ void widget_draw(widget *root)
 }
 
 
+void font_load(int i, char *path)
+{
+	int ret = sth_add_font(stash, i, path);
+	if(!ret)printf("Failed to load font %d:\"%s\"\n", i, path);
+}
+
 int main_init(int argc, char *argv[])
 {
 	stash = sth_create(512,512);
@@ -277,16 +283,10 @@ int main_init(int argc, char *argv[])
 		printf("Could not create stash.\n");
 		return -1;
 	}
-	if (!sth_add_font(stash,0,"data/gui/SourceCodePro-Regular.ttf"))
-	{
-		printf("Could not add font.\n");
-		return -1;
-	}
-	if (!sth_add_font(stash,1,"data/gui/SourceCodePro-Bold.ttf"))
-	{
-		printf("Could not add font.\n");
-		return -1;
-	}	
+	font_load(0,"data/gui/SourceCodePro-Regular.ttf");
+	font_load(1,"data/gui/SourceCodePro-Bold.ttf");
+	font_load(2,"data/gui/SourceSansPro-Regular.ttf");
+	font_load(3,"data/gui/SourceSansPro-Bold.ttf");
 
 
 	int2 zero = {0, 0};
