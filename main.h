@@ -22,14 +22,14 @@ freely, subject to the following restrictions:
 */
 
 
-extern int killme;
+extern int killme;		/* global killswitch */
 extern int vid_width;
 extern int vid_height;
-extern int mouse_x;
+extern int mouse_x;		/* position */
 extern int mouse_y;
-extern int mickey_x;
+extern int mickey_x;	/* velocity */
 extern int mickey_y;
-extern char mouse[3];
+extern char mouse[3];	/* button status 0=up 1=down */
 extern char keys[];
 
 #include "keyboard.h"
