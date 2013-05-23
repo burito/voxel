@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2012 Daniel Burke
+Copyright (c) 2013 Daniel Burke
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
