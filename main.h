@@ -35,5 +35,7 @@ extern int fullscreen;
 extern int fullscreen_toggle;
 
 
+void shell_browser(char *url);
+
 #include "keyboard.h"
 
