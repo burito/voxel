@@ -599,7 +599,7 @@ void spawn_open(widget *x)
 void spawn_about(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "ABOUT");
-	widget *item = widget_text_new(20, 110, "� 2013 Daniel Burke");
+	widget *item = widget_text_new(20, 110, "\u00a9 2013 Daniel Burke");
 	widget_child_add(w, item);
 	item = widget_text_new(20, 80, "VOXEL TEST");
 	item->fontsize = 40.0f;
@@ -679,7 +679,7 @@ void widget_menu_bool_draw(widget *w)
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	sth_begin_draw(stash);
 	sth_draw_text(stash, w->fontface, w->fontsize,
-			10, -(w->size.y/2+5), (*(int*)w->data2 ? "☑":"☐"), 0);
+			10, -(w->size.y/2+5), (*(int*)w->data2 ? "\u2611":"\u2610"), 0);
 	sth_draw_text(stash, w->fontface, w->fontsize,
 			10, -(w->size.y/2+5), w->data, 0);
 	sth_end_draw(stash);
