@@ -534,6 +534,13 @@ void spawn_github(widget *w)
 	shell_browser("https://github.com/burito/voxel");
 }
 
+void spawn_open(widget *x)
+{
+	widget *w = widget_window_new(100, 100, "OPEN...");
+	widget_add(w);
+}
+
+
 void spawn_about(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "ABOUT");
@@ -656,6 +663,8 @@ int main_init(int argc, char *argv[])
 	widget *w;
 	widget *menu = widget_menu_new();
 	widget *item = widget_menu_add(menu, "File");
+	widget_menu_item_add(item, "New", 0);
+	widget_menu_item_add(item, "Open", spawn_open);
 	widget_menu_item_add(item, "Kitten test", spawn_kittens);
 	widget_menu_item_add(item, "Empty button", 0);
 	widget_menu_item_add(item, "Exit", menu_killme);
@@ -669,10 +678,6 @@ int main_init(int argc, char *argv[])
 	widget_menu_item_add(item, "About", spawn_about);
 
 	widget_add(menu);
-
-	spawn_about(0);
-
-
 
 	return 0;
 }
