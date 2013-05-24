@@ -38,7 +38,7 @@ polyview: polyview.o $(PLATFORM)
 octview: octview.o shader.o voxel.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
-gui: gui.o fontstash.o $(PLATFORM)
+gui: gui.o fontstash.o text.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
 

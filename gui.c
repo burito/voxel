@@ -24,11 +24,16 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
 
 #include <GL/glew.h>
 
 #include "3dmaths.h"
 #include "image.h"
+#include "text.h"
 #include "main.h"
 
 #include "fontstash.h"
@@ -534,17 +539,67 @@ void spawn_github(widget *w)
 	shell_browser("https://github.com/burito/voxel");
 }
 
+
+static int cmp_str(const void *p1, const void *p2)
+{
+	return strcmp(* (char * const *) p1, * (char * const *) p2);
+}
+
 void spawn_open(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "OPEN...");
 	widget_add(w);
+
+
+	int dmax = 100, fmax = 100;
+	int dcnt = 0, fcnt = 0;
+	char *dirs[dmax];
+	char *files[fmax];
+
+
+	DIR *dir = opendir(".");
+	struct dirent *ent;
+	while((ent = readdir(dir)))
+	{
+		if(ent->d_name[0] != '.')
+		{
+			struct stat s;
+			stat(ent->d_name, &s);
+			if( S_ISDIR(s.st_mode) )
+			{
+				if(dcnt == dmax)
+				{
+					printf("dont forget to malloc some more\n");
+					return;
+				}
+				dirs[dcnt++] = hcopy(ent->d_name);
+			}
+			if( S_ISREG(s.st_mode) )
+			{
+				if(fcnt == fmax)
+				{
+					printf("dont forget to malloc some more\n");
+					return;
+				}
+				files[fcnt++] = hcopy(ent->d_name);
+			}
+		}
+	}
+	closedir(dir);
+
+	qsort(dirs, dcnt, sizeof(char*), cmp_str);
+	qsort(files, fcnt, sizeof(char*), cmp_str);
+
+	for( int i=0; i<dcnt; i++)printf("./%s/\n", dirs[i]);
+	for( int i=0; i<fcnt; i++)printf("%s\n", files[i]);
+
 }
 
 
 void spawn_about(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "ABOUT");
-	widget *item = widget_text_new(20, 110, "Â© 2013 Daniel Burke");
+	widget *item = widget_text_new(20, 110, "© 2013 Daniel Burke");
 	widget_child_add(w, item);
 	item = widget_text_new(20, 80, "VOXEL TEST");
 	item->fontsize = 40.0f;
