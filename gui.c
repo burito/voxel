@@ -53,7 +53,8 @@ typedef struct widget
 	void (*onclick)(struct widget*);
 	void (*draw)(struct widget*);
 	void (*action)(struct widget*);
-	int action_arg;
+	float percent;
+	int count;
 	void *data;
 	void *data2;
 } widget;
@@ -448,6 +449,105 @@ void widget_menu_release(widget *w)
 	}
 }
 
+void widget_list_draw(widget *w)
+{
+	if(!w)return;
+	float height = 0.0f;
+	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
+	float fullheight = (float)w->count * height;
+	float totalheight = (fullheight - (float)w->size.y) / fullheight;
+	float lineheight = (float)w->size.y / height;
+	int y = -height;
+	char **names = (char**)w->data;
+	widget_rect_draw(w);
+
+//	printf("totalheight=%f ", totalheight);
+//	printf("percent=%f ", w->percent);
+//	printf("lineheight=%f\n", lineheight);
+
+	glColor4f(1,1,1,1);
+	sth_begin_draw(stash);
+	if( fullheight < w->size.y )
+	{	// scrollbar not needed
+		for(int i=0; i<w->count; i++)
+		{
+			sth_draw_text(stash, w->fontface, w->fontsize, 10, y, names[i], 0);
+			y -= height;
+		}
+		sth_end_draw(stash);
+	}
+	else
+	{
+		
+		int i = (float)w->count * (w->percent * totalheight);
+		for(; i<w->count; i++)
+		{
+			sth_draw_text(stash, w->fontface, w->fontsize, 10, y, names[i], 0);
+			y -= height;
+			if( -y > w->size.y)
+				break;
+		}
+		sth_end_draw(stash);
+		glColor4f(0,0,0,0.5);
+		glTranslatef(w->size.x - 20, 0, 0);
+		draw_rect(20, w->size.y);
+		glColor4f(1,1,1,0.9);
+		
+		glTranslatef(0, w->percent*(float)w->size.y, 0);
+		glTranslatef(0, -w->percent*(float)w->size.y, 0);
+
+		glTranslatef(-w->size.x + 20, 0, 0);
+	}
+}
+
+void widget_list_onclick(widget *w)
+{
+	if(!w)return;
+	float height = 0.0f;
+	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
+	int2 click;
+	click.x = mouse_x - w->delta.x - w->pos.x;
+	click.y = mouse_y - w->delta.y - w->pos.y;
+
+	if(click.x < 0)return;
+	if(click.x > w->size.x)return;
+	if(click.y < 0)click.y = 0;
+	if(click.y > w->size.y)click.y = w->size.y;
+
+	float fullheight = (float)w->count * height;
+	float totalheight = (fullheight - (float)w->size.y) / fullheight;
+
+	if(click.x > (w->size.x - 20))
+	{
+		float offset = (float)click.y / (float)w->size.y;
+		w->percent = offset;
+//		printf("Scrollbar! %d\n", offset);
+	}
+	else
+	{
+		int i = (float)w->count * (w->percent * totalheight);
+		int offset = (float)click.y / height;
+		offset += i;
+		char **file = w->data;
+		if(offset > w->count)return;
+//		printf("this one %s\n", file[offset]); 
+
+	}
+}
+
+
+widget* widget_list_new(int x, int y, char **list, int count)
+{
+	int2 p = {x,y}, s = {150, 150};
+	widget *w = widget_new(p, s);
+	w->draw = widget_list_draw;
+	w->onclick = widget_list_onclick;
+	w->click = widget_list_onclick;
+	w->data = list;
+	w->count = count;
+	return w;
+}
+
 
 widget* widget_menu_new(void)
 {
@@ -518,7 +618,6 @@ void spawn_kittens(widget *x)
 	widget *item = widget_button_new(20, 50, "button alpha");
 	widget_child_add(w, item);
 	item = widget_button_new(20, 120, "button bravo");
-	item->action_arg = 5;
 	widget_child_add(w, item);
 	widget_add(w);
 }
@@ -545,6 +644,13 @@ static int cmp_str(const void *p1, const void *p2)
 	return strcmp(* (char * const *) p1, * (char * const *) p2);
 }
 
+
+void open_test(widget *w)
+{
+	if(!w)return;
+	if(w->data)printf("%s\n", (char*)w->data);
+}
+
 void spawn_open(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "OPEN...");
@@ -553,8 +659,11 @@ void spawn_open(widget *x)
 
 	int dmax = 100, fmax = 100;
 	int dcnt = 0, fcnt = 0;
-	char *dirs[dmax];
-	char *files[fmax];
+	char **dirs;
+	char **files;
+
+	dirs = malloc(sizeof(char*)*dmax);
+	files = malloc(sizeof(char*)*fmax);
 
 
 	DIR *dir = opendir(".");
@@ -590,9 +699,11 @@ void spawn_open(widget *x)
 	qsort(dirs, dcnt, sizeof(char*), cmp_str);
 	qsort(files, fcnt, sizeof(char*), cmp_str);
 
-	for( int i=0; i<dcnt; i++)printf("./%s/\n", dirs[i]);
-	for( int i=0; i<fcnt; i++)printf("%s\n", files[i]);
-
+	widget *item = widget_list_new(20, 90, dirs, dcnt);
+	widget_child_add(w, item);
+	item = widget_list_new(200, 90, files, fcnt);
+	widget_child_add(w, item);
+	item->action = open_test;
 }
 
 
