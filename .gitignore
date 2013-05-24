@@ -3,10 +3,9 @@
 *.o
 *.exe
 *.res
-convertoct
-convert
-polyview
-octview
+
+# trash
+.*.swp
 
 # data files
 *.msh

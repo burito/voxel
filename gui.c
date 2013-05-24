@@ -41,13 +41,16 @@ typedef struct widget
 	struct widget *parent, *child, *next, *prev;
 	int clicked;
 	int noClick;
+	int fontface;
+	float fontsize;
 	void (*click)(struct widget*);
 	void (*release)(struct widget*);
 	void (*onclick)(struct widget*);
 	void (*draw)(struct widget*);
-	void (*action)(int arg);
+	void (*action)(struct widget*);
 	int action_arg;
 	void *data;
+	void *data2;
 } widget;
 
 widget *widget_root = 0;
@@ -66,6 +69,8 @@ widget* widget_new(int2 pos, int2 size)
 	memset(ret, 0, sizeof(widget));
 	ret->pos = pos;
 	ret->size = size;
+	ret->fontsize = 20.0f;
+	ret->fontface = 2;
 	return ret;
 }
 
@@ -120,12 +125,47 @@ void widget_add(widget *w)
 	w->prev = widget_root;
 }
 
-void widget_draw_text(widget *w)
+void widget_child_add(widget *w, widget *c)
+{
+	if(!w)return;
+	if(!c)return;
+	if(w->child)w->child->prev = c;
+	c->next = w->child;
+	c->parent = w;
+	w->child = c;
+}
+
+void widget_remove(widget *w)
+{
+	if(!w)return;
+	if(w->prev)
+	{
+		w->prev->next = w->next;
+	}
+	else if(w->parent)
+	{
+		w->parent->child = w->next;
+	}
+	else
+	{
+/* this is only a problem if called on a root widget,
+ * which this func should not, it's designed to make menu's disappear */
+	}
+		
+	if(w->next)
+	{
+		w->next->prev = w->prev;
+	}
+	w->prev = w->next = w->parent = 0;
+}
+
+void widget_text_draw(widget *w)
 {
 	if(!w)return;
 	float dx = 0.0f;
+	glColor4f(1,1,1,1);
 	sth_begin_draw(stash);
-	sth_draw_text(stash, 0,24.0f, 0, 0, w->data, &dx);
+	sth_draw_text(stash, w->fontface, w->fontsize, 10, 10, w->data, &dx);
 	sth_end_draw(stash);
 //	sth_vmetrics(stash, 1,24, NULL,NULL,&height);
 }
@@ -150,21 +190,24 @@ void draw_rect(int w, int h)
 
 void widget_destroy(widget *w)
 {
+	if(!w)return;
 	if(w->prev)
-	{	// then there is no parent
+	{
 		w->prev->next = w->next;
-		if(w->next)w->next->prev = w->prev;
 	}
-	if(w->parent)
-	{	// then there is no prev
+	else if(w->parent)
+	{
 		w->parent->child = w->next;
-		if(w->next)
-		{
-			w->next->prev = w->prev;
-			w->next->parent = w->parent;
-		}
 	}
-	w->next = 0;
+	else
+	{
+		widget_root = w->next;
+	}
+	if(w->next)
+	{
+		w->next->prev = w->prev;
+	}
+	w->prev = w->next = w->parent = 0;
 	widget_kill(w);
 }
 
@@ -175,11 +218,6 @@ void widget_rect_draw(widget *w)
 	draw_rect(w->size.x, w->size.y);
 }
 
-void widget_menu_draw(widget *w)
-{
-	glColor4f(0.0, 0.0, 0.0, 0.5f);
-	draw_rect(w->size.x, w->size.y);
-}
 
 
 void widget_button_draw(widget *w)
@@ -190,7 +228,8 @@ void widget_button_draw(widget *w)
 	draw_rect(w->size.x, w->size.y);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	sth_begin_draw(stash);
-	sth_draw_text(stash, 2,20.0f, 10, -(w->size.y/2+5), w->data, 0);
+	sth_draw_text(stash, w->fontface, w->fontsize,
+			10, -(w->size.y/2+5), w->data, 0);
 	sth_end_draw(stash);
 }
 
@@ -213,41 +252,16 @@ void widget_button_release(widget *w)
 	if(mouse_y > test.y)
 	if(mouse_y < test.y + w->size.y)
 	{
-		if(w->action)w->action(w->action_arg);
+		if(w->action)w->action(w);
 	}
-
 }
 
 
-void widget_filemenu(void)
+
+
+void widget_button_action(widget *w)
 {
-	widget *w;
-
-	int2 p = {0, 30}, s = { 100, 100 };
-	w = widget_new(p, s);
-	w->draw = widget_menu_draw;
-	w->release = widget_destroy;
-	widget_add(w);
-//	latched = w;
-		
-}
-
-
-void widget_button_action(int arg)
-{
-	switch(arg) {
-		case 0:
-			printf("Default action\n");
-			break;
-
-		case 5:
-			widget_filemenu();
-			break;
-
-		default:
-			printf("Action %d initiated.\n", arg);
-	}
-
+	printf("Default action\n");
 }
 
 
@@ -259,10 +273,20 @@ widget* widget_button_new(int x, int y, char* label)
 	w->draw = widget_button_draw;
 	w->onclick = widget_button_onclick;
 	w->release = widget_button_release;
-	w->action = widget_button_action;
+//	w->action = widget_button_action;
 	return w;
 }
 
+widget* widget_text_new(int x, int y, char* label)
+{
+	int2 p = {x, y}, s = {0 ,30};
+	widget *w = widget_new(p, s);
+	w->data = label;
+	w->draw = widget_text_draw;
+	w->noClick = 1;
+
+	return w;
+}
 
 void widget_draw_window(widget *w)
 {
@@ -333,6 +357,7 @@ void widget_window_release(widget *w)
 	if(w->delta.x < w->size.x )
 	{
 		// end button clicked
+		widget_destroy(w);
 	}
 
 }
@@ -370,6 +395,53 @@ void widget_draw(widget *w)
 
 }
 
+void widget_menu_draw(widget *w)
+{
+	float colour = 0.0f;
+	if(w->clicked)colour = 0.3f;
+	if(mouse_x > w->parent->pos.x)
+	if(mouse_x < w->parent->pos.x + w->parent->size.x)
+	if(mouse_y > w->parent->pos.y + w->pos.y)
+	if(mouse_y < w->parent->pos.y + w->pos.y + w->size.y)
+	{	// hovering
+		if(!w->noClick)colour = 0.1;
+	}
+	glColor4f(colour, colour, colour, 0.4f);
+	draw_rect(w->parent->size.x, w->size.y);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	sth_begin_draw(stash);
+	sth_draw_text(stash, w->fontface, w->fontsize,
+			10, -(w->size.y/2+5), w->data, 0);
+	sth_end_draw(stash);
+}
+
+void widget_menu_onclick(widget *w)
+{
+	widget_add((widget*)w->data2);
+}
+
+void widget_menu_release(widget *w)
+{
+	widget_remove((widget*)w->data2);
+	widget *wdata = (widget*)w->data2;
+	if(!wdata)return;
+	widget *x = wdata->child;
+	if(!x)return;
+	while(x)
+	{
+		if(mouse_x > x->parent->pos.x)
+		if(mouse_x < x->parent->pos.x + x->parent->size.x)
+		if(mouse_y > x->parent->pos.y + x->pos.y)
+		if(mouse_y < x->parent->pos.y + x->pos.y + x->size.y)
+		{
+			if(x->action)x->action(x);
+			return;
+		}
+		x = x->next;
+	}
+}
+
+
 widget* widget_menu_new(void)
 {
 	int2 p = {0,0}, s = {200, 30};
@@ -382,6 +454,8 @@ widget* widget_menu_add(widget *w, char* label)
 {
 	if(!w)return 0;
 	widget *ret = widget_button_new(0, 0, label);
+	ret->onclick = widget_menu_onclick;
+	ret->release = widget_menu_release;
 	ret->parent = w;
 	if(w->child)
 	{
@@ -391,13 +465,100 @@ widget* widget_menu_add(widget *w, char* label)
 	}
 	w->child = ret;
 	float x1, x2, y1, y2;
-	sth_dim_text(stash, 2, 20.0, label, &x1, &y1, &x2, &y2);
+	sth_dim_text(stash, w->fontface, w->fontsize, label, &x1, &y1, &x2, &y2);
 	ret->size.x = 20+ x2 - x1;
 
 	return ret;
 }
 
+widget* widget_menu_item_add(widget *w, char* label, void (*action)(widget*))
+{
+	if(!w)return 0;
+	widget *wdata = (widget*)w->data2;
+	if(!wdata)
+	{
+		wdata = widget_menu_new();
+		w->data2 = wdata;
+		wdata->draw = 0;
+		wdata->size.x = w->size.x;
+		wdata->pos.x = w->pos.x;
+		wdata->pos.y = w->pos.y + w->size.y;
+	}
+	widget *ret = widget_button_new(0, 0, label);
+	ret->draw = widget_menu_draw;
+	ret->action = action;
+	ret->parent = wdata;
+	if(wdata->child)
+	{
+		wdata->child->prev = ret;
+		ret->pos.y = wdata->child->pos.y + wdata->child->size.y;
+	}
+	ret->next = wdata->child;
+	wdata->child = ret;
+	
+	float x1, x2, y1, y2;
+	sth_dim_text(stash, ret->fontface, ret->fontsize,
+			label, &x1, &y1, &x2, &y2);
+	ret->size.x = 20+ x2 - x1;
+	if(wdata->size.x < ret->size.x)wdata->size.x = ret->size.x;
 
+	return ret;
+}
+
+void spawn_kittens(widget *x)
+{
+	widget *w = widget_window_new(100, 100, "KITTENS");
+	widget *item = widget_button_new(20, 50, "button alpha");
+	widget_child_add(w, item);
+	item = widget_button_new(20, 120, "button bravo");
+	item->action_arg = 5;
+	widget_child_add(w, item);
+	widget_add(w);
+}
+
+
+void spawn_homepage(widget *w)
+{
+	system("sensible-browser http://danpburke.blogspot.com.au");
+}
+
+void spawn_youtube(widget *w)
+{
+	system("sensible-browser http://www.youtube.com/user/bur1t0/videos");
+}
+
+void spawn_github(widget *w)
+{
+	system("sensible-browser https://github.com/burito/voxel");
+}
+void spawn_about(widget *x)
+{
+	widget *w = widget_window_new(100, 100, "ABOUT");
+	widget *item = widget_text_new(20, 110, "© 2013 Daniel Burke");
+	widget_child_add(w, item);
+	item = widget_text_new(20, 80, "VOXEL TEST");
+	item->fontsize = 40.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+	item = widget_button_new(20, 120, "WWW");
+	item->size.x = 90;
+	item->action = spawn_homepage;
+	widget_child_add(w, item);
+	item = widget_button_new(120, 120, "GitHub");
+	item->action = spawn_github;
+	item->size.x = 90;
+	widget_child_add(w, item);
+	item = widget_button_new(220, 120, "YouTube");
+	item->action = spawn_youtube;
+	item->size.x = 90;
+	widget_child_add(w, item);
+	item = widget_button_new(220, 80, "License");
+	item->size.x = 90;
+	widget_child_add(w, item);
+	w->size.x = 330;
+	w->size.y = 170;
+	widget_add(w);
+}
 
 void font_load(int i, char *path)
 {
@@ -419,40 +580,17 @@ int main_init(int argc, char *argv[])
 	font_load(3,"data/gui/SourceSansPro-Bold.ttf");
 
 
-	widget_root = widget_window_new(100, 100, "KITTENS");
-
-	widget *item = widget_button_new(20, 50, "button alpha");
-	widget_root->child = item;
-
-	item->next = widget_button_new(20, 120, "button bravo");
-	item = item->next;
-	item->action_arg = 5;
-
 	widget *menu = widget_menu_new();
-	item = widget_menu_add(menu, "File");
-//	widget_menu_item_add(item, "Kitten test", spawn_kittens);
-//	widget_menu_item_add(item, "Empty button", 0);
+	widget *item = widget_menu_add(menu, "File");
+	widget_menu_item_add(item, "Kitten test", spawn_kittens);
+	widget_menu_item_add(item, "Empty button", 0);
 	item = widget_menu_add(menu, "Help");
-//	widget_menu_item_add(item, "About", 0);
+	widget_menu_item_add(item, "About", spawn_about);
 
 	widget_add(menu);
-/*
-	int2 pos, size;
-	pos.x = 0; pos.y = 0;
-	size.x = 200; size.y = 30;
-	item = widget_new(pos,size);
-	item->next = widget_root;
-	
-	widget_root = item;
-	item->draw = widget_rect_draw;
 
-	size.x = 100; size.y = 30;
-	item = widget_button_new(0,0, "File");
-	widget_root->child = item;
-	item->action_arg = 5;
-//	widget *item = 0;
-//	item = widget_new(pos, size);
-*/
+	spawn_about(0);
+
 
 
 	return 0;
