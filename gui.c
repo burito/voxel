@@ -344,6 +344,8 @@ void widget_window_onclick(widget *w)
 		else
 			w->clicked=2;		// dragging
 	}
+	widget_remove(w);
+	widget_add(w);
 }
 
 void widget_window_release(widget *w)
@@ -519,18 +521,19 @@ void spawn_kittens(widget *x)
 
 void spawn_homepage(widget *w)
 {
-	system("sensible-browser http://danpburke.blogspot.com.au");
+	shell_browser("http://danpburke.blogspot.com.au");
 }
 
 void spawn_youtube(widget *w)
 {
-	system("sensible-browser http://www.youtube.com/user/bur1t0/videos");
+	shell_browser("http://www.youtube.com/user/bur1t0/videos");
 }
 
 void spawn_github(widget *w)
 {
-	system("sensible-browser https://github.com/burito/voxel");
+	shell_browser("https://github.com/burito/voxel");
 }
+
 void spawn_about(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "ABOUT");
@@ -552,13 +555,84 @@ void spawn_about(widget *x)
 	item->action = spawn_youtube;
 	item->size.x = 90;
 	widget_child_add(w, item);
-	item = widget_button_new(220, 80, "License");
-	item->size.x = 90;
-	widget_child_add(w, item);
 	w->size.x = 330;
 	w->size.y = 170;
 	widget_add(w);
 }
+
+void spawn_license(widget *x)
+{
+	widget *w = widget_window_new(100, 100, "LICENSE");
+	widget *item;
+	item = widget_text_new(20, 70, "Copyright (c) 2012 Daniel Burke");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 95, "This software is provided 'as-is', without any express or implied");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 110, "warranty. In no event will the authors be held liable for any damages");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 125, "arising from the use of this software.");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 155, "Permission is granted to anyone to use this software for any purpose,");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 170, "including commercial applications, and to alter it and redistribute it");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 185, "freely, subject to the following restrictions:");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 210, "   1. The origin of this software must not be misrepresented; you must not");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 225, "   claim that you wrote the original software. If you use this software");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 240, "   in a product, an acknowledgment in the product documentation would be");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 255, "   appreciated but is not required.");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 280, "   2. Altered source versions must be plainly marked as such, and must not be");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 295, "   misrepresented as being the original software.");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 320, "   3. This notice may not be removed or altered from any source");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item = widget_text_new(20, 335, "   distribution.");
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	w->size.x = 570;
+	w->size.y = 360;
+	w->pos.x = 20;
+	w->pos.y = 80;
+	widget_add(w);
+}
+
+void widget_menu_bool_draw(widget *w)
+{
+	float colour = 0.0f;
+	if(w->clicked)colour = 0.3f;
+	if(mouse_x > w->parent->pos.x)
+	if(mouse_x < w->parent->pos.x + w->parent->size.x)
+	if(mouse_y > w->parent->pos.y + w->pos.y)
+	if(mouse_y < w->parent->pos.y + w->pos.y + w->size.y)
+	{	// hovering
+		if(!w->noClick)colour = 0.1;
+	}
+	glColor4f(colour, colour, colour, 0.4f);
+	draw_rect(w->parent->size.x, w->size.y);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	sth_begin_draw(stash);
+	sth_draw_text(stash, w->fontface, w->fontsize,
+			10, -(w->size.y/2+5), (*(int*)w->data2 ? "☑":"☐"), 0);
+	sth_draw_text(stash, w->fontface, w->fontsize,
+			10, -(w->size.y/2+5), w->data, 0);
+	sth_end_draw(stash);
+}
+
+void menu_killme(widget *w)
+{
+	killme = 1;
+}
+
+void menu_fullscreen(widget *w)
+{
+	fullscreen_toggle++;
+}
+
 
 void font_load(int i, char *path)
 {
@@ -579,12 +653,19 @@ int main_init(int argc, char *argv[])
 	font_load(2,"data/gui/SourceSansPro-Regular.ttf");
 	font_load(3,"data/gui/SourceSansPro-Bold.ttf");
 
-
+	widget *w;
 	widget *menu = widget_menu_new();
 	widget *item = widget_menu_add(menu, "File");
 	widget_menu_item_add(item, "Kitten test", spawn_kittens);
 	widget_menu_item_add(item, "Empty button", 0);
+	widget_menu_item_add(item, "Exit", menu_killme);
+	item = widget_menu_add(menu, "View");
+	w = widget_menu_item_add(item, "     Fullscreen", &menu_fullscreen);
+	w->draw = widget_menu_bool_draw;
+	w->data2 = &fullscreen;
+	
 	item = widget_menu_add(menu, "Help");
+	widget_menu_item_add(item, "License", spawn_license);
 	widget_menu_item_add(item, "About", spawn_about);
 
 	widget_add(menu);

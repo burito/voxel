@@ -74,6 +74,12 @@ static void fail(const char * string)
 	printf("%s: %s", string, errStr);
 }
 
+void shell_browser(char *url)
+{
+	LONG r = ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+}
+
+
 #ifdef XBOX360PAD
 
 #define THUMB XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE

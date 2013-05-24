@@ -76,6 +76,14 @@ int fullscreen=0;
 int fullscreen_toggle=0;
 int oldx=0, oldy=0;
 
+void shell_browser(char *url)
+{
+	int c=1000;
+	char buf[c];
+	memset(buf, 0, sizeof(char)*c);
+	snprintf(buf, c, "sensible-browser %s", url);
+	system(buf);
+}
 
 static void x11_down(void)
 {

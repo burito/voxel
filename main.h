@@ -31,6 +31,9 @@ extern int mickey_x;	/* velocity */
 extern int mickey_y;
 extern char mouse[3];	/* button status 0=up 1=down */
 extern char keys[];
+extern int fullscreen;
+extern int fullscreen_toggle;
+
 
 #include "keyboard.h"
 
