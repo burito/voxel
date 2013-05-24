@@ -76,7 +76,7 @@ static void fail(const char * string)
 
 void shell_browser(char *url)
 {
-	LONG r = ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
 }
 
 
@@ -232,12 +232,12 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case WM_MOUSEMOVE:
-			mickey_x =  -LOWORD(lParam) - mouse_x;
-			mickey_y = -HIWORD(lParam) - mouse_y;
-			mouse_x = -LOWORD(lParam);
-			mouse_y = -HIWORD(lParam);
+			mickey_x += mouse_x - LOWORD(lParam);
+			mickey_y += mouse_y - HIWORD(lParam);
+			mouse_x = LOWORD(lParam);
+			mouse_y = HIWORD(lParam);
 //			msg("Mouse %d, %d\n", mickey_x, mickey_y);
-			return 0;
+			break;
 
 		case WM_SETCURSOR:
 			switch(LOWORD(lParam))
@@ -454,7 +454,6 @@ int APIENTRY WinMain(HINSTANCE hCurrentInst, HINSTANCE hPrev,
 		win_end();
 		return ret;
 	}
-	int lastError;
 	while(!killme)
 	{
 		switch(WaitForInputIdle(GetCurrentProcess() , 10))
@@ -465,7 +464,7 @@ int APIENTRY WinMain(HINSTANCE hCurrentInst, HINSTANCE hPrev,
 //				msg("Wait timed out");
 				break;
 			case 0xFFFFFFFF:
-				lastError = GetLastError();
+				ret = GetLastError();
 //				if(lastError)
 //					msg("Wait Error:%s", strerror(lastError));
 				break;
