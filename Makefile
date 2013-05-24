@@ -12,13 +12,19 @@ endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
 PLATFORM += win32.res win32.o
 CFLAGS += -DWIN32 
-LIBRARIES = -lgdi32 -lopengl32
-# LIBRARIES += -mwindows
+LIBRARIES += -lgdi32 -lopengl32
 endif
-
 
 # Build rules
 default: convert polyview octview convertoct gui
+
+
+win32.res: win32.rc
+	windres $^ -O coff -o $@
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCLUDES)-c $< -o $@
+
 
 convertoct: convertoct.o 3dmaths.o
 	$(CC) $^ $(LIBRARIES) -o $@
@@ -35,16 +41,13 @@ octview: octview.o shader.o voxel.o $(PLATFORM)
 gui: gui.o fontstash.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
-win32.res: win32.rc
-	windres $^ -O coff -o $@
-
-.c.o:
-	$(CC) $(CFLAGS) $(INCLUDES)-c $< -o $@
 
 # Testing rules
-data: convert 
+data: convert convertoct
 	./convert data/stanford-bunny.obj data/stanford-bunny.msh
-#	./convert data/xyzrgb-dragon.obj data/xyzrgb-dragon.msh
+	./convertoct data/stanford-bunny.msh data/stanford-bunny.oct
+	./convert data/xyzrgb-dragon.obj data/xyzrgb-dragon.msh
+	./convertoct data/xyzrgb-dragon.msh data/xyzrgb-dragon.oct
 
 test: octview convertoct
 #	./octview data/stanford-bunny.oct
@@ -53,10 +56,6 @@ test: octview convertoct
 testpoly: polyview
 	./polyview data/stanford-bunny.msh
 #	./polyview data/stanford-bunny.msh
-
-testoct: convertoct
-#	./convertoct data/stanford-bunny.msh data/stanford-bunny.oct
-	./convertoct data/xyzrgb-dragon.msh data/xyzrgb-dragon.oct
 
 # Housekeeping
 clean:
