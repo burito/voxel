@@ -473,10 +473,6 @@ void widget_list_draw(widget *w)
 	char **names = (char**)w->data;
 	widget_rect_draw(w);
 
-//	printf("totalheight=%f ", totalheight);
-//	printf("percent=%f ", w->percent);
-//	printf("lineheight=%f\n", lineheight);
-
 	glColor4f(1,1,1,1);
 	sth_begin_draw(stash);
 	if( fullheight < w->size.y )
@@ -498,7 +494,7 @@ void widget_list_draw(widget *w)
 	}
 	else
 	{
-		
+	
 		int i = (float)w->count * (w->percent * totalheight);
 		for(; i<w->count; i++)
 		{
@@ -521,14 +517,18 @@ void widget_list_draw(widget *w)
 		draw_rect(20, w->size.y);
 		glColor4f(1,1,1,0.9);
 		
-		glTranslatef(0, w->percent*(float)w->size.y, 0);
-		glTranslatef(0, -w->percent*(float)w->size.y, 0);
+		float scrollfactor = w->size.y / fullheight;
+		float barheight = scrollfactor * w->size.y;
+
+		glTranslatef(0, -w->percent*(float)(w->size.y-barheight), 0);
+		draw_rect(20, barheight);
+		glTranslatef(0, w->percent*(float)(w->size.y-barheight), 0);
 
 		glTranslatef(-w->size.x + 20, 0, 0);
 	}
 }
 
-void widget_list_onclick(widget *w)
+void widget_list_click(widget *w)
 {
 	if(!w)return;
 	float height = 0.0f;
@@ -537,19 +537,24 @@ void widget_list_onclick(widget *w)
 	click.x = mouse_x - w->delta.x - w->pos.x;
 	click.y = mouse_y - w->delta.y - w->pos.y;
 
-	if(click.x < 0)return;
-	if(click.x > w->size.x)return;
-	if(click.y < 0)click.y = 0;
-	if(click.y > w->size.y)click.y = w->size.y;
-
 	float fullheight = (float)w->count * height;
 	float totalheight = (fullheight - (float)w->size.y) / fullheight;
+//	if(click.x < 0)return;
+//	if(click.x > w->size.x)return;
+//	if(click.y < 0)click.y = 0;
+//	if(click.y > w->size.y)click.y = w->size.y;
 
-	if(click.x > (w->size.x - 20))
+	if(2 == w->clicked) // scrollbar!
 	{
-		float offset = (float)click.y / (float)w->size.y;
+
+		float scrollfactor = w->size.y / fullheight;
+		float barheight = scrollfactor * w->size.y;
+
+		float offset = w->percent;
+		offset -= (float)mickey_y / (float)(w->size.y-barheight);
+		if(offset < 0.0) offset = 0.0;
+		if(offset > 1.0) offset = 1.0;
 		w->percent = offset;
-//		printf("Scrollbar! %d\n", offset);
 	}
 	else
 	{
@@ -564,14 +569,45 @@ void widget_list_onclick(widget *w)
 	}
 }
 
+void widget_list_onclick(widget *w)
+{
+	if(!w)return;
+	float height = 0.0f;
+	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
+	int2 click;
+	click.x = mouse_x - w->delta.x - w->pos.x;
+	click.y = mouse_y - w->delta.y - w->pos.y;
+	float fullheight = (float)w->count * height;
+	float totalheight = (fullheight - (float)w->size.y) / fullheight;
+
+	if(click.x < 0)return;
+	if(click.x > w->size.x)return;
+	if(click.y < 0)click.y = 0;
+	if(click.y > w->size.y)click.y = w->size.y;
+
+	if(click.x > (w->size.x - 20))
+	{
+		w->clicked = 2; // scrollbar!
+	}
+	else
+	{
+		w->clicked = 1; // selection
+		int i = (float)w->count * (w->percent * totalheight);
+		int offset = (float)click.y / height;
+		offset += i;
+		if(offset > w->count)return;
+		w->selected = offset;
+
+	}
+}
 
 widget* widget_list_new(int x, int y, char **list, int count)
 {
 	int2 p = {x,y}, s = {150, 150};
 	widget *w = widget_new(p, s);
 	w->draw = widget_list_draw;
+	w->click = widget_list_click;
 	w->onclick = widget_list_onclick;
-	w->click = widget_list_onclick;
 	w->data = list;
 	w->count = count;
 	w->selected = -1;
