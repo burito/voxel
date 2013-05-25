@@ -81,7 +81,7 @@ void shell_browser(char *url)
 	int c=1000;
 	char buf[c];
 	memset(buf, 0, sizeof(char)*c);
-	snprintf(buf, c, "sensible-browser %s", url);
+	snprintf(buf, c, "sensible-browser %s &", url);
 	system(buf);
 }
 
