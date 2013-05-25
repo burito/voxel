@@ -424,6 +424,14 @@ void widget_menu_draw(widget *w)
 	sth_end_draw(stash);
 }
 
+void widget_menu_separator_draw(widget *w)
+{
+	if(!w)return;
+	float colour = 0.0f;
+	glColor4f(colour, colour, colour, 0.6f);
+	draw_rect(w->parent->size.x, w->size.y);
+}
+
 void widget_menu_onclick(widget *w)
 {
 	widget_add((widget*)w->data2);
@@ -449,6 +457,10 @@ void widget_menu_release(widget *w)
 		x = x->next;
 	}
 }
+
+/*
+ * Widget List Functions
+ */
 
 void widget_list_draw(widget *w)
 {
@@ -567,6 +579,81 @@ widget* widget_list_new(int x, int y, char **list, int count)
 }
 
 
+static int cmp_str(const void *p1, const void *p2)
+{
+	return strcmp(* (char * const *) p1, * (char * const *) p2);
+}
+
+
+void open_test(widget *w)
+{
+	if(!w)return;
+	if(w->data)printf("%s\n", (char*)w->data);
+}
+
+void spawn_open(widget *x)
+{
+	widget *w = widget_window_new(100, 100, "OPEN...");
+	widget_add(w);
+
+
+	int dmax = 100, fmax = 100;
+	int dcnt = 0, fcnt = 0;
+	char **dirs;
+	char **files;
+
+	dirs = malloc(sizeof(char*)*dmax);
+	files = malloc(sizeof(char*)*fmax);
+
+
+	DIR *dir = opendir(".");
+	struct dirent *ent;
+	while((ent = readdir(dir)))
+	{
+		if(ent->d_name[0] != '.')
+		{
+			struct stat s;
+			stat(ent->d_name, &s);
+			if( S_ISDIR(s.st_mode) )
+			{
+				if(dcnt == dmax)
+				{
+					printf("dont forget to malloc some more\n");
+					return;
+				}
+				dirs[dcnt++] = hcopy(ent->d_name);
+			}
+			if( S_ISREG(s.st_mode) )
+			{
+				if(fcnt == fmax)
+				{
+					printf("dont forget to malloc some more\n");
+					return;
+				}
+				files[fcnt++] = hcopy(ent->d_name);
+			}
+		}
+	}
+	closedir(dir);
+
+	qsort(dirs, dcnt, sizeof(char*), cmp_str);
+	qsort(files, fcnt, sizeof(char*), cmp_str);
+
+	widget *item = widget_list_new(10, 90, dirs, dcnt);
+	item->size.x = w->size.x / 3 - 15;
+	item->size.y = w->size.y - 100;
+	widget_child_add(w, item);
+	item = widget_list_new(w->size.x/3 + 5, 90, files, fcnt);
+	item->size.x = w->size.x / 3 * 2 - 15;
+	item->size.y = w->size.y - 100;
+	widget_child_add(w, item);
+	item->action = open_test;
+}
+
+/*
+ * Widget Menu functions
+ */
+
 widget* widget_menu_new(void)
 {
 	int2 p = {0,0}, s = {200, 30};
@@ -630,16 +717,9 @@ widget* widget_menu_item_add(widget *w, char* label, void (*action)(widget*))
 	return ret;
 }
 
-void spawn_kittens(widget *x)
-{
-	widget *w = widget_window_new(100, 100, "KITTENS");
-	widget *item = widget_button_new(20, 50, "button alpha");
-	widget_child_add(w, item);
-	item = widget_button_new(20, 120, "button bravo");
-	widget_child_add(w, item);
-	widget_add(w);
-}
-
+/*
+ * About Box
+ */
 
 void spawn_homepage(widget *w)
 {
@@ -655,75 +735,6 @@ void spawn_github(widget *w)
 {
 	shell_browser("https://github.com/burito/voxel");
 }
-
-
-static int cmp_str(const void *p1, const void *p2)
-{
-	return strcmp(* (char * const *) p1, * (char * const *) p2);
-}
-
-
-void open_test(widget *w)
-{
-	if(!w)return;
-	if(w->data)printf("%s\n", (char*)w->data);
-}
-
-void spawn_open(widget *x)
-{
-	widget *w = widget_window_new(100, 100, "OPEN...");
-	widget_add(w);
-
-
-	int dmax = 100, fmax = 100;
-	int dcnt = 0, fcnt = 0;
-	char **dirs;
-	char **files;
-
-	dirs = malloc(sizeof(char*)*dmax);
-	files = malloc(sizeof(char*)*fmax);
-
-
-	DIR *dir = opendir(".");
-	struct dirent *ent;
-	while((ent = readdir(dir)))
-	{
-		if(ent->d_name[0] != '.')
-		{
-			struct stat s;
-			stat(ent->d_name, &s);
-			if( S_ISDIR(s.st_mode) )
-			{
-				if(dcnt == dmax)
-				{
-					printf("dont forget to malloc some more\n");
-					return;
-				}
-				dirs[dcnt++] = hcopy(ent->d_name);
-			}
-			if( S_ISREG(s.st_mode) )
-			{
-				if(fcnt == fmax)
-				{
-					printf("dont forget to malloc some more\n");
-					return;
-				}
-				files[fcnt++] = hcopy(ent->d_name);
-			}
-		}
-	}
-	closedir(dir);
-
-	qsort(dirs, dcnt, sizeof(char*), cmp_str);
-	qsort(files, fcnt, sizeof(char*), cmp_str);
-
-	widget *item = widget_list_new(20, 90, dirs, dcnt);
-	widget_child_add(w, item);
-	item = widget_list_new(200, 90, files, fcnt);
-	widget_child_add(w, item);
-	item->action = open_test;
-}
-
 
 void spawn_about(widget *x)
 {
@@ -750,6 +761,10 @@ void spawn_about(widget *x)
 	w->size.y = 170;
 	widget_add(w);
 }
+
+/*
+ * License Dialog
+ */
 
 void spawn_license(widget *x)
 {
@@ -831,6 +846,16 @@ void font_load(int i, char *path)
 	if(!ret)printf("Failed to load font %d:\"%s\"\n", i, path);
 }
 
+widget* widget_menu_separator_add(widget *item)
+{
+	widget *w = widget_menu_item_add(item, "", 0);
+	w->draw = widget_menu_separator_draw;
+	w->size.y = 3;
+	w->noClick = 1;
+	return w;
+}
+
+
 int main_init(int argc, char *argv[])
 {
 	stash = sth_create(512,512);
@@ -847,18 +872,22 @@ int main_init(int argc, char *argv[])
 	widget *w;
 	widget *menu = widget_menu_new();
 	widget *item = widget_menu_add(menu, "File");
-	widget_menu_item_add(item, "New", 0);
+	widget_menu_item_add(item, "New \u2620", 0);
 	widget_menu_item_add(item, "Open", spawn_open);
-	widget_menu_item_add(item, "Kitten test", spawn_kittens);
-	widget_menu_item_add(item, "Empty button", 0);
+	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "Exit", menu_killme);
 	item = widget_menu_add(menu, "View");
-	w = widget_menu_item_add(item, "     Fullscreen", &menu_fullscreen);
+	w = widget_menu_item_add(item, "     Fullscreen - F11", &menu_fullscreen);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &fullscreen;
 	
 	item = widget_menu_add(menu, "Help");
+	widget_menu_item_add(item, "Overview \u2560", 0);
+	widget_menu_item_add(item, "Wiki \u26a0", 0);
+	widget_menu_separator_add(item);
+	widget_menu_item_add(item, "Credits \u2623", 0);
 	widget_menu_item_add(item, "License", spawn_license);
+	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "About", spawn_about);
 
 	widget_add(menu);
