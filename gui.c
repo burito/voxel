@@ -55,6 +55,7 @@ typedef struct widget
 	void (*action)(struct widget*);
 	float percent;
 	int count;
+	int selected;
 	void *data;
 	void *data2;
 } widget;
@@ -456,8 +457,7 @@ void widget_list_draw(widget *w)
 	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
 	float fullheight = (float)w->count * height;
 	float totalheight = (fullheight - (float)w->size.y) / fullheight;
-	float lineheight = (float)w->size.y / height;
-	int y = -height;
+	int y = -height*0.75;
 	char **names = (char**)w->data;
 	widget_rect_draw(w);
 
@@ -471,6 +471,14 @@ void widget_list_draw(widget *w)
 	{	// scrollbar not needed
 		for(int i=0; i<w->count; i++)
 		{
+			if(i == w->selected)
+			{
+				glTranslatef(0, y+height*0.75, 0);
+				glColor4f(1,1,1,0.2);
+				draw_rect(w->size.x, height);
+				glTranslatef(0, -(y+height*0.75), 0);
+			}
+			glColor4f(1,1,1,1);
 			sth_draw_text(stash, w->fontface, w->fontsize, 10, y, names[i], 0);
 			y -= height;
 		}
@@ -482,6 +490,14 @@ void widget_list_draw(widget *w)
 		int i = (float)w->count * (w->percent * totalheight);
 		for(; i<w->count; i++)
 		{
+			if(i == w->selected)
+			{
+				glTranslatef(0, y+height*0.75, 0);
+				glColor4f(1,1,1,0.2);
+				draw_rect(w->size.x-20, height);
+				glTranslatef(0, -(y+height*0.75), 0);
+			}
+			glColor4f(1,1,1,1);
 			sth_draw_text(stash, w->fontface, w->fontsize, 10, y, names[i], 0);
 			y -= height;
 			if( -y > w->size.y)
@@ -528,8 +544,9 @@ void widget_list_onclick(widget *w)
 		int i = (float)w->count * (w->percent * totalheight);
 		int offset = (float)click.y / height;
 		offset += i;
-		char **file = w->data;
 		if(offset > w->count)return;
+		w->selected = offset;
+//		char **file = w->data;
 //		printf("this one %s\n", file[offset]); 
 
 	}
@@ -545,6 +562,7 @@ widget* widget_list_new(int x, int y, char **list, int count)
 	w->click = widget_list_onclick;
 	w->data = list;
 	w->count = count;
+	w->selected = -1;
 	return w;
 }
 
