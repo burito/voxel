@@ -25,17 +25,13 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <string.h>
 
-#include "3dmaths.h"
+
+#include <GL/glew.h>
+
+#include "mesh.h"
 
 
-typedef struct MESH
-{
-	int nv, nn, nf;
-	float3 *v, *n;
-	int3 *f;
-} MESH;
-
-MESH* read_obj(char * filename)
+static MESH* read_obj(char * filename)
 {
 	FILE *fptr = fopen(filename, "r");
 	if(!fptr)return 0;
@@ -105,12 +101,13 @@ MESH* read_obj(char * filename)
 	m->nf = nFace;
 	m->n = NULL;
 	m->nn = 0;
+	m->vbo = m->ebo = 0;
 
 	return m;
 }
 
 
-void gen_normals(MESH* m)
+static void gen_normals(MESH* m)
 {
 	int i;	
 	float3 a, b, t;
@@ -129,13 +126,8 @@ void gen_normals(MESH* m)
 	m->nn = m->nf;
 }
 
-typedef struct LLIST
-{
-	int face;
-	struct LLIST* next;
-} LLIST;
 
-void mesh_bound(float3 *m, int count)
+static void mesh_bound(float3 *m, int count)
 {
 	float3 min, max, size;
 
@@ -167,8 +159,13 @@ void mesh_bound(float3 *m, int count)
 	printf("Volume = (%f, %f, %f)\n", size.x, size.y, size.z);
 }
 
+typedef struct LLIST
+{
+	int face;
+	struct LLIST* next;
+} LLIST;
 
-void gen_vertex_normals(MESH *m)
+static void gen_vertex_normals(MESH *m)
 {
 	int i;
 
@@ -223,37 +220,29 @@ void gen_vertex_normals(MESH *m)
 	m->nn = m->nv;
 }
 
-
-
-
-void write_file(char* filename, MESH* m)
+void mesh_write(MESH* m, char *filename)
 {
-	int i;
 	FILE *fptr = fopen(filename, "wb");
-
 	int zero = 0;
 
-	int vbo = m->nv;
-	int ebo = m->nf;
-
 	fwrite("FMSH", 4, 1, fptr);
-	fwrite(&vbo, 4, 1, fptr);
-	fwrite(&ebo, 4, 1, fptr);
+	fwrite(&m->nv, 4, 1, fptr);
+	fwrite(&m->nf, 4, 1, fptr);
 	fwrite(&zero, 4, 1, fptr);
 
-	for(i=0; i<m->nv; i++)
+	for(int i=0; i<m->nv; i++)
 	{
-		fwrite(&m->v[i].x, 4, 1, fptr);
-		fwrite(&m->v[i].y, 4, 1, fptr);
-		fwrite(&m->v[i].z, 4, 1, fptr);
+		fwrite(&m->p[i*2].x, 4, 1, fptr);
+		fwrite(&m->p[i*2].y, 4, 1, fptr);
+		fwrite(&m->p[i*2].z, 4, 1, fptr);
 //		fwrite(&zero, 4, 1, fptr);
-		fwrite(&m->n[i].x, 4, 1, fptr);
-		fwrite(&m->n[i].y, 4, 1, fptr);
-		fwrite(&m->n[i].z, 4, 1, fptr);
+		fwrite(&m->p[i*2+1].x, 4, 1, fptr);
+		fwrite(&m->p[i*2+1].y, 4, 1, fptr);
+		fwrite(&m->p[i*2+1].z, 4, 1, fptr);
 //		fwrite(&zero, 4, 1, fptr);
 	}
 
-	for(i=0; i<m->nf; i++)
+	for(int i=0; i<m->nf; i++)
 	{
 		fwrite(&m->f[i].x, 4, 1, fptr);
 		fwrite(&m->f[i].y, 4, 1, fptr);
@@ -263,6 +252,93 @@ void write_file(char* filename, MESH* m)
 	fclose(fptr);
 }
 
+
+static void mesh_interleave(MESH *m)
+{
+	float3 *p = malloc(m->nv * 24);
+	for(int i=0; i < m->nv; i++)
+	{
+		p[i*2  ] = m->v[i];
+		p[i*2+1] = m->n[i];
+	}
+	m->p = p;
+	free(m->v); m->v = 0;
+	free(m->n); m->n = 0;
+}
+
+static void mesh_vbo_load(MESH *m)
+{
+	glGenBuffers(1, &m->vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m->vbo);
+	glBufferData(GL_ARRAY_BUFFER, m->nv*24, m->p, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &m->ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m->nf*12, m->f, GL_STATIC_DRAW);
+	int *p = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+	memcpy(p, m->f, m->nf);
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+
+void mesh_draw(MESH *m)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, m->vbo);
+	glVertexPointer(3, GL_FLOAT, 24, (GLvoid*)0);
+	glNormalPointer(GL_FLOAT, 24, (GLvoid*)12);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ebo);
+
+//	glDrawElements(GL_TRIANGLES, m->nf*12, GL_UNSIGNED_INT, (GLvoid*)0);
+	glDrawArrays(GL_POINTS, 0, m->nv);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+MESH* mesh_load_obj(char *filename)
+{
+	MESH *m = read_obj(filename);
+	gen_normals(m);
+	gen_vertex_normals(m);
+	mesh_bound(m->v, m->nv);
+	mesh_interleave(m);
+	mesh_vbo_load(m);
+	return m;
+}
+
+
+MESH* mesh_load(char *filename)
+{
+	MESH *m = malloc(sizeof(MESH));
+	FILE *fptr = fopen(filename, "rb");
+	char magic[] = "ERRR";
+
+	fread(magic, 4, 1, fptr);
+	// check the magic bytes?
+	fread(&m->nv, 4, 1, fptr);
+	fread(&m->nf, 4, 1, fptr);
+	fread(magic, 4, 1, fptr);
+	
+	m->p = malloc(m->nv*24);
+	fread(m->p, m->nv*24, 1, fptr);
+	m->f = malloc(m->nf*12);
+	fread(m->f, m->nf*12, 1, fptr);
+	fclose(fptr);
+
+	mesh_vbo_load(m);
+	return m;
+}
+
+
+
+#ifdef STATIC_TEST
 
 int main(int argc, char *argv[])
 {
@@ -274,11 +350,16 @@ int main(int argc, char *argv[])
 			printf("Verts=%d, Face=%d, Normal=%d\n", m->nv, m->nf, m->nn);
 			break;
 		case 3:
+			printf("Reading Object.\n");
 			m = read_obj(argv[1]);
+			printf("Normals\n");
 			gen_normals(m);
+			printf("Vertex normals\n");
 			gen_vertex_normals(m);
+			printf("bounding the mesh\n");
 			mesh_bound(m->v, m->nv);
-			write_file(argv[2], m);
+			printf("writing\n");
+			mesh_file_write(argv[2], m);
 			break;
 		default:
 			printf("user error.\n");
@@ -287,4 +368,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+#endif /* STATIC_TEST */
 

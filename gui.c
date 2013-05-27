@@ -892,7 +892,7 @@ widget* widget_menu_separator_add(widget *item)
 }
 
 
-int main_init(int argc, char *argv[])
+int gui_init(int argc, char *argv[])
 {
 	stash = sth_create(512,512);
 	if (!stash)
@@ -933,7 +933,7 @@ int main_init(int argc, char *argv[])
 
 
 
-void main_loop(void)
+void gui_loop(void)
 {
 
 	if(latched)
@@ -965,7 +965,7 @@ void main_loop(void)
 
 }
 
-void main_end(void)
+void gui_end(void)
 {
 	if(stash)sth_delete(stash);
 }

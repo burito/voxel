@@ -16,7 +16,7 @@ LIBRARIES += -lgdi32 -lopengl32
 endif
 
 # Build rules
-default: convert polyview octview convertoct gui
+default: octview convertoct gui
 
 
 win32.res: win32.rc
@@ -29,33 +29,21 @@ win32.res: win32.rc
 convertoct: convertoct.o 3dmaths.o
 	$(CC) $^ $(LIBRARIES) -o $@
 
-convert: convert.o 3dmaths.o
-	$(CC) $^ $(LIBRARIES) -o $@ 
-
-polyview: polyview.o $(PLATFORM)
-	$(CC) $^ $(LIBRARIES) -o $@
-
 octview: octview.o shader.o voxel.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
-gui: gui.o fontstash.o text.o $(PLATFORM)
+gui: main.o mesh.o 3dmaths.o gui.o fontstash.o text.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
 
 # Testing rules
-data: convert convertoct
-	./convert data/stanford-bunny.obj data/stanford-bunny.msh
+data: convertoct
 	./convertoct data/stanford-bunny.msh data/stanford-bunny.oct
-	./convert data/xyzrgb-dragon.obj data/xyzrgb-dragon.msh
 	./convertoct data/xyzrgb-dragon.msh data/xyzrgb-dragon.oct
 
 test: octview convertoct
 #	./octview data/stanford-bunny.oct
 	./octview data/xyzrgb-dragon.oct
-
-testpoly: polyview
-	./polyview data/stanford-bunny.msh
-#	./polyview data/stanford-bunny.msh
 
 # Housekeeping
 clean:
