@@ -34,12 +34,12 @@ freely, subject to the following restrictions:
 #include "keyboard.h"
 
 int killme = 0;
-int vid_width = 640;
-int vid_height = 480;
+int vid_width = 1280;
+int vid_height = 720;
 int sys_width = 1920;
 int sys_height = 1200;
-int win_width = 640;
-int win_height = 480;
+int win_width = 1280;
+int win_height = 720;
 int mouse_x;
 int mouse_y;
 int mickey_x;

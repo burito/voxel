@@ -41,8 +41,8 @@ int window_maximized = 0;
 int focus = 1;
 int menu = 1;
 
-int vid_width = 1000;
-int vid_height = 700;
+int vid_width = 1280;
+int vid_height = 720;
 int win_width = 0;
 int win_height = 0;
 //int oldx, oldy;
