@@ -1,7 +1,7 @@
 CFLAGS = -g -std=c99 -Wall -pedantic
 CFLAGS += -I.
 CC = gcc
-PLATFORM = GL/glew.o
+PLATFORM = GL/glew.o stb_truetype.o fontstash.o
 LIBRARIES = -lm -lz
 # Evil platform detection magic
 UNAME := $(shell uname)
@@ -32,7 +32,7 @@ convertoct: convertoct.o 3dmaths.o
 octview: octview.o shader.o voxel.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
-gui: main.o mesh.o 3dmaths.o gui.o fontstash.o text.o $(PLATFORM)
+gui: main.o mesh.o 3dmaths.o gui.o text.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
 
