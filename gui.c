@@ -35,6 +35,7 @@ freely, subject to the following restrictions:
 #include "image.h"
 #include "text.h"
 #include "main.h"
+#include "mesh.h"
 
 #include "fontstash.h"
 
@@ -46,6 +47,7 @@ typedef struct widget
 	struct widget *parent, *child, *next, *prev;
 	int clicked;
 	int noClick;
+	int noResize;
 	int fontface;
 	float fontsize;
 	void (*click)(struct widget*);
@@ -295,10 +297,10 @@ widget* widget_text_new(int x, int y, char* label)
 	return w;
 }
 
-void widget_draw_window(widget *w)
+void widget_window_draw(widget *w)
 {
 	GLfloat colour=0.4f;
-	glColor4f(0.0f, 0.0f, 0.0f, 0.4f);
+	glColor4f(0.0f, 0.0f, 0.0f, 0.6f);
 	draw_rect(w->size.x, w->size.y);
 	glColor4f(colour, colour, colour, 1.0f);
 	glTranslatef(0, -5, 0);
@@ -306,14 +308,6 @@ void widget_draw_window(widget *w)
 
 //	glTranslatef(0, -30, 0);
 
-	if(3 == w->clicked)
-	{
-		glColor4f(0.5f, 0.5f, 0.2f, 0.4f);
-		glTranslatef(w->size.x, 0, 0);
-		draw_rect(-50, 23);
-		glTranslatef(-w->size.x, 0, 0);
-
-	}
 	glTranslatef(0, -25, 0);
 
 	glColor4f(1,1,1,1);
@@ -326,20 +320,96 @@ void widget_draw_window(widget *w)
 	draw_rect(w->size.x, -2);
 	glTranslatef(0, 30, 0);
 
-}
-
-void widget_window_click(widget *w)
-{
-	if(2 == w->clicked)		// dragging
+	glColor4f(0.5f, 0.5f, 0.2f, 0.4f);
+	switch(w->clicked)
 	{
-		w->pos.x -= mickey_x;
-		w->pos.y -= mickey_y;
+	case 2:		// dragging
+		glTranslatef(0, -5, 0);
+		draw_rect(w->size.x, 23);
+		glTranslatef(0, 5, 0);
+		break;
+
+	case 3:		// end button
+		glTranslatef(w->size.x, -5, 0);
+		draw_rect(-50, 23);
+		glTranslatef(-w->size.x, 5, 0);
+		break;
+
+	case 4:		// resize bottom
+		glTranslatef(0, -w->size.y, 0);
+		draw_rect(w->size.x, -10);
+		glTranslatef(0, w->size.y, 0);
+		break;
+
+	case 5:		// resize bottom left
+		glTranslatef(0, -w->size.y, 0);
+		draw_rect(10, -10);
+		glTranslatef(0, w->size.y, 0);
+		break;
+
+	case 6:		// resize bottom right
+		glTranslatef(w->size.x, -w->size.y, 0);
+		draw_rect(-10, -10);
+		glTranslatef(-w->size.x, w->size.y, 0);
+		break;
+
+	case 7:		// resize left 
+		draw_rect(10, w->size.y);
+		break;
+
+	case 8:		// resize right
+		glTranslatef(w->size.x, 0, 0);
+		draw_rect(-10, w->size.y);
+		glTranslatef(-w->size.x, 0, 0);
+		break;
+
 	}
 
 }
 
+void widget_window_click(widget *w)
+{
+	switch(w->clicked)
+	{
+	case 2:		// dragging
+		w->pos.x -= mickey_x;
+		w->pos.y -= mickey_y;
+		break;
+
+	case 3:		// end
+		break;
+
+	case 4:		// resize down
+		w->size.y -= mickey_y;
+		break;
+
+	case 5:		// resize bottom left
+		w->pos.x -= mickey_x;
+		w->size.x += mickey_x;
+		w->size.y -= mickey_y;
+		break;
+
+	case 6:		// resize bottom right
+		w->size.x -= mickey_x;
+		w->size.y -= mickey_y;
+		break;
+
+	case 7:		// resize left
+		w->pos.x -= mickey_x;
+		w->size.x += mickey_x;
+		break;
+
+	case 8:		// resize right
+		w->size.x -= mickey_x;
+		break;
+
+	}
+}
+
 void widget_window_onclick(widget *w)
 {
+	widget_remove(w);		
+	widget_add(w);		// send to foreground
 	w->delta.x = mouse_x - w->pos.x;
 	w->delta.y = mouse_y - w->pos.y;
 
@@ -350,9 +420,28 @@ void widget_window_onclick(widget *w)
 				w->clicked=3;	// end
 		else
 			w->clicked=2;		// dragging
+		return;
 	}
-	widget_remove(w);
-	widget_add(w);
+
+	if(w->noResize)return;
+
+	if(w->delta.y > w->size.y - 10)	// dragging down
+	{
+		w->clicked = 4;		// resize bottom
+		if(w->delta.x < 10)w->clicked = 5;	// resize bottom left
+		if(w->delta.x > (w->size.x-10))w->clicked = 6;	// resize bottom right
+		return;
+	}
+
+	if(w->delta.x < 10)
+	{
+		w->clicked = 7;		// resize left
+	}
+	if(w->delta.x > (w->size.x - 10))
+	{
+		w->clicked = 8;		// resize right
+	}
+
 }
 
 void widget_window_release(widget *w)
@@ -376,7 +465,7 @@ widget* widget_window_new(int x, int y, char* title)
 {
 	int2 p = {x, y}, s = {400, 300};
 	widget *w = widget_new(p, s);
-	w->draw = widget_draw_window;
+	w->draw = widget_window_draw;
 	w->data = title;
 	w->click = widget_window_click;
 	w->onclick = widget_window_onclick;
@@ -615,6 +704,60 @@ widget* widget_list_new(int x, int y, char **list, int count)
 }
 
 
+void widget_window_obj_draw(widget *w)
+{
+	widget_window_draw(w);
+	MESH *m = w->data2;
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, vid_width, 0, vid_height, -1, 5000);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glClearDepth(5000.0f);
+	glClear(GL_DEPTH_BUFFER_BIT);
+//	glEnable(GL_DEPTH_TEST);
+	glColor4ub(255,255,255,255);
+	glTranslatef(w->pos.x +10, vid_height - (w->pos.y + w->size.y-10) , -2000);
+
+	int scale = w->size.y - 50;
+
+	if((w->size.x-20) > scale)
+	{
+		float delta = (float)(w->size.x - 20 - scale) * 0.5f;
+		glTranslatef(delta, 0, 0);
+	}
+	else
+	{
+		scale = w->size.x-20;
+		float delta = (float)(w->size.y - 50 - scale) * 0.5f;
+		glTranslatef(0, delta, 0);
+	}
+
+	glScalef(scale, scale, scale);
+
+	mesh_draw(m);
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glDisable(GL_DEPTH_TEST);
+}
+
+widget* spawn_obj(char* filename)
+{
+	widget *w = widget_window_new(100, 100, hcopy(filename));
+	MESH *m = mesh_load_obj(filename);
+	w->data2 = m;
+	w->draw = widget_window_obj_draw;
+	widget_add(w);
+	return w;
+}
+
+
 /*
  * Open File Dialog
  */
@@ -636,7 +779,9 @@ void open_test(widget *w)
 	if(!f->data)return;
 	char **names = (char**)f->data;
 	char *path = (char*)p->data2;
-	printf("%s/%s\n", path, names[f->selected]);
+	char buf[1000];
+	sprintf(buf, "%s/%s", path, names[f->selected]);
+	spawn_obj(buf);
 	widget_destroy(p);
 }
 
@@ -819,6 +964,7 @@ void spawn_about(widget *x)
 	widget_child_add(w, item);
 	w->size.x = 330;
 	w->size.y = 170;
+	w->noResize = 1;
 	widget_add(w);
 }
 
@@ -864,6 +1010,7 @@ void spawn_license(widget *x)
 	w->size.y = 360;
 	w->pos.x = 20;
 	w->pos.y = 80;
+	w->noResize = 1;
 	widget_add(w);
 }
 

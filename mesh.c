@@ -291,15 +291,15 @@ void mesh_draw(MESH *m)
 	glNormalPointer(GL_FLOAT, 24, (GLvoid*)12);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ebo);
 
-//	glDrawElements(GL_TRIANGLES, m->nf*12, GL_UNSIGNED_INT, (GLvoid*)0);
-	glDrawArrays(GL_POINTS, 0, m->nv);
+	glDrawElements(GL_TRIANGLES, m->nf*12, GL_UNSIGNED_INT, (GLvoid*)0);
+//	glDrawArrays(GL_POINTS, 0, m->nv);
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 MESH* mesh_load_obj(char *filename)
