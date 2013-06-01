@@ -13,4 +13,5 @@ MESH* mesh_load_obj(char *filename);
 MESH* mesh_load(char *filename);
 void mesh_write(MESH *m, char *filename);
 void mesh_draw(MESH *m);
+void mesh_free(MESH *m);
 

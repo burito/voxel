@@ -41,6 +41,14 @@ freely, subject to the following restrictions:
 
 struct sth_stash* stash = 0;
 
+/*
+ * The saying goes something like...
+ * "A good C++ programmer can code C++ in any language"
+ *
+ * It's not really a class per se, I see it as more of an attack platform.
+ * From the widget data structure, one can lay siege to many a UI paradigm.
+ */
+
 typedef struct widget
 {
 	int2 pos, size, delta;
@@ -60,6 +68,7 @@ typedef struct widget
 	int selected;
 	void *data;
 	void *data2;
+	void (*free)(struct widget*);
 } widget;
 
 widget *widget_root = 0;
@@ -83,12 +92,12 @@ widget* widget_new(int2 pos, int2 size)
 	return ret;
 }
 
-void widget_kill(widget* w)
+void widget_free(widget* w)
 {
 	if(!w)return;
-	widget_kill(w->child);
-	widget_kill(w->next);
-//	if(w->data)free(w->data);
+	widget_free(w->child);
+	widget_free(w->next);
+	if(w->free)w->free(w);
 	free(w);
 }
 
@@ -217,7 +226,7 @@ void widget_destroy(widget *w)
 		w->next->prev = w->prev;
 	}
 	w->prev = w->next = w->parent = 0;
-	widget_kill(w);
+	widget_free(w);
 }
 
 
@@ -265,12 +274,11 @@ void widget_button_release(widget *w)
 	}
 }
 
-
-
-
-void widget_button_action(widget *w)
+void widget_button_free(widget *w)
 {
-	printf("Default action\n");
+	if(!w)return;
+	if(w->data)free(w->data);
+//	if(w->data2)free(w->data2);
 }
 
 
@@ -282,7 +290,7 @@ widget* widget_button_new(int x, int y, char* label)
 	w->draw = widget_button_draw;
 	w->onclick = widget_button_onclick;
 	w->release = widget_button_release;
-//	w->action = widget_button_action;
+//	w->free = widget_button_free;
 	return w;
 }
 
@@ -293,7 +301,7 @@ widget* widget_text_new(int x, int y, char* label)
 	w->data = label;
 	w->draw = widget_text_draw;
 	w->noClick = 1;
-
+//	w->free = widget_button_free;
 	return w;
 }
 
@@ -466,10 +474,11 @@ widget* widget_window_new(int x, int y, char* title)
 	int2 p = {x, y}, s = {400, 300};
 	widget *w = widget_new(p, s);
 	w->draw = widget_window_draw;
-	w->data = title;
+	w->data = hcopy(title);
 	w->click = widget_window_click;
 	w->onclick = widget_window_onclick;
 	w->release = widget_window_release;
+	w->free = widget_button_free;
 	return w;
 }
 
@@ -490,7 +499,6 @@ void widget_draw(widget *w)
 	glColor4ub(255,255,255,255);
 	glTranslatef(0, vid_height, 0);
 	widget_item_draw(w);
-
 }
 
 void widget_menu_draw(widget *w)
@@ -690,6 +698,16 @@ void widget_list_onclick(widget *w)
 	}
 }
 
+void widget_list_free(widget *w)
+{
+	char **list = w->data;
+	for(int i=0; i<w->count; i++)
+		free(list[i]);
+	free(w->data);
+}
+
+
+
 widget* widget_list_new(int x, int y, char **list, int count)
 {
 	int2 p = {x,y}, s = {150, 150};
@@ -698,6 +716,7 @@ widget* widget_list_new(int x, int y, char **list, int count)
 	w->click = widget_list_click;
 	w->onclick = widget_list_onclick;
 	w->data = list;
+	w->free = widget_list_free;
 	w->count = count;
 	w->selected = -1;
 	return w;
@@ -747,12 +766,19 @@ void widget_window_obj_draw(widget *w)
 	glDisable(GL_DEPTH_TEST);
 }
 
+void widget_window_obj_free(widget *w)
+{
+	MESH *m = w->data2;
+	mesh_free(m);
+}
+
 widget* spawn_obj(char* filename)
 {
 	widget *w = widget_window_new(100, 100, hcopy(filename));
 	MESH *m = mesh_load_obj(filename);
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
+	w->free = widget_window_obj_free;
 	widget_add(w);
 	return w;
 }
@@ -926,19 +952,17 @@ widget* widget_menu_item_add(widget *w, char* label, void (*action)(widget*))
  * About Box
  */
 
-void spawn_homepage(widget *w)
+void widget_url_action(widget *w)
 {
-	shell_browser("http://danpburke.blogspot.com.au");
+	shell_browser(w->data2);
 }
 
-void spawn_youtube(widget *w)
+widget* widget_url_new(int x, int y, char *label, char *url)
 {
-	shell_browser("http://www.youtube.com/user/bur1t0/videos");
-}
-
-void spawn_github(widget *w)
-{
-	shell_browser("https://github.com/burito/voxel");
+	widget *w = widget_button_new(x, y, label);
+	w->data2 = url;
+	w->action = widget_url_action;
+	return w;
 }
 
 void spawn_about(widget *x)
@@ -950,16 +974,13 @@ void spawn_about(widget *x)
 	item->fontsize = 40.0f;
 	item->fontface = 1;
 	widget_child_add(w, item);
-	item = widget_button_new(20, 120, "WWW");
-	item->size.x = 90;
-	item->action = spawn_homepage;
-	widget_child_add(w, item);
-	item = widget_button_new(120, 120, "GitHub");
-	item->action = spawn_github;
+	item = widget_url_new(20, 120, "WWW", "http://danpburke.blogspot.com.au");
 	item->size.x = 90;
 	widget_child_add(w, item);
-	item = widget_button_new(220, 120, "YouTube");
-	item->action = spawn_youtube;
+	item = widget_url_new(120, 120, "GitHub", "https://github.com/burito/voxel");
+	item->size.x = 90;
+	widget_child_add(w, item);
+	item = widget_url_new(220, 120, "YouTube", "http://www.youtube.com/user/bur1t0/videos");
 	item->size.x = 90;
 	widget_child_add(w, item);
 	w->size.x = 330;
@@ -967,6 +988,29 @@ void spawn_about(widget *x)
 	w->noResize = 1;
 	widget_add(w);
 }
+
+void spawn_credits(widget *x)
+{
+	widget *item, *w = widget_window_new(100, 100, "CREDITS");
+	item = widget_text_new(20, 80, "VOXEL TEST");
+	item->fontsize = 40.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+	item = widget_url_new(20, 120, "GLEW", "http://glew.sourceforge.net");
+	item->size.x = 90;
+	widget_child_add(w, item);
+	item = widget_url_new(120, 120, "Font Stash", "https://github.com/akrinke/Font-Stash");
+	item->size.x = 90;
+	widget_child_add(w, item);
+	item = widget_url_new(220, 120, "zlib", "http://zlib.net/");
+	item->size.x = 90;
+	widget_child_add(w, item);
+	w->size.x = 330;
+	w->size.y = 170;
+	w->noResize = 1;
+	widget_add(w);
+}
+
 
 /*
  * License Dialog

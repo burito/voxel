@@ -266,6 +266,7 @@ static void mesh_interleave(MESH *m)
 	free(m->n); m->n = 0;
 }
 
+
 static void mesh_vbo_load(MESH *m)
 {
 	glGenBuffers(1, &m->vbo);
@@ -281,6 +282,19 @@ static void mesh_vbo_load(MESH *m)
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+
+void mesh_free(MESH *m)
+{
+	if(!m)return;
+	if(m->ebo)glDeleteBuffers(1, &m->ebo);
+	if(m->vbo)glDeleteBuffers(1, &m->vbo);
+	if(m->v)free(m->v);
+	if(m->n)free(m->n);
+	if(m->p)free(m->p);
+	if(m->f)free(m->f);
+	free(m);
 }
 
 
