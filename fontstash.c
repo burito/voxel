@@ -19,12 +19,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include <GL/gl.h>
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#define STBTT_malloc(x,u)    malloc(x)
-#define STBTT_free(x,u)      free(x)
 #include "stb_truetype.h"
 
 #define HASH_LUT_SIZE 256
