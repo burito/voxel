@@ -27,6 +27,25 @@ freely, subject to the following restrictions:
 #include "gui.h"
 
 
+typedef struct LOADING
+{
+	char * filename;
+	int passes;
+	float *pass;
+} LOADING;
+
+const int max_loading = 6;
+LOADING currently_loading[6];
+
+
+void open_target(char * filename)
+{
+	
+
+}
+
+
+
 int main_init(int argc, char *argv[])
 {
 	return gui_init(argc, argv);

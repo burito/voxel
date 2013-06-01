@@ -615,6 +615,10 @@ widget* widget_list_new(int x, int y, char **list, int count)
 }
 
 
+/*
+ * Open File Dialog
+ */
+
 static int cmp_str(const void *p1, const void *p2)
 {
 	return strcmp(* (char * const *) p1, * (char * const *) p2);
@@ -624,13 +628,25 @@ static int cmp_str(const void *p1, const void *p2)
 void open_test(widget *w)
 {
 	if(!w)return;
-	if(w->data)printf("%s\n", (char*)w->data);
+	if(!w->parent)return;
+	widget *p = w->parent;
+	if(!p->child)return;
+	widget *f = p->child;		// file dialog
+	if(-1 == f->selected)return;			// is a file selected?
+	if(!f->data)return;
+	char **names = (char**)f->data;
+	char *path = (char*)p->data2;
+	printf("%s/%s\n", path, names[f->selected]);
+	widget_destroy(p);
 }
 
 void spawn_open(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "OPEN...");
-	widget_add(w);
+	widget *b = widget_button_new(10, 40, "GitHub");
+	b->action = open_test;
+	b->data = "Open";
+	widget_child_add(w, b);
 
 
 	int dmax = 100, fmax = 100;
@@ -641,49 +657,57 @@ void spawn_open(widget *x)
 	dirs = malloc(sizeof(char*)*dmax);
 	files = malloc(sizeof(char*)*fmax);
 
-
-	DIR *dir = opendir(".");
+	char *path = "./data";
+	w->data2 = path;
+	DIR *dir = opendir(path);
+	char tmp[1000];
 	struct dirent *ent;
 	while((ent = readdir(dir)))
 	{
-		if(ent->d_name[0] != '.')
+		if(ent->d_name[0] == '.')continue;
+		
+		struct stat s;
+		memset(&s, 0, sizeof(struct stat));
+		memset(tmp, 0, 1000);
+		sprintf(tmp, "%s/%s", path, ent->d_name); 
+		stat(tmp, &s);
+		if( S_ISDIR(s.st_mode) )
 		{
-			struct stat s;
-			stat(ent->d_name, &s);
-			if( S_ISDIR(s.st_mode) )
+			if(dcnt == dmax)
 			{
-				if(dcnt == dmax)
-				{
-					printf("dont forget to malloc some more\n");
-					return;
-				}
-				dirs[dcnt++] = hcopy(ent->d_name);
+				printf("dont forget to malloc some more\n");
+				return;
 			}
-			if( S_ISREG(s.st_mode) )
+			dirs[dcnt++] = hcopy(ent->d_name);
+		} else
+		if( S_ISREG(s.st_mode) )
+		{
+			if(fcnt == fmax)
 			{
-				if(fcnt == fmax)
-				{
-					printf("dont forget to malloc some more\n");
-					return;
-				}
-				files[fcnt++] = hcopy(ent->d_name);
+				printf("dont forget to malloc some more\n");
+				return;
 			}
+			files[fcnt++] = hcopy(ent->d_name);
 		}
+		else printf("Unexpected Filetype= %d \"%s\"\n", s.st_mode, ent->d_name);
+
+		
 	}
 	closedir(dir);
 
 	qsort(dirs, dcnt, sizeof(char*), cmp_str);
 	qsort(files, fcnt, sizeof(char*), cmp_str);
 
-	widget *item = widget_list_new(10, 90, dirs, dcnt);
+	widget *item = widget_list_new(10, 80, dirs, dcnt);
 	item->size.x = w->size.x / 3 - 15;
 	item->size.y = w->size.y - 100;
 	widget_child_add(w, item);
-	item = widget_list_new(w->size.x/3 + 5, 90, files, fcnt);
+	item = widget_list_new(w->size.x/3 + 5, 80, files, fcnt);
 	item->size.x = w->size.x / 3 * 2 - 15;
 	item->size.y = w->size.y - 100;
 	widget_child_add(w, item);
 	item->action = open_test;
+	widget_add(w);
 }
 
 /*

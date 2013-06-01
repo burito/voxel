@@ -47,5 +47,5 @@ test: octview convertoct
 
 # Housekeeping
 clean:
-	@rm -f *.o GL/glew.o convert convertoct polyview octview gui *.exe win32.res
+	@rm -f *.o GL/glew.o convertoct octview gui *.exe win32.res
 
