@@ -50,7 +50,7 @@ int main_init(int argc, char *argv[])
 {
 	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
-	GLfloat light_position[] = { 1.0, 1.0, -100.0, 0.0 };
+	GLfloat light_position[] = { -100.0, -100.0, -100.0, 0.0 };
 	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 	glEnable(GL_LIGHT0);
