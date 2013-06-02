@@ -48,8 +48,16 @@ void open_target(char * filename)
 
 int main_init(int argc, char *argv[])
 {
-	return gui_init(argc, argv);
+	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat mat_shininess[] = { 50.0 };
+	GLfloat light_position[] = { 1.0, 1.0, -100.0, 0.0 };
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+	glEnable(GL_LIGHT0);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+//	glEnable(GL_LIGHTING);
 
+	return gui_init(argc, argv);
 }
 
 void main_loop(void)

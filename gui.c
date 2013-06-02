@@ -68,6 +68,7 @@ typedef struct widget
 	int selected;
 	void *data;
 	void *data2;
+	void *data3;
 	void (*free)(struct widget*);
 } widget;
 
@@ -411,6 +412,13 @@ void widget_window_click(widget *w)
 		w->size.x -= mickey_x;
 		break;
 
+	case 9:		// rotating object
+		if(!w->data3)break;
+		float3 *p = w->data3;
+		p->y -= mickey_x;
+		p->x -= mickey_y;
+		break;
+
 	}
 }
 
@@ -738,8 +746,8 @@ void widget_window_obj_draw(widget *w)
 	glLoadIdentity();
 	glClearDepth(5000.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
-//	glEnable(GL_DEPTH_TEST);
-	glColor4ub(255,255,255,255);
+	glEnable(GL_DEPTH_TEST);
+	glColor4f(1,1,1,1);
 	glTranslatef(w->pos.x +10, vid_height - (w->pos.y + w->size.y-10) , -2000);
 
 	int scale = w->size.y - 50;
@@ -758,7 +766,18 @@ void widget_window_obj_draw(widget *w)
 
 	glScalef(scale, scale, scale);
 
+	float3 *p = w->data3;
+	glTranslatef(0.5,0.5, 0.5f);
+	glRotatef(p->x, 1.0f, 0.0f, 0.0f);
+	glRotatef(p->y, 0.0f, 1.0f, 0.0f);
+	glRotatef(p->z, 0.0f, 0.0f, 1.0f);
+	glTranslatef(-0.5,-0.5, -0.5f);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_NORMALIZE);
 	mesh_draw(m);
+	glDisable(GL_NORMALIZE);
+	glDisable(GL_LIGHTING);
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
@@ -772,6 +791,14 @@ void widget_window_obj_free(widget *w)
 	mesh_free(m);
 }
 
+void widget_window_obj_onclick(widget *w)
+{
+	if(!w)return;
+	widget_window_onclick(w);
+	if(!w->clicked)
+		w->clicked = 9;		// rotating object
+}
+
 widget* spawn_obj(char* filename)
 {
 	widget *w = widget_window_new(100, 100, hcopy(filename));
@@ -779,6 +806,10 @@ widget* spawn_obj(char* filename)
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
 	w->free = widget_window_obj_free;
+	w->onclick = widget_window_obj_onclick;
+	float3 *p = malloc(sizeof(float3));
+	p->x = p->y = p->z = 0;
+	w->data3 = p;
 	widget_add(w);
 	return w;
 }
@@ -1078,7 +1109,7 @@ void spawn_license(widget *x)
 	item = widget_text_new(20, 320, "   3. This notice may not be removed or altered from any source");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 335, "   distribution.");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
 	w->size.x = 570;
 	w->size.y = 360;
 	w->pos.x = 20;
