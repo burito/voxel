@@ -495,7 +495,7 @@ void widget_draw(widget *w)
 	if(!w)return;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, vid_width, 0, vid_height, -1, 1);
+	glOrtho(0, vid_width, 0, vid_height, -1, 5000);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
@@ -736,13 +736,7 @@ void widget_window_obj_draw(widget *w)
 	widget_window_draw(w);
 	MESH *m = w->data2;
 
-	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0, vid_width, 0, vid_height, -1, 5000);
-	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glClearDepth(5000.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -778,9 +772,6 @@ void widget_window_obj_draw(widget *w)
 	mesh_draw(m);
 	glDisable(GL_NORMALIZE);
 	glDisable(GL_LIGHTING);
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
 	glDisable(GL_DEPTH_TEST);
 }
