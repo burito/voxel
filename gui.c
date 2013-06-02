@@ -737,12 +737,11 @@ void widget_window_obj_draw(widget *w)
 	MESH *m = w->data2;
 
 	glPushMatrix();
-	glLoadIdentity();
 	glClearDepth(5000.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glColor4f(1,1,1,1);
-	glTranslatef(w->pos.x +10, vid_height - (w->pos.y + w->size.y-10) , -2000);
+	glTranslatef(10, -w->size.y+10, -2000);
 
 	int scale = w->size.y - 50;
 
