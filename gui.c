@@ -88,7 +88,7 @@ widget* widget_new(int2 pos, int2 size)
 	ret->pos = pos;
 	ret->size = size;
 	ret->fontsize = 20.0f;
-	ret->fontface = 2;
+	ret->fontface = 3;
 	return ret;
 }
 
@@ -320,8 +320,8 @@ void widget_window_draw(widget *w)
 
 	glColor4f(1,1,1,1);
 	sth_begin_draw(stash);
-	sth_draw_text(stash, 1,24.0f, 20, 7, w->data, 0);
-	sth_draw_text(stash, 0,14.0f, w->size.x - 35, 10, "END", 0);
+	sth_draw_text(stash, 2,24.0f, 20, 7, w->data, 0);
+	sth_draw_text(stash, 1,14.0f, w->size.x - 35, 10, "END", 0);
 	sth_end_draw(stash);
 //	glTranslatef(0, 0, 0);
 	glColor4f(colour, colour, colour, 1.0f);
@@ -974,13 +974,16 @@ void spawn_about(widget *x)
 	item->fontsize = 40.0f;
 	item->fontface = 1;
 	widget_child_add(w, item);
-	item = widget_url_new(20, 120, "WWW", "http://danpburke.blogspot.com.au");
+	item = widget_url_new(20, 120, "WWW",
+			"http://danpburke.blogspot.com.au");
 	item->size.x = 90;
 	widget_child_add(w, item);
-	item = widget_url_new(120, 120, "GitHub", "https://github.com/burito/voxel");
+	item = widget_url_new(120, 120, "GitHub",
+			"https://github.com/burito/voxel");
 	item->size.x = 90;
 	widget_child_add(w, item);
-	item = widget_url_new(220, 120, "YouTube", "http://www.youtube.com/user/bur1t0/videos");
+	item = widget_url_new(220, 120, "YouTube",
+			"http://www.youtube.com/user/bur1t0/videos");
 	item->size.x = 90;
 	widget_child_add(w, item);
 	w->size.x = 330;
@@ -996,17 +999,43 @@ void spawn_credits(widget *x)
 	item->fontsize = 40.0f;
 	item->fontface = 1;
 	widget_child_add(w, item);
-	item = widget_url_new(20, 120, "GLEW", "http://glew.sourceforge.net");
-	item->size.x = 90;
+	item = widget_text_new(30, 120, "LIBRARIES");
+	item->fontface = 1;
 	widget_child_add(w, item);
-	item = widget_url_new(120, 120, "Font Stash", "https://github.com/akrinke/Font-Stash");
-	item->size.x = 90;
+	item = widget_text_new(190, 120, "FONTS");
+	item->fontface = 1;
 	widget_child_add(w, item);
-	item = widget_url_new(220, 120, "zlib", "http://zlib.net/");
-	item->size.x = 90;
+	item = widget_url_new(20, 120, "GLEW",
+			"http://glew.sourceforge.net");
+	item->size.x = 140;
 	widget_child_add(w, item);
-	w->size.x = 330;
-	w->size.y = 170;
+	item = widget_url_new(20, 160, "Font Stash",
+			"https://github.com/akrinke/Font-Stash");
+	item->size.x = 140;
+	widget_child_add(w, item);
+	item = widget_url_new(20, 200, "stb_truetype.h",
+			"http://nothings.org/");
+	item->size.x = 140;
+	widget_child_add(w, item);
+	item = widget_url_new(20, 240, "zlib",
+			"http://zlib.net/");
+	item->size.x = 140;
+	widget_child_add(w, item);
+	item = widget_url_new(180, 120, "SourceSansPro",
+			"https://github.com/adobe/source-sans-pro");
+	item->size.x = 140;
+	widget_child_add(w, item);
+	item = widget_url_new(180, 160, "SourceCodePro",
+			"https://github.com/adobe/source-code-pro");
+	item->fontface = 1;
+	item->size.x = 140;
+	widget_child_add(w, item);
+//	item = widget_url_new(180, 200, "",
+//			"");
+//	item->size.x = 140;
+//	widget_child_add(w, item);
+	w->size.x = 340;
+	w->size.y = 290;
 	w->noResize = 1;
 	widget_add(w);
 }
@@ -1021,35 +1050,35 @@ void spawn_license(widget *x)
 	widget *w = widget_window_new(100, 100, "LICENSE");
 	widget *item;
 	item = widget_text_new(20, 70, "Copyright (c) 2012 Daniel Burke");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 95, "This software is provided 'as-is', without any express or implied");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 110, "warranty. In no event will the authors be held liable for any damages");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 125, "arising from the use of this software.");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 155, "Permission is granted to anyone to use this software for any purpose,");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 170, "including commercial applications, and to alter it and redistribute it");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 185, "freely, subject to the following restrictions:");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 210, "   1. The origin of this software must not be misrepresented; you must not");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 225, "   claim that you wrote the original software. If you use this software");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 240, "   in a product, an acknowledgment in the product documentation would be");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 255, "   appreciated but is not required.");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 280, "   2. Altered source versions must be plainly marked as such, and must not be");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 295, "   misrepresented as being the original software.");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 320, "   3. This notice may not be removed or altered from any source");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 335, "   distribution.");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	w->size.x = 570;
 	w->size.y = 360;
 	w->pos.x = 20;
@@ -1093,7 +1122,7 @@ void menu_fullscreen(widget *w)
 
 void font_load(int i, char *path)
 {
-	int ret = sth_add_font(stash, i, path);
+	int ret = sth_add_font(stash, path);
 	if(!ret)printf("Failed to load font %d:\"%s\"\n", i, path);
 }
 
@@ -1136,7 +1165,7 @@ int gui_init(int argc, char *argv[])
 	widget_menu_item_add(item, "Overview \u2560", 0);
 	widget_menu_item_add(item, "Wiki \u26a0", 0);
 	widget_menu_separator_add(item);
-	widget_menu_item_add(item, "Credits \u2623", 0);
+	widget_menu_item_add(item, "Credits \u2623", spawn_credits);
 	widget_menu_item_add(item, "License", spawn_license);
 	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "About", spawn_about);
