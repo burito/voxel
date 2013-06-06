@@ -64,17 +64,17 @@ void printProgramInfoLog(GLuint obj)
 char* file_load(char *filename)
 {
 	FILE *fptr;
-	int size;
-	struct stat stbuf;
 	char *buf;
 
-	fptr = fopen(filename, "rb");
-	if(!fptr)return 0;
+	struct stat stbuf;
 	stat(filename, &stbuf);
-	size = stbuf.st_size;
-	buf = malloc(size+1);
-	fread(buf, size, 1, fptr);
+	int size = stbuf.st_size;
+	char *buf = malloc(size+1);
+	if(!buf)return 0;
 	buf[size] = 0;
+	FILE *fptr = fopen(filename, "rb");
+	if(!fptr){ free(buf); return 0; }
+	fread(buf, size, 1, fptr);
 	fclose(fptr);
 	return buf;
 }

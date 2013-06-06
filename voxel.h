@@ -25,5 +25,3 @@ void voxel_init(char *filename);
 void voxel_draw(void);
 void voxel_end(void);
 
-
-
