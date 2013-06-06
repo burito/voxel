@@ -10,6 +10,7 @@ typedef struct MESH
 } MESH;
 
 MESH* mesh_load_obj(char *filename);
+MESH* mesh_load_pointcloud(char *filename);
 MESH* mesh_load(char *filename);
 void mesh_write(MESH *m, char *filename);
 void mesh_draw(MESH *m);
