@@ -792,7 +792,7 @@ void widget_window_obj_onclick(widget *w)
 widget* spawn_obj(char* filename)
 {
 	widget *w = widget_window_new(100, 100, hcopy(filename));
-	MESH *m = mesh_load_obj(filename);
+	MESH *m = mesh_load_pointcloud(filename);
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
 	w->free = widget_window_obj_free;
@@ -1038,7 +1038,11 @@ void spawn_credits(widget *x)
 			"http://nothings.org/");
 	item->size.x = 140;
 	widget_child_add(w, item);
-	item = widget_url_new(20, 240, "zlib",
+	item = widget_url_new(20, 240, "Targa reader/writer",
+			"http://dmr.ath.cx/gfx/targa/");
+	item->size.x = 140;
+	widget_child_add(w, item);
+	item = widget_url_new(20, 280, "zlib",
 			"http://zlib.net/");
 	item->size.x = 140;
 	widget_child_add(w, item);
@@ -1056,7 +1060,7 @@ void spawn_credits(widget *x)
 //	item->size.x = 140;
 //	widget_child_add(w, item);
 	w->size.x = 340;
-	w->size.y = 290;
+	w->size.y = 330;
 	w->noResize = 1;
 	widget_add(w);
 }
