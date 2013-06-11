@@ -34,6 +34,9 @@ extern char keys[];
 extern int fullscreen;
 extern int fullscreen_toggle;
 
+extern const int sys_secondticks;
+int sys_time(void);
+
 
 void shell_browser(char *url);
 

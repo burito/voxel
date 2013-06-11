@@ -1,8 +1,7 @@
-CFLAGS = -g -std=c99 -Wall -pedantic
-CFLAGS += -I.
+CFLAGS = -g -std=c99 -Wall -pedantic -I.
 CC = gcc
-PLATFORM = GL/glew.o stb_truetype.o fontstash.o
-LIBRARIES = -lm -lz
+PLATFORM = GL/glew.o stb_truetype.o fontstash.o targa.o image.o
+LIBRARIES = -lm -lz -lpng
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
@@ -12,7 +11,7 @@ endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
 PLATFORM += win32.res win32.o
 CFLAGS += -DWIN32 
-LIBRARIES += -lgdi32 -lopengl32
+LIBRARIES += -lgdi32 -lopengl32 -lwinmm
 endif
 
 # Build rules

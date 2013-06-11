@@ -24,6 +24,8 @@ freely, subject to the following restrictions:
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
 
+#include <sys/time.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -75,6 +77,16 @@ int xAttrList[] = {
 int fullscreen=0;
 int fullscreen_toggle=0;
 int oldx=0, oldy=0;
+
+const int sys_secondticks = 1000000;
+int sys_time(void)
+{
+	struct timeval tv;
+	memset(&tv, 0, sizeof(struct timeval));
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec*1000000)+tv.tv_usec;
+}
+
 
 void shell_browser(char *url)
 {

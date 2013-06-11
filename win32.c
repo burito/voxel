@@ -64,6 +64,13 @@ void main_loop(void);
 void main_end(void);
 
 
+const int sys_secondticks = 1000;
+int sys_time(void)
+{
+	return timeGetTime();
+}
+
+
 static void fail(const char * string)
 {
 	int err;
