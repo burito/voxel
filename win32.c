@@ -64,10 +64,10 @@ void main_loop(void);
 void main_end(void);
 
 
-const int sys_secondticks = 1000;
+const int sys_ticksecond = 1000;
 int sys_time(void)
 {
-	return timeGetTime();
+	return timeGetTime() % sys_ticksecond;
 }
 
 

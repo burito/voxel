@@ -34,7 +34,7 @@ extern char keys[];
 extern int fullscreen;
 extern int fullscreen_toggle;
 
-extern const int sys_secondticks;
+extern const int sys_ticksecond;	/* ticks in a second */
 int sys_time(void);
 
 

@@ -78,13 +78,13 @@ int fullscreen=0;
 int fullscreen_toggle=0;
 int oldx=0, oldy=0;
 
-const int sys_secondticks = 1000000;
+const int sys_ticksecond = 1000000;
 int sys_time(void)
 {
 	struct timeval tv;
-	memset(&tv, 0, sizeof(struct timeval));
+	tv.tv_usec = 0;	// tv.tv_sec = 0;
 	gettimeofday(&tv, NULL);
-	return (tv.tv_sec*1000000)+tv.tv_usec;
+	return tv.tv_usec;
 }
 
 
