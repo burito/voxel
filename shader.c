@@ -63,9 +63,6 @@ void printProgramInfoLog(GLuint obj)
 
 char* file_load(char *filename)
 {
-	FILE *fptr;
-	char *buf;
-
 	struct stat stbuf;
 	stat(filename, &stbuf);
 	int size = stbuf.st_size;
