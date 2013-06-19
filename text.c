@@ -58,6 +58,24 @@ char* glError(int error)
 	}
 }
 
+void tailchomp(char *string)
+{
+	for(int i = strlen(string); i>0; i--)
+	switch(string[i]) {
+	case '\r':
+	case '\n':
+	case '\t':
+	case ' ':
+	case 0:
+		string[i] = 0;
+		if(!i)return;
+		break;
+	default:
+		return;
+	}
+}
+
+
 // Copy a zero terminated string onto the heap
 char* hcopy(const char *string)
 {
