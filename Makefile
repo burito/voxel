@@ -1,7 +1,7 @@
 CFLAGS = -g -std=c99 -Wall -pedantic -I.
 CC = gcc
-PLATFORM = GL/glew.o stb_truetype.o fontstash.o targa.o image.o
-LIBRARIES = -lm -lz -lpng
+PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
+LIBRARIES = -lm
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
@@ -23,6 +23,15 @@ win32.res: win32.rc
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDES)-c $< -o $@
+
+
+meshtest.o: mesh.c mesh.h
+	$(CC) -DSTATIC_TEST $(CFLAGS) $(INCLUDES) -c mesh.c -o $@
+
+meshtest: meshtest.o text.o 3dmaths.o image.o stb_image.o
+	$(CC) $^ $(LIBRARIES) -o $@
+
+
 
 
 convertoct: convertoct.o 3dmaths.o

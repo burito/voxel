@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 
 #include <GL/glew.h>
 
+#include "main.h"
 #include "mesh.h"
 #include "gui.h"
 
@@ -45,6 +46,9 @@ void open_target(char * filename)
 }
 
 
+int time_start = 0;
+int time_last;
+
 
 int main_init(int argc, char *argv[])
 {
@@ -56,6 +60,8 @@ int main_init(int argc, char *argv[])
 	glEnable(GL_LIGHT0);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 //	glEnable(GL_LIGHTING);
+
+	time_last = sys_time();
 
 	return gui_init(argc, argv);
 }

@@ -68,13 +68,34 @@ void tailchomp(char *string)
 	case ' ':
 	case 0:
 		string[i] = 0;
-		if(!i)return;
 		break;
 	default:
 		return;
 	}
 }
 
+int whitespace(char c)
+{
+	switch(c) {
+	case ' ':
+	case '\t':
+		return 1;
+	}
+	return 0;
+}
+
+
+int eol(char c)
+{
+	switch(c) {
+	case 0:
+	case '\r':
+	case '\n':
+		return 1;
+	default:
+		return 0;
+	}
+}
 
 // Copy a zero terminated string onto the heap
 char* hcopy(const char *string)

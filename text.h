@@ -26,6 +26,8 @@ char* glError(int error);
 char* hcopy(const char *string);
 char* repath(const char *hostpath, const char *file);
 void tailchomp(char *string);
+int whitespace(char c);
+int eol(char c);
 
 double fast_atof(const char *p);
 

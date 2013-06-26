@@ -734,7 +734,7 @@ widget* widget_list_new(int x, int y, char **list, int count)
 void widget_window_obj_draw(widget *w)
 {
 	widget_window_draw(w);
-	MESH *m = w->data2;
+	WF_OBJ *m = w->data2;
 
 	glPushMatrix();
 	glClearDepth(5000.0f);
@@ -768,7 +768,7 @@ void widget_window_obj_draw(widget *w)
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_NORMALIZE);
-	mesh_draw(m);
+	wf_draw(m);
 	glDisable(GL_NORMALIZE);
 	glDisable(GL_LIGHTING);
 	glPopMatrix();
@@ -777,8 +777,8 @@ void widget_window_obj_draw(widget *w)
 
 void widget_window_obj_free(widget *w)
 {
-	MESH *m = w->data2;
-	mesh_free(m);
+	WF_OBJ *m = w->data2;
+	wf_free(m);
 }
 
 void widget_window_obj_onclick(widget *w)
@@ -792,7 +792,7 @@ void widget_window_obj_onclick(widget *w)
 widget* spawn_obj(char* filename)
 {
 	widget *w = widget_window_new(100, 100, hcopy(filename));
-	MESH *m = mesh_load_pointcloud(filename);
+	WF_OBJ *m = wf_load(filename);
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
 	w->free = widget_window_obj_free;
