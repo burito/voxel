@@ -1016,7 +1016,7 @@ void spawn_about(widget *x)
 void spawn_credits(widget *x)
 {
 	widget *item, *w = widget_window_new(100, 100, "CREDITS");
-	item = widget_text_new(20, 80, "VOXEL TEST");
+	item = widget_text_new(20, 80, "3RD PARTY BYTESMITHS");
 	item->fontsize = 40.0f;
 	item->fontface = 1;
 	widget_child_add(w, item);
@@ -1038,8 +1038,8 @@ void spawn_credits(widget *x)
 			"http://nothings.org/");
 	item->size.x = 140;
 	widget_child_add(w, item);
-	item = widget_url_new(20, 240, "Targa reader/writer",
-			"http://dmr.ath.cx/gfx/targa/");
+	item = widget_url_new(20, 240, "stb_image.c",
+			"http://nothings.org");
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(20, 280, "zlib",
