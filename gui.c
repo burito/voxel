@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -36,41 +37,11 @@ freely, subject to the following restrictions:
 #include "text.h"
 #include "main.h"
 #include "mesh.h"
-
+#include "gui.h"
 #include "fontstash.h"
 
 struct sth_stash* stash = 0;
 
-/*
- * The saying goes something like...
- * "A good C++ programmer can code C++ in any language"
- *
- * It's not really a class per se, I see it as more of an attack platform.
- * From the widget data structure, one can lay siege to many a UI paradigm.
- */
-
-typedef struct widget
-{
-	int2 pos, size, delta;
-	struct widget *parent, *child, *next, *prev;
-	int clicked;
-	int noClick;
-	int noResize;
-	int fontface;
-	float fontsize;
-	void (*click)(struct widget*);
-	void (*release)(struct widget*);
-	void (*onclick)(struct widget*);
-	void (*draw)(struct widget*);
-	void (*action)(struct widget*);
-	float percent;
-	int count;
-	int selected;
-	void *data;
-	void *data2;
-	void *data3;
-	void (*free)(struct widget*);
-} widget;
 
 widget *widget_root = 0;
 widget *latched = 0;
@@ -127,6 +98,12 @@ widget* widget_shoot(widget *w, int2 pos)
 void widget_item_draw(widget *w)
 {
 	if(!w)return;
+	if(w->parent)
+	{
+		F2ADD(w->drawpos, w->pos, w->parent->drawpos);
+	}
+	else w->drawpos = w->pos;
+
 	widget_item_draw(w->next);
 	glTranslatef((GLfloat)w->pos.x, (GLfloat)-w->pos.y, 0.0f);
 	if(w->draw)w->draw(w);
@@ -460,6 +437,16 @@ void widget_window_onclick(widget *w)
 
 }
 
+void widget_open_click(widget *w)
+{
+	widget_window_click(w);
+}
+
+void widget_open_onclick(widget *w)
+{
+	widget_window_onclick(w);
+}
+
 void widget_window_release(widget *w)
 {
 	if(3 != w->clicked)return;
@@ -571,12 +558,18 @@ void widget_list_draw(widget *w)
 {
 	if(!w)return;
 	float height = 0.0f;
-	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
+	float fascend=0, fdescend=0;
+	sth_vmetrics(stash, w->fontface, w->fontsize, &fascend, &fdescend, &height);
+	float hoff = -fascend;
 	float fullheight = (float)w->count * height;
 	float totalheight = (fullheight - (float)w->size.y) / fullheight;
-	int y = -height*0.75;
+	int y = 0;
 	char **names = (char**)w->data;
 	widget_rect_draw(w);
+
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(w->drawpos.x, vid_height - w->drawpos.y - w->size.y, w->size.x, w->size.y);
+
 
 	glColor4f(1,1,1,1);
 	sth_begin_draw(stash);
@@ -586,32 +579,35 @@ void widget_list_draw(widget *w)
 		{
 			if(i == w->selected)
 			{
-				glTranslatef(0, y+height*0.75, 0);
+				glTranslatef(0, y, 0);
 				glColor4f(1,1,1,0.2);
 				draw_rect(w->size.x, height);
-				glTranslatef(0, -(y+height*0.75), 0);
+				glTranslatef(0, -y, 0);
 			}
 			glColor4f(1,1,1,1);
-			sth_draw_text(stash, w->fontface, w->fontsize, 10, y, names[i], 0);
+			sth_draw_text(stash, w->fontface, w->fontsize, 10, y+hoff, names[i], 0);
 			y -= height;
 		}
 		sth_end_draw(stash);
 	}
 	else
 	{
+		float smooth = (float)w->count * (w->percent * totalheight);
+		double mtmp = 0;
+		int ysmooth = modf(smooth, &mtmp) * height;
 	
-		int i = (float)w->count * (w->percent * totalheight);
+		int i = smooth;
 		for(; i<w->count; i++)
 		{
 			if(i == w->selected)
 			{
-				glTranslatef(0, y+height*0.75, 0);
+				glTranslatef(0, y+ysmooth, 0);
 				glColor4f(1,1,1,0.2);
 				draw_rect(w->size.x-20, height);
-				glTranslatef(0, -(y+height*0.75), 0);
+				glTranslatef(0, -(y+ysmooth), 0);
 			}
 			glColor4f(1,1,1,1);
-			sth_draw_text(stash, w->fontface, w->fontsize, 10, y, names[i], 0);
+			sth_draw_text(stash, w->fontface, w->fontsize, 10, y+hoff+ysmooth, names[i], 0);
 			y -= height;
 			if( -y > w->size.y)
 				break;
@@ -631,6 +627,7 @@ void widget_list_draw(widget *w)
 
 		glTranslatef(-w->size.x + 20, 0, 0);
 	}
+	glDisable(GL_SCISSOR_TEST);
 }
 
 void widget_list_click(widget *w)
@@ -768,7 +765,7 @@ void widget_window_obj_draw(widget *w)
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_NORMALIZE);
-	wf_draw(m);
+	m->draw(m);
 	glDisable(GL_NORMALIZE);
 	glDisable(GL_LIGHTING);
 	glPopMatrix();
@@ -835,6 +832,8 @@ void open_test(widget *w)
 void spawn_open(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "OPEN...");
+	w->onclick = widget_open_onclick;
+	w->click = widget_open_click;
 	widget *b = widget_button_new(10, 40, "GitHub");
 	b->action = open_test;
 	b->data = "Open";
@@ -1039,7 +1038,7 @@ void spawn_credits(widget *x)
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(20, 240, "stb_image.c",
-			"http://nothings.org");
+			"http://nothings.org/");
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(20, 280, "zlib",

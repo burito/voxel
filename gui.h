@@ -25,4 +25,35 @@ int gui_init(int argc, char *argv[]);
 void gui_loop(void);
 void gui_end(void);
 
+/*
+ * The saying goes something like...
+ * "A good C++ programmer can code C++ in any language"
+ *
+ * It's not really a class per se, I see it as more of an attack platform.
+ * From the widget data structure, one can lay siege to many a UI paradigm.
+ */
+
+typedef struct widget
+{
+	int2 pos, size, delta, drawpos;
+	struct widget *parent, *child, *next, *prev;
+	int clicked;
+	int noClick;
+	int noResize;
+	int fontface;
+	float fontsize;
+	void (*click)(struct widget*);
+	void (*release)(struct widget*);
+	void (*onclick)(struct widget*);
+	void (*draw)(struct widget*);
+	void (*action)(struct widget*);
+	float percent;
+	int count;
+	int selected;
+	void *data;
+	void *data2;
+	void *data3;
+	void (*free)(struct widget*);
+} widget;
+
 
