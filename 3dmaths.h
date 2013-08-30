@@ -64,6 +64,8 @@ typedef struct byte4 {
 } byte4;
 
 #define F2COPY(D,S) D.x=S.x;D.y=S.y
+#define F2ADD(D,A,B) D.x=A.x+B.x;D.y=A.y+B.y
+
 #define F2MAG(X) X.x*X.x+X.y*X.y
 #define F3MAG(X) X.x*X.x+X.y*X.y+X.z*X.z
 

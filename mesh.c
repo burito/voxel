@@ -70,12 +70,24 @@ void mtl_begin(WF_MTL *m)
 		glActiveTexture(GL_TEXTURE3);
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, m->map_bump->id);
+
 	}
 	glActiveTexture(GL_TEXTURE0);
 }
 void mtl_end(void)
 {
+	GLfloat one[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	GLfloat amb[] = {0.2f, 0.2f, 0.2f, 1.0f};
+	GLfloat diff[] = {0.8f, 0.8f, 0.8f, 1.0f};
+	GLfloat zero[] = {0.0f, 0.0f, 0.0f, 1.0f};
+	glMateriali(GL_FRONT, GL_SHININESS, 0);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, amb);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diff);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, zero);
+	glMaterialfv(GL_FRONT, GL_EMISSION, zero);
+
 	glColor4f(1,1,1,1);
+	glMateriali(GL_FRONT, GL_SHININESS, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glDisable(GL_TEXTURE_2D);glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE1);
@@ -105,10 +117,10 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 	if(!m)return 0;
 	memset(m, 0, sizeof(WF_MTL));
 	m->colour.x = m->colour.y = m->colour.z = m->colour.w = 1.0f;
-	m->Ns = 50.0f;
-	m->Ka.x = m->Ka.y = m->Ka.z = 1.0f;
-	m->Kd.x = m->Kd.y = m->Kd.z = 0.7f;
-	m->Ks.x = m->Ks.y = m->Ks.z = 0.2f;
+	m->Ns = 50.0f;							// specular coefficient
+	m->Ka.x = m->Ka.y = m->Ka.z = 0.2f;		// ambient
+	m->Kd.x = m->Kd.y = m->Kd.z = 0.8f;		// diffuse
+	m->Ks.x = m->Ks.y = m->Ks.z = 0.2f;		// specular
 	m->name = hcopy(name);
 	char buf[BUF_LEN];
 	float *targetf;
@@ -251,6 +263,69 @@ static void wf_bound(WF_OBJ *w)
 
 	printf("Volume = (%f, %f, %f)\n", size.x, size.y, size.z);
 }
+
+void wf_buffer_drawarray(WF_OBJ *w)
+{
+	int size = w->nf * 32 * 3;
+	WF_ARRAY *p = malloc(size);
+	memset(p, 0, size);
+
+	printf("At init we have %d/%d/%d\n", w->nv, w->nn, w->nt);
+
+	WF_MTL *m = w->m;
+	int o=0;
+	for(;m;m = m->next)
+	{
+		m->nf = 0;
+		for(int i=0; i<w->nf; i++)
+		if(w->f[i].m == m)
+		{
+			p[o*3].v = w->v[w->f[i].f.x];
+			p[o*3].n = w->vn[w->f[i].f.x];
+			p[o*3+1].v = w->v[w->f[i].f.y];
+			p[o*3+1].n = w->vn[w->f[i].f.y];
+			p[o*3+2].v = w->v[w->f[i].f.z];
+			p[o*3+2].n = w->vn[w->f[i].f.z];
+			if(w->nt)
+			{
+				p[o*3].t.x = w->vt[w->f[i].t.x].x;
+				p[o*3].t.y = w->vt[w->f[i].t.x].y;
+				p[o*3+1].t.x = w->vt[w->f[i].t.y].x;
+				p[o*3+1].t.y = w->vt[w->f[i].t.y].y;
+				p[o*3+2].t.x = w->vt[w->f[i].t.z].x;
+				p[o*3+2].t.y = w->vt[w->f[i].t.z].y;
+			}
+			o++;
+			m->nf++;
+		}
+	}
+	printf("At nomtl we have %d/%d-%d\n", w->nv, o, w->nf);
+	
+	if(o < w->nf)
+	for(int i=0; i<w->nf; i++)
+	if(w->f[i].m == 0)
+	{
+		p[o*3].v = w->v[w->f[i].f.x];
+		p[o*3].n = w->vn[w->f[i].f.x];
+		p[o*3+1].v = w->v[w->f[i].f.y];
+		p[o*3+1].n = w->vn[w->f[i].f.y];
+		p[o*3+2].v = w->v[w->f[i].f.z];
+		p[o*3+2].n = w->vn[w->f[i].f.z];
+		if(w->nt)
+		{
+			p[o*3].t.x = w->vt[w->f[i].t.x].x;
+			p[o*3].t.y = w->vt[w->f[i].t.x].y;
+			p[o*3+1].t.x = w->vt[w->f[i].t.y].x;
+			p[o*3+1].t.y = w->vt[w->f[i].t.y].y;
+			p[o*3+2].t.x = w->vt[w->f[i].t.z].x;
+			p[o*3+2].t.y = w->vt[w->f[i].t.z].y;
+		}
+		o++;
+	}
+	w->p = p;
+	printf("Interleaved faces ok!\n");
+}
+
 
 void wf_interleave(WF_OBJ *w)
 {
@@ -443,28 +518,34 @@ static void wf_vbo_load(WF_OBJ *w)
 #ifndef STATIC_TEST
 	if(!w)return;
 
-	glGenBuffers(1, &w->vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, w->vbo);
+	w->vbo = 0;
+	printf("genbuffers\n");
+	printf("%s\n", glError(glGetError()));
+
+	glGenBuffersARB(1, &w->vbo);
+	printf("bindbuffer\n");
+	glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
+	printf("bufferdata\n");
 	if(w->p)
 	{
-		glBufferData(GL_ARRAY_BUFFER, w->nv*32, w->p, GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*32, w->p, GL_STATIC_DRAW);
+		glBindBufferARB(GL_ARRAY_BUFFER, 0);
 		printf("faces too\n");
 	}
 	else
 	{
-		glBufferData(GL_ARRAY_BUFFER, w->nv*12, w->v, GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*12, w->v, GL_STATIC_DRAW);
+		glBindBufferARB(GL_ARRAY_BUFFER, 0);
 		printf("verts only\n");
 		return;
 	}
 
-	glGenBuffers(1, &w->ebo);
+	glGenBuffersARB(1, &w->ebo);
 	if(!w->ebo)printf("glGenBuffers failed\n");
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, w->ebo);
+	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER, w->ebo);
 	printf("w->nf*12 = %d\n", w->nf*12);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, w->nf*12, 0, GL_STATIC_DRAW);
-	int *p = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER, w->nf*12, 0, GL_STATIC_DRAW);
+	int *p = glMapBufferARB(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
 	if(p)
 	{
 		memcpy(p, w->vf, w->nf*12);
@@ -474,30 +555,67 @@ static void wf_vbo_load(WF_OBJ *w)
 		printf("glMapBuffer() failed\n");
 		printf("%s\n", glError(glGetError()));
 	}
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+	glUnmapBufferARB(GL_ELEMENT_ARRAY_BUFFER);
 }
 
 
-void wf_draw(WF_OBJ *w)
+void wf_drawarray_points(WF_OBJ *w)
 {
 	if(!w)return;
-	glBindBuffer(GL_ARRAY_BUFFER, w->vbo);
+	glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	if(!w->p)
-	{
-		glVertexPointer(3, GL_FLOAT, 12, (GLvoid*)0);
-		glDrawArrays(GL_POINTS, 0, w->nv);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glDisableClientState(GL_VERTEX_ARRAY);
-		return;
-	}
+	glVertexPointer(3, GL_FLOAT, 12, (GLvoid*)0);
+	glDrawArrays(GL_POINTS, 0, w->nv);
+	glBindBufferARB(GL_ARRAY_BUFFER, 0);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
 
-	glVertexPointer(3, GL_FLOAT, 32, (GLvoid*)0);
+void wf_drawarray_triangles(WF_OBJ *w)
+{
+	if(!w)return;
+	glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
+
+	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	int stride = 8*4;
+	glVertexPointer(3,	GL_FLOAT, 32, (GLvoid*)0);
 	glNormalPointer(GL_FLOAT, 32, (GLvoid*)12);
 	glTexCoordPointer(2, GL_FLOAT, 32, (GLvoid*)24);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, w->ebo);
+
+	GLint i=0;
+
+	for(WF_MTL *m = w->m; m; m = m->next)
+	{
+		if(!m->nf)continue;
+		mtl_begin(m);
+		glDrawArrays(GL_TRIANGLES, i*3, m->nf*3);
+		i += m->nf;
+	}
+	mtl_end();
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	if(i<w->nf)
+		glDrawArrays(GL_TRIANGLES, i*3, (w->nf-i)*3);
+
+	glBindBufferARB(GL_ARRAY_BUFFER, 0);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+}
+
+void wf_drawelements(WF_OBJ *w)
+{
+	if(!w)return;
+	glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 32, (GLvoid*)0);
+	glNormalPointer(GL_FLOAT, 32, (GLvoid*)12);
+	glTexCoordPointer(2, GL_FLOAT, 32, (GLvoid*)24);
+
+	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER, w->ebo);
 
 	WF_MTL *m = w->m;
 
@@ -517,14 +635,14 @@ void wf_draw(WF_OBJ *w)
 	glDrawElements(GL_TRIANGLES, (w->nf-i)*12,
 			GL_UNSIGNED_INT, (GLvoid*)(i*12));
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBufferARB(GL_ARRAY_BUFFER, 0);
+	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_NORMAL_ARRAY);
 #endif
 }
 
-WF_OBJ* wf_load(char * filename)
+WF_OBJ* wf_parse(char *filename)
 {
 	printf("Loading Wavefront OBJ(\"%s\");\n", filename);
 	FILE *fptr = fopen(filename, "r");
@@ -538,7 +656,7 @@ WF_OBJ* wf_load(char * filename)
 	if(!w)
 	{
 		fclose(fptr);
-		printf("wf_load() malloc failed\n");
+		printf("wf_parse() malloc failed\n");
 		return 0;
 	}
 	memset(w, 0, sizeof(WF_OBJ));
@@ -586,7 +704,11 @@ WF_OBJ* wf_load(char * filename)
 	if(w->nv)w->v = malloc(sizeof(float3)*w->nv);
 	if(w->nt)w->vt = malloc(sizeof(float3)*w->nt);
 	if(w->nn)w->vn = malloc(sizeof(float3)*w->nn);
-	if(w->nf)w->f = malloc(sizeof(WF_FACE)*w->nf);
+	if(w->nf)
+	{
+		w->f = malloc(sizeof(WF_FACE)*w->nf);
+		memset(w->f, 0, sizeof(WF_FACE)*w->nf);
+	}
 	if(w->ng)w->groups = malloc(sizeof(char*)*w->ng);
 	if(w->ns)w->sgroups = malloc(sizeof(int)*w->ns);
 
@@ -633,6 +755,11 @@ WF_OBJ* wf_load(char * filename)
 			{
 				while(' '!=buf[i])i++; i++;
 				target->z = fast_atof(buf+i);
+			}
+			else
+			{
+				target->y = 1.0 - target->y;
+
 			}
 			break;
 	
@@ -837,24 +964,55 @@ WF_OBJ* wf_load(char * filename)
 					}
 					i++;
 				}
-	printf("still here\n");
 				break;	// face reader break
 			}
 			break;	// line type break
 		}
 	}
-	printf("still here\n");
 	printf("Read    v=%d,t=%d,n=%d,f=%d,g=%d,s=%d\n",
 			vi, ti, ni, fi, gi, si);
 
 	fclose(fptr);
-	printf("At fclose we have %d/%d/%d\n", w->nv, w->nn, w->nt);
+	printf("At fclose we have %d/%d/%d\n", w->nv, w->nt, w->nn);
+	return w;
+}
+
+
+WF_OBJ* wf_load(char * filename)
+{
+	WF_OBJ *w = wf_parse(filename);
+
 	wf_bound(w);
-	if(w->nv != w->nn)
-		wf_normals(w);
+	if(w->nv != w->nn)wf_normals(w);
 	wf_texcoords(w);
-	wf_interleave(w);
-	wf_vbo_load(w);
+
+	if(!w->nf)
+	{
+		w->draw = wf_drawarray_points;
+
+		glGenBuffersARB(1, &w->vbo);
+		glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
+		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*12, w->v, GL_STATIC_DRAW);
+		glBindBufferARB(GL_ARRAY_BUFFER, 0);
+		printf("verts only\n");
+	}
+	else
+	if(GLEW_VERSION_1_5 && GLEW_ARB_vertex_buffer_object)
+	{
+		wf_interleave(w);
+		wf_vbo_load(w);
+
+		w->draw = wf_drawelements;
+	}
+	else
+	{
+		wf_buffer_drawarray(w);
+		w->draw = wf_drawarray_triangles;
+		glGenBuffersARB(1, &w->vbo);
+		glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
+		glBufferDataARB(GL_ARRAY_BUFFER, w->nf*32*3, w->p, GL_STATIC_DRAW);
+		glBindBufferARB(GL_ARRAY_BUFFER, 0);
+	}
 	printf("All done.\n");
 	return w;
 }
@@ -870,8 +1028,8 @@ void wf_free(WF_OBJ *w)
 	if(w->f)free(w->f);
 	if(w->fn)free(w->fn);
 #ifndef STATIC_TEST
-	if(w->vbo)glDeleteBuffers(1, &w->vbo);
-	if(w->ebo)glDeleteBuffers(1, &w->ebo);
+	if(w->vbo)glDeleteBuffersARB(1, &w->vbo);
+	if(w->ebo)glDeleteBuffersARB(1, &w->ebo);
 #endif
 	WF_MTL *mt, *m = w->m;
 	while(m)

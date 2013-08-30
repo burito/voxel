@@ -36,14 +36,20 @@ typedef struct WF_OBJ
 	char **groups;
 	int *sgroups;
 	GLuint vbo, ebo;
+	void (*draw)(struct WF_OBJ*);
 } WF_OBJ;
 
+
+typedef struct WF_ARRAY
+{
+	float3 v, n;
+	float2 t;
+} WF_ARRAY;
 
 void mtl_begin(WF_MTL *m);
 void mtl_end(void);
 
 WF_OBJ* wf_load(char *filename);
-void wf_draw(WF_OBJ *w);
 void wf_free(WF_OBJ *w);
 
 
