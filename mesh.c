@@ -76,7 +76,6 @@ void mtl_begin(WF_MTL *m)
 }
 void mtl_end(void)
 {
-	GLfloat one[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	GLfloat amb[] = {0.2f, 0.2f, 0.2f, 1.0f};
 	GLfloat diff[] = {0.8f, 0.8f, 0.8f, 1.0f};
 	GLfloat zero[] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -322,7 +321,7 @@ void wf_buffer_drawarray(WF_OBJ *w)
 		}
 		o++;
 	}
-	w->p = p;
+	w->p = (float*)p;
 	printf("Interleaved faces ok!\n");
 }
 
@@ -579,7 +578,6 @@ void wf_drawarray_triangles(WF_OBJ *w)
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	int stride = 8*4;
 	glVertexPointer(3,	GL_FLOAT, 32, (GLvoid*)0);
 	glNormalPointer(GL_FLOAT, 32, (GLvoid*)12);
 	glTexCoordPointer(2, GL_FLOAT, 32, (GLvoid*)24);
