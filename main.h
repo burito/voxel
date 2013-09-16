@@ -35,7 +35,9 @@ extern int fullscreen;
 extern int fullscreen_toggle;
 
 extern const int sys_ticksecond;	/* ticks in a second */
-int sys_time(void);
+long long sys_time(void);
+
+extern float time;
 
 
 void shell_browser(char *url);

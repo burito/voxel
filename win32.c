@@ -65,9 +65,9 @@ void main_end(void);
 
 
 const int sys_ticksecond = 1000;
-int sys_time(void)
+long long sys_time(void)
 {
-	return timeGetTime() % sys_ticksecond;
+	return timeGetTime(); // % sys_ticksecond;
 }
 
 
