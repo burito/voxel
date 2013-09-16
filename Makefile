@@ -1,7 +1,7 @@
 CFLAGS = -g -std=c99 -Wall -pedantic -I.
 CC = gcc
 PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
-LIBRARIES = -lm
+LIBRARIES = -lm -lOpenCL
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
@@ -15,7 +15,7 @@ LIBRARIES += -lgdi32 -lopengl32 -lwinmm
 endif
 
 # Build rules
-default: octview convertoct gui
+default: gui
 
 
 win32.res: win32.rc
@@ -32,15 +32,7 @@ meshtest: meshtest.o text.o 3dmaths.o image.o stb_image.o
 	$(CC) $^ $(LIBRARIES) -o $@
 
 
-
-
-convertoct: convertoct.o 3dmaths.o
-	$(CC) $^ $(LIBRARIES) -o $@
-
-octview: octview.o shader.o voxel.o $(PLATFORM)
-	$(CC) $^ $(LIBRARIES) -o $@
-
-gui: main.o mesh.o 3dmaths.o gui.o text.o $(PLATFORM)
+gui: main.o mesh.o 3dmaths.o gui.o text.o ocl.o $(PLATFORM)
 	$(CC) $^ $(LIBRARIES) -o $@
 
 

@@ -39,6 +39,7 @@ freely, subject to the following restrictions:
 #include "mesh.h"
 #include "gui.h"
 #include "fontstash.h"
+#include "ocl.h"
 
 struct sth_stash* stash = 0;
 
@@ -449,9 +450,9 @@ void widget_open_onclick(widget *w)
 
 void widget_window_release(widget *w)
 {
-	if(3 != w->clicked)return;
 	w->delta.x = mouse_x - w->pos.x;
 	w->delta.y = mouse_y - w->pos.y;
+	if(3 != w->clicked)return;
 	if(w->delta.y > 5)
 	if(w->delta.y < 30)
 	if(w->delta.x > (w->size.x - 50) )
@@ -727,6 +728,86 @@ widget* widget_list_new(int x, int y, char **list, int count)
 	return w;
 }
 
+void widget_window_ocl_draw(widget *w)
+{
+	extern OCLCONTEXT *ocl;
+	widget_window_draw(w);
+	float left=10, right=w->size.x - 10;
+	float top=-40, bottom = -w->size.y + 10;
+
+	glColor4f(1,1,1,1);
+	sth_begin_draw(stash);
+	sth_draw_text(stash, 3, 20.0f, 6, -20, "\u2211", 0);
+	sth_end_draw(stash);
+
+	if(w->clicked == 10)
+	{
+		glColor4f(0.5f, 0.5f, 0.2f, 0.4f);
+		glTranslatef(0, -5, 0);
+		draw_rect(20, 23);
+		glTranslatef(0, 5, 0);
+		glColor4f(1,1,1,1);
+	}
+
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, ocl->id);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 0); glVertex2f(left, top);
+	glTexCoord2f(1, 0); glVertex2f(right, top);
+	glTexCoord2f(1, 1); glVertex2f(right, bottom);
+	glTexCoord2f(0, 1); glVertex2f(left, bottom);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+}
+
+void widget_window_ocl_onclick(widget *w)
+{
+	widget_window_onclick(w);
+
+	if(w->clicked == 2)
+	if(w->delta.x < 23)
+		w->clicked = 10;
+
+}
+
+void widget_window_ocl_release(widget *w)
+{
+	extern OCLCONTEXT *ocl;
+	widget_window_release(w);
+	if(w->clicked == 10)
+	if(w->delta.x > 0)
+	if(w->delta.x < 23)
+	if(w->delta.y > 5)
+	if(w->delta.y < 28)
+	{
+		ocl_build(ocl, w->data);
+	}
+		
+
+}
+
+void widget_window_img_draw(widget *w)
+{
+	widget_window_draw(w);
+	IMG *i = w->data2;
+
+	float left=10, right=w->size.x - 10;
+	float top=-40, bottom = -w->size.y + 10;
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, i->id);
+	glColor4f(1,1,1,1);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 0); glVertex2f(left, top);
+	glTexCoord2f(1, 0); glVertex2f(right, top);
+	glTexCoord2f(1, 1); glVertex2f(right, bottom);
+	glTexCoord2f(0, 1); glVertex2f(left, bottom);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+}
 
 void widget_window_obj_draw(widget *w)
 {
@@ -788,7 +869,7 @@ void widget_window_obj_onclick(widget *w)
 
 widget* spawn_obj(char* filename)
 {
-	widget *w = widget_window_new(100, 100, hcopy(filename));
+	widget *w = widget_window_new(100, 100, filename);
 	WF_OBJ *m = wf_load(filename);
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
@@ -800,6 +881,23 @@ widget* spawn_obj(char* filename)
 	widget_add(w);
 	return w;
 }
+
+
+
+
+widget* spawn_ocl(char* filename)
+{
+	extern OCLCONTEXT *ocl;
+	widget *w = widget_window_new(100, 100, filename);
+	w->draw = widget_window_ocl_draw;
+	w->release = widget_window_ocl_release;
+	w->onclick = widget_window_ocl_onclick;
+	ocl_build(ocl, filename);
+//	clReleaseProgram(*p);
+	widget_add(w);
+	return w;
+}
+
 
 
 /*
@@ -825,8 +923,27 @@ void open_test(widget *w)
 	char *path = (char*)p->data2;
 	char buf[1000];
 	sprintf(buf, "%s/%s", path, names[f->selected]);
-	spawn_obj(buf);
-	widget_destroy(p);
+	int len = strlen(buf);
+	switch(buf[len-3]) {
+	case 'o':
+	case 'O':
+		switch(buf[len-2]) {
+		case 'b':
+		case 'B':	// obj - Wavefront OBJ
+			spawn_obj(buf);
+			widget_destroy(p);
+			break;
+		case 'c':
+		case 'C':	// ocl - OpenCL kernel
+			spawn_ocl(buf);
+			widget_destroy(p);
+			break;
+		}
+		break;
+	
+	default:
+		break;
+	}
 }
 
 void spawn_open(widget *x)

@@ -26,7 +26,7 @@ freely, subject to the following restrictions:
 #include "main.h"
 #include "mesh.h"
 #include "gui.h"
-
+#include "ocl.h"
 
 typedef struct LOADING
 {
@@ -46,9 +46,10 @@ void open_target(char * filename)
 }
 
 
-int time_start = 0;
-int time_last;
+long long time_start = 0;
+float time = 0;
 
+OCLCONTEXT *ocl=NULL;
 
 int main_init(int argc, char *argv[])
 {
@@ -61,21 +62,27 @@ int main_init(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 //	glEnable(GL_LIGHTING);
 
-	time_last = sys_time();
+	ocl = ocl_init();
+
+	time_start = sys_time();
 
 	return gui_init(argc, argv);
 }
 
 void main_loop(void)
 {
-	gui_loop();
 
+	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
+
+	ocl_loop(ocl);
+	gui_loop();
 }
 
 
 
 void main_end(void)
 {
+	ocl_free(ocl);
 	gui_end();
 
 }
