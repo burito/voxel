@@ -197,11 +197,11 @@ void ocl_build(OCLCONTEXT *c, char *filename)
 
 	if(ret != CL_SUCCESS)
 	{
-		int esize = 10000;
+		int esize = 100000;
 		char *error = malloc(esize);
 		memset(error, 0, esize);
 		clGetProgramBuildInfo(p, *c->d, CL_PROGRAM_BUILD_LOG, esize,error,NULL);
-		printf("clBuildProgram(\"%s\");\n%s\n", filename, error);
+		printf("clBuildProgram(\"%s\")%d\n%s\n", filename, ret, error);
 		return;
 	}
 
