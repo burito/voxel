@@ -23,7 +23,9 @@ freely, subject to the following restrictions:
 
 
 extern int killme;		/* global killswitch */
-extern int vid_width;
+extern int sys_width;	/* dimensions of default screen */
+extern int sys_height;
+extern int vid_width;	/* dimensions of our part of the screen */
 extern int vid_height;
 extern int mouse_x;		/* position */
 extern int mouse_y;
@@ -31,6 +33,12 @@ extern int mickey_x;	/* velocity */
 extern int mickey_y;
 extern char mouse[3];	/* button status 0=up 1=down */
 extern char keys[];
+
+
+int main_init(int argc, char *argv[]);
+void main_loop(void);
+void main_end(void);
+
 extern int fullscreen;
 extern int fullscreen_toggle;
 

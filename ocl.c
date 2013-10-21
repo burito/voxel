@@ -246,7 +246,7 @@ void ocl_loop(OCLCONTEXT *c)
 	if(!c->k)return;
 
 	cl_int ret;
-	cl_event e;
+//	cl_event e;
 	size_t work_size[] = { 1024, 1024 };
 
 	glFinish();

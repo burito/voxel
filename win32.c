@@ -30,28 +30,19 @@ freely, subject to the following restrictions:
 
 #include "keyboard.h"
 
-HINSTANCE hInst;
-HWND hWnd;
-int CmdShow;
-HDC hDC;
-HGLRC hGLRC;
+
 
 int killme=0;
-int window_maximized = 0;
-int focus = 1;
-int menu = 1;
-
-int vid_width = 1280;
+int sys_width  = 1980;	/* dimensions of default screen */
+int sys_height = 1200;
+int vid_width  = 1280;	/* dimensions of our part of the screen */
 int vid_height = 720;
-int win_width = 0;
+int win_width  = 0;		/* used for switching from fullscreen back to window */
 int win_height = 0;
-//int oldx, oldy;
-int bpp = 24;
 int mouse_x = 0;
 int mouse_y = 0;
 int mickey_x = 0;
 int mickey_y = 0;
-
 char mouse[] = {0,0,0};
 #define KEYMAX 512
 char keys[KEYMAX];
@@ -63,13 +54,28 @@ int main_init(int argc, char *argv[]);
 void main_loop(void);
 void main_end(void);
 
-
 const int sys_ticksecond = 1000;
 long long sys_time(void)
 {
-	return timeGetTime(); // % sys_ticksecond;
+	return timeGetTime();
 }
 
+void shell_browser(char *url)
+{
+	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+}
+
+
+HINSTANCE hInst;
+HWND hWnd;
+int CmdShow;
+HDC hDC;
+HGLRC hGLRC;
+
+int window_maximized = 0;
+int focus = 1;
+int menu = 1;
+int sys_bpp = 24;
 
 static void fail(const char * string)
 {
@@ -79,11 +85,6 @@ static void fail(const char * string)
 	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0,
 			errStr, 1000, 0);
 	printf("%s: %s", string, errStr);
-}
-
-void shell_browser(char *url)
-{
-	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
 }
 
 
@@ -272,6 +273,7 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void win_pixelformat(void)
 {
+	unsigned char bpp = 24;
 	PIXELFORMATDESCRIPTOR pfd = { 
 		sizeof(PIXELFORMATDESCRIPTOR),
 		1,						// version number 
@@ -280,13 +282,13 @@ void win_pixelformat(void)
 		PFD_DOUBLEBUFFER |
 		PFD_STEREO_DONTCARE,
 		PFD_TYPE_RGBA,
-		(unsigned char)bpp,
+		bpp,
 		0, 0, 0, 0, 0, 0,		// color bits ignored 
 		0,						// no alpha buffer 
 		0,						// shift bit ignored 
 		0,						// no accumulation buffer 
 		0, 0, 0, 0,				// accum bits ignored 
-		(unsigned char)bpp,		// 32-bit z-buffer 
+		bpp,		// 32-bit z-buffer 
 		0,						// no stencil buffer 
 		0,						// no auxiliary buffer 
 		PFD_MAIN_PLANE,			// main layer 

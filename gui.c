@@ -750,6 +750,7 @@ void widget_window_ocl_draw(widget *w)
 	}
 
 
+	glColor4f(1,1,1,1);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, ocl->id);
 	glBegin(GL_QUADS);
