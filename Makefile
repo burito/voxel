@@ -1,39 +1,54 @@
-CFLAGS = -g -std=c99 -Wall -pedantic -I.
-CC = gcc
+CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
 PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
 LIBRARIES = -lm -lOpenCL
+SDIR = src
+
+OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o ocl.o 
+
+# Build rules
+
+WDIR = build/win
+#WCC = i686-w64-mingw32-gcc
+#WINDRES = i686-w64-mingw32-windres
+WCC = x86_64-w64-mingw32-gcc
+WINDRES = x86_64-w64-mingw32-windres
+_WOBJS = $(OBJS) win32.o win32.res
+WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
+WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lOpenCL64
+
+
+LDIR = build/lin
+LCC = gcc
+_LOBJS = $(OBJS) x11.o
+LOBJS = $(patsubst %,$(LDIR)/%,$(_LOBJS))
+LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi
+
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
-LIBRARIES += -lGL -lX11 -lGLU -lXi
-PLATFORM += x11.o
-endif
-ifeq ($(UNAME), MINGW32_NT-6.1)
-PLATFORM += win32.res win32.o
-CFLAGS += -DWIN32 
-LIBRARIES += -lgdi32 -lopengl32 -lwinmm
-endif
-
-# Build rules
 default: gui
 
+endif
+ifeq ($(UNAME), MINGW32_NT-6.1)
+WINDRES = windres
+default: gui.exe
+endif
 
-win32.res: win32.rc
-	windres $^ -O coff -o $@
+$(WDIR)/win32.res: $(SDIR)/win32.rc
+	$(WINDRES) $^ -O coff -o $@
 
-.c.o:
-	$(CC) $(CFLAGS) $(INCLUDES)-c $< -o $@
-
-
-meshtest.o: mesh.c mesh.h
-	$(CC) -DSTATIC_TEST $(CFLAGS) $(INCLUDES) -c mesh.c -o $@
-
-meshtest: meshtest.o text.o 3dmaths.o image.o stb_image.o
-	$(CC) $^ $(LIBRARIES) -o $@
+$(WDIR)/%.o: $(SDIR)/%.c
+	$(WCC) $(CFLAGS) -DWIN32 $(INCLUDES)-c $< -o $@
+$(LDIR)/%.o: $(SDIR)/%.c
+	$(LCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
 
 
-gui: main.o mesh.o 3dmaths.o gui.o text.o ocl.o $(PLATFORM)
-	$(CC) $^ $(LIBRARIES) -o $@
+
+gui: $(LOBJS)
+	$(LCC) $^ $(LLIBS) -o $@
+
+gui.exe: $(WOBJS)
+	$(WCC) $^ $(WLIBS) -o $@
 
 
 # Testing rules
@@ -47,5 +62,5 @@ test: octview convertoct
 
 # Housekeeping
 clean:
-	@rm -f *.o GL/glew.o convertoct octview gui *.exe win32.res
-
+	@rm -rf build gui gui.exe
+	@mkdir build build/lin build/lin/GL build/win build/win/GL
