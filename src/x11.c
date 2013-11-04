@@ -464,8 +464,8 @@ static void x11_end(void)
 
 int main(int argc, char* argv[])
 {
-	glewInit();
 	x11_init();
+	glewInit();		// belongs after GL context creation
 	int init = main_init(argc, argv);
 	if(init)
 	{
