@@ -934,8 +934,8 @@ void open_test(widget *w)
 			spawn_obj(buf);
 			widget_destroy(p);
 			break;
-		case 'c':
-		case 'C':	// ocl - OpenCL kernel
+		case 'p':
+		case 'P':	// OpenCL - OpenCL kernel
 			spawn_ocl(buf);
 			widget_destroy(p);
 			break;
