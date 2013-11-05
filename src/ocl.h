@@ -3,6 +3,8 @@
 
 typedef struct OCLPROGRAM
 {
+	int happy;
+	char *filename;
 	cl_program pr;
 	cl_kernel *k;
 	int num_kernels;
@@ -22,7 +24,7 @@ typedef struct OCLCONTEXT
 	cl_context c;
 	cl_command_queue q;
 
-	OCLPROGRAM *progs;
+	OCLPROGRAM **progs;
 	int num_progs;
 } OCLCONTEXT;
 
@@ -34,4 +36,5 @@ void ocl_end(void);
 void ocl_free(OCLPROGRAM *p);
 void ocl_loop();
 OCLPROGRAM* ocl_build(char *filename);
+void ocl_rebuild(OCLPROGRAM *clprog);
 

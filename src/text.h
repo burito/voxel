@@ -28,6 +28,7 @@ char* repath(const char *hostpath, const char *file);
 void tailchomp(char *string);
 int whitespace(char c);
 int eol(char c);
+char* loadTextFile(char *filename);
 
 double fast_atof(const char *p);
 

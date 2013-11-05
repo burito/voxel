@@ -41,25 +41,9 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "3dmaths.h"
-
-
-
-char* loadTextFile(char *filename)
-{
-	FILE *fptr = fopen(filename, "rb");
-	if(!fptr)return 0;
-	struct stat stbuf;
-	stat(filename, &stbuf);
-	int size = stbuf.st_size;
-	char *buf = malloc(size+1);
-	buf[size] = 0;
-	fread(buf, size, 1, fptr);
-	fclose(fptr);
-	return buf;
-}
+#include "text.h"
 
 
 OCLCONTEXT *OpenCL;
@@ -174,7 +158,7 @@ void ocl_add(OCLPROGRAM *p)
 
 	OpenCL->num_progs++;
 
-	void *tmp = realloc(OpenCL->progs, sizeof(OCLPROGRAM)*OpenCL->num_progs);
+	void *tmp = realloc(OpenCL->progs, sizeof(OCLPROGRAM*)*OpenCL->num_progs);
 
 	if(!tmp)
 	{
@@ -183,7 +167,7 @@ void ocl_add(OCLPROGRAM *p)
 	}
 
 	OpenCL->progs = tmp;
-	OpenCL->progs[OpenCL->num_progs-1] = *p;
+	OpenCL->progs[OpenCL->num_progs-1] = p;
 }
 
 
@@ -193,12 +177,14 @@ OCLPROGRAM* ocl_build(char *filename)
 
 	OCLPROGRAM *clprog = malloc(sizeof(OCLPROGRAM));
 	memset(clprog, 0, sizeof(OCLPROGRAM));
+	clprog->filename = hcopy(filename);
+	int error = 0;
 
 	const char *src = loadTextFile(filename);
 	size_t size = strlen(src);
 	cl_int ret;
 	cl_program p = clCreateProgramWithSource(OpenCL->c, 1, &src, &size, &ret);
-	if(ret != CL_SUCCESS){printf("cl_build:createprog %d\n", ret);return 0;}
+	if(ret != CL_SUCCESS){printf("cl_build:createprog %d\n", ret);error++;}
 	ret = clBuildProgram(p, 1, OpenCL->d, NULL, NULL, NULL);
 
 	if(ret != CL_SUCCESS)
@@ -208,7 +194,7 @@ OCLPROGRAM* ocl_build(char *filename)
 		memset(error, 0, esize);
 		clGetProgramBuildInfo(p, *OpenCL->d, CL_PROGRAM_BUILD_LOG, esize,error,NULL);
 		printf("clBuildProgram(\"%s\")%d\n%s\n", filename, ret, error);
-		return 0;
+		error++;
 	}
 
 	clGetProgramInfo(p, CL_PROGRAM_BINARY_SIZES,
@@ -220,7 +206,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	if(!nk)
 	{
 		printf("no kernels found\n");
-		return 0;
+		error++;
 	}
 
 	cl_kernel *k = malloc(sizeof(cl_kernel)*nk);
@@ -320,11 +306,69 @@ OCLPROGRAM* ocl_build(char *filename)
 		if(err != CL_SUCCESS)printf("clvox:buffer 6 failed\n");
 	}
 
+	if(!error)clprog->happy = 1;
 	ocl_add(clprog);
 	return clprog;
 }
 
+void ocl_rebuild(OCLPROGRAM *clprog)
+{
+	if(!clprog)return;
+	clprog->happy = 0;
+	int error = 0;
+	for(int i=0; i<clprog->num_kernels; i++)
+		clReleaseKernel(clprog->k[i]);
+	free(clprog->k);
+	clReleaseProgram(clprog->pr);
 
+	const char *src = loadTextFile(clprog->filename);
+	size_t size = strlen(src);
+	cl_int ret;
+	cl_program p = clCreateProgramWithSource(OpenCL->c, 1, &src, &size, &ret);
+	if(ret != CL_SUCCESS){printf("cl_build:createprog %d\n", ret);error++;}
+	ret = clBuildProgram(p, 1, OpenCL->d, NULL, NULL, NULL);
+
+	if(ret != CL_SUCCESS)
+	{
+		int esize = 100000;
+		char *errstr = malloc(esize);
+		memset(errstr, 0, esize);
+		clGetProgramBuildInfo(p, *OpenCL->d, CL_PROGRAM_BUILD_LOG, esize,errstr,NULL);
+		printf("clBuildProgram(\"%s\")%d\n%s\n", clprog->filename, ret, errstr);
+		error++;
+	}
+
+	clGetProgramInfo(p, CL_PROGRAM_BINARY_SIZES,
+				sizeof(size), &size, NULL);
+//	printf("Success: %zu bytes.\n", size);
+
+	cl_uint nk=0;
+	clCreateKernelsInProgram(p, 0, NULL, &nk);
+	if(!nk)
+	{
+		printf("no kernels found\n");
+		error++;
+	}
+
+	cl_kernel *k = malloc(sizeof(cl_kernel)*nk);
+	memset(k, 0, sizeof(cl_kernel)*nk);
+	ret = clCreateKernelsInProgram(p, nk, k, NULL);
+
+	for(int i=0; i<nk; i++)
+	{
+		char buf[256];
+		memset(buf, 0, 256);
+		clGetKernelInfo(k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
+		cl_uint argc = 0;
+		clGetKernelInfo(k[i], CL_KERNEL_NUM_ARGS, sizeof(cl_uint), &argc, NULL);
+		printf("Kernel[%d]:%s(%d)\n", i, buf, argc);
+	}
+
+	clprog->pr = p;
+	clprog->k = k;
+	clprog->num_kernels = nk;
+	if(!error)clprog->happy = 1;
+}
 
 void ocl_loop(void)
 {
@@ -336,7 +380,9 @@ void ocl_loop(void)
 
 	for(int i=0; i<OpenCL->num_progs; i++)
 	{
-		OCLPROGRAM *p = &OpenCL->progs[i];
+		OCLPROGRAM *p = OpenCL->progs[i];
+
+		if(!p->happy)continue;
 
 		cl_int ret;
 //	cl_event e;
@@ -346,7 +392,7 @@ void ocl_loop(void)
 		ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
 		if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%d\n", ret);
 
-		cl_kernel k = OpenCL->progs[i].k[0];
+		cl_kernel k = OpenCL->progs[i]->k[0];
 		clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
 		clSetKernelArg(k, 1, sizeof(float), &time);
 

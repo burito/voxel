@@ -748,10 +748,11 @@ void widget_window_ocl_draw(widget *w)
 		glColor4f(1,1,1,1);
 	}
 
+	OCLPROGRAM *p = w->data2;
 
 	glColor4f(1,1,1,1);
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, *(GLuint*)w->data2);
+	glBindTexture(GL_TEXTURE_2D, p->GLid[0]);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 0); glVertex2f(left, top);
 	glTexCoord2f(1, 0); glVertex2f(right, top);
@@ -781,7 +782,7 @@ void widget_window_ocl_release(widget *w)
 	if(w->delta.y > 5)
 	if(w->delta.y < 28)
 	{
-	//	OCLPROGRAM *p = ocl_build(w->data);
+		ocl_rebuild(w->data2);
 	}
 		
 
@@ -891,7 +892,7 @@ widget* spawn_ocl(char* filename)
 	w->release = widget_window_ocl_release;
 	w->onclick = widget_window_ocl_onclick;
 	OCLPROGRAM *p = ocl_build(filename);
-	w->data2 = &p->GLid[0];
+	w->data2 = p;
 //	clReleaseProgram(*p);
 	widget_add(w);
 	return w;

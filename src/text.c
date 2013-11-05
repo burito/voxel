@@ -25,6 +25,7 @@ freely, subject to the following restrictions:
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include <GL/glew.h>
 
@@ -132,6 +133,21 @@ char* repath(const char *hostpath, const char *file)
 
 	ret[i+lenfile] = 0;
 	return ret;
+}
+
+
+char* loadTextFile(char *filename)
+{
+	FILE *fptr = fopen(filename, "rb");
+	if(!fptr)return 0;
+	struct stat stbuf;
+	stat(filename, &stbuf);
+	int size = stbuf.st_size;
+	char *buf = malloc(size+1);
+	buf[size] = 0;
+	fread(buf, size, 1, fptr);
+	fclose(fptr);
+	return buf;
 }
 
 
