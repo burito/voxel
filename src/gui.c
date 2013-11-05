@@ -730,7 +730,6 @@ widget* widget_list_new(int x, int y, char **list, int count)
 
 void widget_window_ocl_draw(widget *w)
 {
-	extern OCLCONTEXT *ocl;
 	widget_window_draw(w);
 	float left=10, right=w->size.x - 10;
 	float top=-40, bottom = -w->size.y + 10;
@@ -752,7 +751,7 @@ void widget_window_ocl_draw(widget *w)
 
 	glColor4f(1,1,1,1);
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, ocl->id);
+	glBindTexture(GL_TEXTURE_2D, *(GLuint*)w->data2);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 0); glVertex2f(left, top);
 	glTexCoord2f(1, 0); glVertex2f(right, top);
@@ -775,7 +774,6 @@ void widget_window_ocl_onclick(widget *w)
 
 void widget_window_ocl_release(widget *w)
 {
-	extern OCLCONTEXT *ocl;
 	widget_window_release(w);
 	if(w->clicked == 10)
 	if(w->delta.x > 0)
@@ -783,7 +781,7 @@ void widget_window_ocl_release(widget *w)
 	if(w->delta.y > 5)
 	if(w->delta.y < 28)
 	{
-		ocl_build(ocl, w->data);
+	//	OCLPROGRAM *p = ocl_build(w->data);
 	}
 		
 
@@ -888,12 +886,12 @@ widget* spawn_obj(char* filename)
 
 widget* spawn_ocl(char* filename)
 {
-	extern OCLCONTEXT *ocl;
 	widget *w = widget_window_new(100, 100, filename);
 	w->draw = widget_window_ocl_draw;
 	w->release = widget_window_ocl_release;
 	w->onclick = widget_window_ocl_onclick;
-	ocl_build(ocl, filename);
+	OCLPROGRAM *p = ocl_build(filename);
+	w->data2 = &p->GLid[0];
 //	clReleaseProgram(*p);
 	widget_add(w);
 	return w;
@@ -934,8 +932,12 @@ void open_test(widget *w)
 			spawn_obj(buf);
 			widget_destroy(p);
 			break;
-		case 'p':
-		case 'P':	// OpenCL - OpenCL kernel
+		}
+	case 'n':
+	case 'N':
+		switch(buf[len-2]) {
+		case 'c':
+		case 'C':	// OpenCL - OpenCL kernel
 			spawn_ocl(buf);
 			widget_destroy(p);
 			break;

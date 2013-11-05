@@ -21,6 +21,7 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#include <stdio.h>
 #include <GL/glew.h>
 
 #include "main.h"
@@ -62,7 +63,8 @@ int main_init(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 //	glEnable(GL_LIGHTING);
 
-	ocl = ocl_init();
+	if(ocl_init())
+		printf("Initialising OpenCL failed.\n");
 
 	time_start = sys_time();
 
@@ -74,7 +76,7 @@ void main_loop(void)
 
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
 
-	ocl_loop(ocl);
+	ocl_loop();
 	gui_loop();
 }
 
@@ -82,7 +84,7 @@ void main_loop(void)
 
 void main_end(void)
 {
-	ocl_free(ocl);
+	ocl_end();
 	gui_end();
 
 }
