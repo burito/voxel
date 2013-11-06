@@ -121,7 +121,7 @@ int ocl_init(void)
 	c->c = clCreateContext(properties, 1, c->d, NULL, NULL, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("failed: clCreateContext() = %d\n", ret);
+		printf("clCreateContext():%s\n", clStrError(ret));
 		return 1;
 	}
 
@@ -129,7 +129,7 @@ int ocl_init(void)
 	c->q = clCreateCommandQueue(c->c, *c->d, 0, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("failed: clCreateCommandQueue() = %d\n", ret);
+		printf("failed: clCreateCommandQueue() = %s\n", clStrError(ret));
 		return 2;
 	}
 	OpenCL->happy = 1;
@@ -209,7 +209,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	size_t size = strlen(src);
 	cl_int ret;
 	cl_program p = clCreateProgramWithSource(OpenCL->c, 1, &src, &size, &ret);
-	if(ret != CL_SUCCESS){printf("cl_build:createprog %d\n", ret);error++;}
+	if(ret != CL_SUCCESS){printf("clCreateProgram():%s\n", clStrError(ret));error++;}
 	ret = clBuildProgram(p, 1, OpenCL->d, NULL, NULL, NULL);
 
 	if(ret != CL_SUCCESS)
@@ -218,7 +218,7 @@ OCLPROGRAM* ocl_build(char *filename)
 		char *error = malloc(esize);
 		memset(error, 0, esize);
 		clGetProgramBuildInfo(p, *OpenCL->d, CL_PROGRAM_BUILD_LOG, esize,error,NULL);
-		printf("clBuildProgram(\"%s\")%d\n%s\n", filename, ret, error);
+		printf("clBuildProgram(\"%s\"):%s\n%s\n", filename, clStrError(ret), error);
 		error++;
 	}
 
@@ -269,7 +269,7 @@ OCLPROGRAM* ocl_build(char *filename)
 		GL_TEXTURE_2D, 0, id, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("clCreateFromGLTexture2D() failed\n");
+		printf("clCreateFromGLTexture2D():%s\n", clStrError(ret));
 	}
 	
 	clprog->num_glid = 1;
@@ -309,26 +309,26 @@ OCLPROGRAM* ocl_build(char *filename)
 			GL_TEXTURE_3D, 0, id, &err);
 		if(ret != CL_SUCCESS)
 		{
-			printf("clCreateFromGLTexture3D() failed\n");
+			printf("clCreateFromGLTexture3D():%s\n", clStrError(ret));
 		}
 
 		// And the buffers... NodeNode, NodeBrick,
 		// NodeUseTime, NodeReqTime, BrickUseTime
 		size_t size = 100000*4;
-		clprog->CLmem[2] = clCreateBuffer(OpenCL->c,CL_MEM_READ_ONLY,sizeof(float)*4,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 2 failed\n");
-		clprog->CLmem[3] = clCreateBuffer(OpenCL->c,CL_MEM_READ_ONLY,sizeof(float)*4,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 3 failed\n");
+		clprog->CLmem[2] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,sizeof(float)*4,0,&err);
+		if(err != CL_SUCCESS)printf("clvox:buffer 2:%s\n", clStrError(err));
+		clprog->CLmem[3] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,sizeof(float)*4,0,&err);
+		if(err != CL_SUCCESS)printf("clvox:buffer 3:%s\n", clStrError(err));
 		clprog->CLmem[4] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 4 failed\n");
+		if(err != CL_SUCCESS)printf("clvox:buffer 4:%s\n", clStrError(err));
 		clprog->CLmem[5] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 5 failed\n");
+		if(err != CL_SUCCESS)printf("clvox:buffer 5:%s\n", clStrError(err));
 		clprog->CLmem[6] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 6 failed\n");
+		if(err != CL_SUCCESS)printf("clvox:buffer 6:%s\n", clStrError(err));
 		clprog->CLmem[7] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 7 failed\n");
+		if(err != CL_SUCCESS)printf("clvox:buffer 7:%s\n", clStrError(err));
 		clprog->CLmem[8] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
-		if(err != CL_SUCCESS)printf("clvox:buffer 8 failed\n");
+		if(err != CL_SUCCESS)printf("clvox:buffer 8:%s\n", clStrError(err));
 	}
 
 	if(!error)clprog->happy = 1;
@@ -350,7 +350,7 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 	size_t size = strlen(src);
 	cl_int ret;
 	cl_program p = clCreateProgramWithSource(OpenCL->c, 1, &src, &size, &ret);
-	if(ret != CL_SUCCESS){printf("cl_build:createprog %d\n", ret);error++;}
+	if(ret != CL_SUCCESS){printf("clCreateProgram():%s\n", clStrError(ret));error++;}
 	ret = clBuildProgram(p, 1, OpenCL->d, NULL, NULL, NULL);
 
 	if(ret != CL_SUCCESS)
@@ -359,7 +359,7 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 		char *errstr = malloc(esize);
 		memset(errstr, 0, esize);
 		clGetProgramBuildInfo(p, *OpenCL->d, CL_PROGRAM_BUILD_LOG, esize,errstr,NULL);
-		printf("clBuildProgram(\"%s\")%d\n%s\n", clprog->filename, ret, errstr);
+		printf("clBuildProgram(\"%s\")%s\n%s\n", clprog->filename, clStrError(ret), errstr);
 		error++;
 	}
 
@@ -416,7 +416,7 @@ void ocl_loop(void)
 
 		glFinish();
 		ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%d\n", ret);
+		if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
 
 		cl_kernel k = OpenCL->progs[i]->k[0];
 		clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
@@ -425,10 +425,10 @@ void ocl_loop(void)
 		if(p->type)
 		{
 			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[1], CL_TRUE, 0, sizeof(float)*4, &pos, 0, NULL, NULL);
-			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
+//			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
 
 
-			clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[1]);
+//			clSetKernelArg(k, 2, sizeof(float4), &pos);
 //			clSetKernelArg(k, 3, sizeof(cl_mem), &p->CLmem[2]);
 //			clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
 //			clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
@@ -439,11 +439,15 @@ void ocl_loop(void)
 		}
 
 		ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size, NULL, 0, NULL, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueNDRangeKernel():%d, %s\n", ret, clStrError(ret));
+		if(ret != CL_SUCCESS)
+		{
+			p->happy = 0;
+			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+		}
 
 
 		ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%d %s\n", ret, clStrError(ret));
+		if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
 		clFinish(OpenCL->q);
 	//	clWaitForEvents(1, &e);
 	}
