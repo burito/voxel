@@ -180,6 +180,10 @@ OCLPROGRAM* ocl_build(char *filename)
 	clprog->filename = hcopy(filename);
 	int error = 0;
 
+	if(strstr("Voxel", filename))
+		clprog->type = 1;
+		
+	
 	const char *src = loadTextFile(filename);
 	size_t size = strlen(src);
 	cl_int ret;
@@ -213,15 +217,11 @@ OCLPROGRAM* ocl_build(char *filename)
 	memset(k, 0, sizeof(cl_kernel)*nk);
 	ret = clCreateKernelsInProgram(p, nk, k, NULL);
 
-	int voxel=0;
-
 	for(int i=0; i<nk; i++)
 	{
 		char buf[256];
 		memset(buf, 0, 256);
 		clGetKernelInfo(k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
-		if(strstr("voxel", buf))
-			voxel = 1;
 		cl_uint argc = 0;
 		clGetKernelInfo(k[i], CL_KERNEL_NUM_ARGS, sizeof(cl_uint), &argc, NULL);
 		printf("Kernel[%d]:%s(%d)\n", i, buf, argc);
@@ -254,7 +254,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	clprog->num_glid = 1;
 	clprog->num_clmem = 1;
 
-	if(voxel)
+	if(clprog->type)
 	{
 		clprog->type = 1;
 		clprog->num_glid = 2;
@@ -266,7 +266,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	clprog->GLid[0] = id;
 	clprog->CLmem[0] = output;
 
-	if(voxel)
+	if(clprog->type)
 	{
 		// create GL brick texture
 		cl_int err;
