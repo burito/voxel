@@ -47,6 +47,7 @@ freely, subject to the following restrictions:
 
 
 OCLCONTEXT *OpenCL;
+static char* clStrError(cl_int error);
 
 void ocl_end(void)
 {
@@ -135,21 +136,6 @@ int ocl_init(void)
 }
 
 
-void ocl_free(OCLPROGRAM *p)
-{
-	if(!p)return;
-	for(int i=0; i<p->num_kernels; i++)
-		clReleaseKernel(p->k[i]);
-	free(p->k);
-	clReleaseProgram(p->pr);
-
-	glDeleteTextures(p->num_glid, p->GLid);
-	free(p->GLid);
-
-	for(int i=0; i<p->num_clmem; i++)
-		clReleaseMemObject(p->CLmem[i]);
-	free(p->CLmem);
-}
 
 void ocl_add(OCLPROGRAM *p)
 {
@@ -170,6 +156,40 @@ void ocl_add(OCLPROGRAM *p)
 	OpenCL->progs[OpenCL->num_progs-1] = p;
 }
 
+void ocl_rm(OCLPROGRAM *p)
+{
+	for(int i=0; i<OpenCL->num_progs; i++)
+	{
+		if(OpenCL->progs[i] == p)
+			OpenCL->progs[i] = NULL;
+	}
+}
+
+void ocl_free(OCLPROGRAM *p)
+{
+	if(!p)return;
+
+	ocl_rm(p);
+
+	if(p->k)
+	{
+		for(int i=0; i<p->num_kernels; i++)
+			clReleaseKernel(p->k[i]);
+		free(p->k);
+	}
+	clReleaseProgram(p->pr);
+
+	glDeleteTextures(p->num_glid, p->GLid);
+	free(p->GLid);
+
+	for(int i=0; i<p->num_clmem; i++)
+		clReleaseMemObject(p->CLmem[i]);
+	free(p->CLmem);
+
+	free(p);
+
+
+}
 
 OCLPROGRAM* ocl_build(char *filename)
 {
@@ -258,7 +278,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	{
 		clprog->type = 1;
 		clprog->num_glid = 2;
-		clprog->num_clmem = 7;
+		clprog->num_clmem = 9;
 	}
 
 	clprog->GLid = malloc(sizeof(GLuint)*clprog->num_glid);
@@ -294,9 +314,9 @@ OCLPROGRAM* ocl_build(char *filename)
 		// And the buffers... NodeNode, NodeBrick,
 		// NodeUseTime, NodeReqTime, BrickUseTime
 		size_t size = 100000*4;
-		clprog->CLmem[2] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
+		clprog->CLmem[2] = clCreateBuffer(OpenCL->c,CL_MEM_READ_ONLY,sizeof(float)*4,0,&err);
 		if(err != CL_SUCCESS)printf("clvox:buffer 2 failed\n");
-		clprog->CLmem[3] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
+		clprog->CLmem[3] = clCreateBuffer(OpenCL->c,CL_MEM_READ_ONLY,sizeof(float)*4,0,&err);
 		if(err != CL_SUCCESS)printf("clvox:buffer 3 failed\n");
 		clprog->CLmem[4] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
 		if(err != CL_SUCCESS)printf("clvox:buffer 4 failed\n");
@@ -304,6 +324,10 @@ OCLPROGRAM* ocl_build(char *filename)
 		if(err != CL_SUCCESS)printf("clvox:buffer 5 failed\n");
 		clprog->CLmem[6] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
 		if(err != CL_SUCCESS)printf("clvox:buffer 6 failed\n");
+		clprog->CLmem[7] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
+		if(err != CL_SUCCESS)printf("clvox:buffer 7 failed\n");
+		clprog->CLmem[8] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&err);
+		if(err != CL_SUCCESS)printf("clvox:buffer 8 failed\n");
 	}
 
 	if(!error)clprog->happy = 1;
@@ -375,13 +399,12 @@ void ocl_loop(void)
 	if(!OpenCL)return;
 	if(!OpenCL->happy)return;
 
-	float3 position = {0,0,0};
-	float3 angle = {0,0,0};
+	extern float3 pos, angle;
 
 	for(int i=0; i<OpenCL->num_progs; i++)
 	{
 		OCLPROGRAM *p = OpenCL->progs[i];
-
+		if(!p)continue;
 		if(!p->happy)continue;
 
 		cl_int ret;
@@ -398,26 +421,98 @@ void ocl_loop(void)
 
 		if(p->type)
 		{
+			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[1], CL_TRUE, 0, sizeof(float)*4, &pos, 0, NULL, NULL);
+			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
+
+
 			clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[1]);
-			clSetKernelArg(k, 3, sizeof(cl_mem), &p->CLmem[2]);
-			clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
-			clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
-			clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
-			clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
-			clSetKernelArg(k, 8, sizeof(float)*3, &position);
-			clSetKernelArg(k, 9, sizeof(float)*3, &angle);
+//			clSetKernelArg(k, 3, sizeof(cl_mem), &p->CLmem[2]);
+//			clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
+//			clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
+//			clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
+//			clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
+//			clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
+//			clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
 		}
 
 		ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size, NULL, 0, NULL, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueNDRangeKernel():%d\n", ret);
+		if(ret != CL_SUCCESS)printf("clEnqueueNDRangeKernel():%d, %s\n", ret, clStrError(ret));
 
 
 		ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%d\n", ret);
+		if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%d %s\n", ret, clStrError(ret));
 		clFinish(OpenCL->q);
 	//	clWaitForEvents(1, &e);
 	}
 
 }
+
+
+static char* clStrError(cl_int error)
+{
+	switch(error) {
+	case CL_SUCCESS: return "CL_SUCCESS";
+	case CL_DEVICE_NOT_FOUND: return "CL_DEVICE_NOT_FOUND";
+	case CL_DEVICE_NOT_AVAILABLE: return "CL_DEVICE_NOT_AVAILABLE";
+	case CL_COMPILER_NOT_AVAILABLE: return "CL_COMPILER_NOT_AVAILABLE";
+	case CL_MEM_OBJECT_ALLOCATION_FAILURE: return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+	case CL_OUT_OF_RESOURCES: return "CL_OUT_OF_RESOURCES";
+	case CL_OUT_OF_HOST_MEMORY: return "CL_OUT_OF_HOST_MEMORY";
+	case CL_PROFILING_INFO_NOT_AVAILABLE: return "CL_PROFILING_INFO_NOT_AVAILABLE";
+	case CL_MEM_COPY_OVERLAP: return "CL_MEM_COPY_OVERLAP";
+	case CL_IMAGE_FORMAT_MISMATCH: return "CL_IMAGE_FORMAT_MISMATCH";
+	case CL_IMAGE_FORMAT_NOT_SUPPORTED: return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
+	case CL_BUILD_PROGRAM_FAILURE: return "CL_BUILD_PROGRAM_FAILURE";
+	case CL_MAP_FAILURE: return "CL_MAP_FAILURE";
+	case CL_MISALIGNED_SUB_BUFFER_OFFSET: return "CL_MISALIGNED_SUB_BUFFER_OFFSET";
+	case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST: return "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+	case CL_COMPILE_PROGRAM_FAILURE: return "CL_COMPILE_PROGRAM_FAILURE";
+	case CL_LINKER_NOT_AVAILABLE: return "CL_LINKER_NOT_AVAILABLE";
+	case CL_LINK_PROGRAM_FAILURE: return "CL_LINK_PROGRAM_FAILURE";
+	case CL_DEVICE_PARTITION_FAILED: return "CL_DEVICE_PARTITION_FAILED";
+	case CL_KERNEL_ARG_INFO_NOT_AVAILABLE: return "CL_KERNEL_ARG_INFO_NOT_AVAILABLE";
+	case CL_INVALID_VALUE: return "CL_INVALID_VALUE";
+	case CL_INVALID_DEVICE_TYPE: return "CL_INVALID_DEVICE_TYPE";
+	case CL_INVALID_PLATFORM: return "CL_INVALID_PLATFORM";
+	case CL_INVALID_DEVICE: return "CL_INVALID_DEVICE";
+	case CL_INVALID_CONTEXT: return "CL_INVALID_CONTEXT";
+	case CL_INVALID_QUEUE_PROPERTIES: return "CL_INVALID_QUEUE_PROPERTIES";
+	case CL_INVALID_COMMAND_QUEUE: return "CL_INVALID_COMMAND_QUEUE";
+	case CL_INVALID_HOST_PTR: return "CL_INVALID_HOST_PTR";
+	case CL_INVALID_MEM_OBJECT: return "CL_INVALID_MEM_OBJECT";
+	case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR: return "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
+	case CL_INVALID_IMAGE_SIZE: return "CL_INVALID_IMAGE_SIZE";
+	case CL_INVALID_SAMPLER: return "CL_INVALID_SAMPLER";
+	case CL_INVALID_BINARY: return "CL_INVALID_BINARY";
+	case CL_INVALID_BUILD_OPTIONS: return "CL_INVALID_BUILD_OPTIONS";
+	case CL_INVALID_PROGRAM: return "CL_INVALID_PROGRAM";
+	case CL_INVALID_PROGRAM_EXECUTABLE: return "CL_INVALID_PROGRAM_EXECUTABLE";
+	case CL_INVALID_KERNEL_NAME: return "CL_INVALID_KERNEL_NAME";
+	case CL_INVALID_KERNEL_DEFINITION: return "CL_INVALID_KERNEL_DEFINITION";
+	case CL_INVALID_KERNEL: return "CL_INVALID_KERNEL";
+	case CL_INVALID_ARG_INDEX: return "CL_INVALID_ARG_INDEX";
+	case CL_INVALID_ARG_VALUE: return "CL_INVALID_ARG_VALUE";
+	case CL_INVALID_ARG_SIZE: return "CL_INVALID_ARG_SIZE";
+	case CL_INVALID_KERNEL_ARGS: return "CL_INVALID_KERNEL_ARGS";
+	case CL_INVALID_WORK_DIMENSION: return "CL_INVALID_WORK_DIMENSION";
+	case CL_INVALID_WORK_GROUP_SIZE: return "CL_INVALID_WORK_GROUP_SIZE";
+	case CL_INVALID_WORK_ITEM_SIZE: return "CL_INVALID_WORK_ITEM_SIZE";
+	case CL_INVALID_GLOBAL_OFFSET: return "CL_INVALID_GLOBAL_OFFSET";
+	case CL_INVALID_EVENT_WAIT_LIST: return "CL_INVALID_EVENT_WAIT_LIST";
+	case CL_INVALID_EVENT: return "CL_INVALID_EVENT";
+	case CL_INVALID_OPERATION: return "CL_INVALID_OPERATION";
+	case CL_INVALID_GL_OBJECT: return "CL_INVALID_GL_OBJECT";
+	case CL_INVALID_BUFFER_SIZE: return "CL_INVALID_BUFFER_SIZE";
+	case CL_INVALID_MIP_LEVEL: return "CL_INVALID_MIP_LEVEL";
+	case CL_INVALID_GLOBAL_WORK_SIZE: return "CL_INVALID_GLOBAL_WORK_SIZE";
+	case CL_INVALID_PROPERTY: return "CL_INVALID_PROPERTY";
+	case CL_INVALID_IMAGE_DESCRIPTOR: return "CL_INVALID_IMAGE_DESCRIPTOR";
+	case CL_INVALID_COMPILER_OPTIONS: return "CL_INVALID_COMPILER_OPTIONS";
+	case CL_INVALID_LINKER_OPTIONS: return "CL_INVALID_LINKER_OPTIONS";
+	case CL_INVALID_DEVICE_PARTITION_COUNT: return "CL_INVALID_DEVICE_PARTITION_COUNT";
+	default:return "Unknown";
+	}
+}
+	
 
 

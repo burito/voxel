@@ -883,7 +883,11 @@ widget* spawn_obj(char* filename)
 }
 
 
-
+void widget_window_ocl_free(widget *w)
+{
+	OCLPROGRAM *m = w->data2;
+	ocl_free(m);
+}
 
 widget* spawn_ocl(char* filename)
 {
@@ -891,6 +895,7 @@ widget* spawn_ocl(char* filename)
 	w->draw = widget_window_ocl_draw;
 	w->release = widget_window_ocl_release;
 	w->onclick = widget_window_ocl_onclick;
+	w->free = widget_window_ocl_free;
 	OCLPROGRAM *p = ocl_build(filename);
 	w->data2 = p;
 //	clReleaseProgram(*p);

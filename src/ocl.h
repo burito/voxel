@@ -38,3 +38,5 @@ void ocl_loop();
 OCLPROGRAM* ocl_build(char *filename);
 void ocl_rebuild(OCLPROGRAM *clprog);
 
+
+

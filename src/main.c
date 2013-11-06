@@ -23,7 +23,7 @@ freely, subject to the following restrictions:
 
 #include <stdio.h>
 #include <GL/glew.h>
-
+#include <math.h>
 #include "main.h"
 #include "mesh.h"
 #include "gui.h"
@@ -71,8 +71,85 @@ int main_init(int argc, char *argv[])
 	return gui_init(argc, argv);
 }
 
+float4 pos = {0.824341, 0.433000, 0.207066, 0};
+float4 angle = {-0.106000, -0.166001, 0.000000, 0};
+int p_swim = 0;
+
 void main_loop(void)
 {
+	float3 req = {0,0,0};
+	float nice = 0.007;
+
+	if(keys[KEY_ESCAPE])
+	{
+		killme=1;
+	}
+	if(keys[KEY_W])
+	{
+		req.z -= nice;
+	}
+	if(keys[KEY_S])
+	{
+		req.z += nice;
+	}
+	if(keys[KEY_A])
+	{
+		req.x += nice;
+	}
+	if(keys[KEY_D])
+	{
+		req.x -= nice;
+	}
+	if(keys[KEY_LCONTROL])
+	{
+		req.y -= nice;
+	}
+	if(keys[KEY_SPACE])
+	{
+		req.y += nice;
+	}
+		
+	if(mouse[0])
+	{
+		angle.x += mickey_y * 0.003;
+		angle.y -= mickey_x * 0.003;
+	}
+	if(mouse[2]) // right
+	{
+		req.x += mickey_x *0.001;
+		req.z -= mickey_y *0.001;
+	}
+	if(mouse[1]) // middle
+	{
+		pos.y -= mickey_y *0.001;
+	}
+	if(keys[KEY_O])
+	{
+		p_swim = !p_swim;
+		keys[KEY_S] = 0;
+		printf("Swimming is %s.\n", p_swim ? "engaged" : "off");
+	}
+	if(keys[KEY_P])
+	{
+		printf("float3 pos = {%f, %f, %f};\n", pos.x, pos.y, pos.z);
+		printf("float3 angle = {%f, %f, %f};\n", angle.x, angle.y, angle.z);
+	}
+
+	if(p_swim)
+	{
+		float cx = cos(angle.x), sx = sin(angle.x), ty = req.y;
+		req.y = req.y * cx - req.z * sx;	// around x
+		req.z = ty * sx + req.z * cx;
+	}
+
+
+	float cy = cos(angle.y), sy = sin(angle.y), tx = req.x;
+	req.x = req.x * cy + req.z * sy;	// around y
+	req.z = tx * sy - req.z * cy;
+
+
+	F3ADD(pos, pos, req);
+
 
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
 
