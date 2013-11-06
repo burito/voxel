@@ -153,8 +153,9 @@ void main_loop(void)
 
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
 
+	gui_input();
 	ocl_loop();
-	gui_loop();
+	gui_draw();
 }
 
 

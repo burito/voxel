@@ -13,6 +13,7 @@ typedef struct OCLPROGRAM
 	cl_mem *CLmem;
 	int num_clmem;
 	int type;
+	void* window;
 } OCLPROGRAM;
 
 typedef struct OCLCONTEXT

@@ -22,7 +22,8 @@ freely, subject to the following restrictions:
 */
 
 int gui_init(int argc, char *argv[]);
-void gui_loop(void);
+void gui_input(void);
+void gui_draw(void);
 void gui_end(void);
 
 /*

@@ -748,6 +748,10 @@ void widget_window_ocl_draw(widget *w)
 		glColor4f(1,1,1,1);
 	}
 
+
+	float tx = (float)(w->size.x-20)/(float)sys_width;
+	float ty = (float)(w->size.y-50)/(float)sys_height;
+	
 	OCLPROGRAM *p = w->data2;
 
 	glColor4f(1,1,1,1);
@@ -755,9 +759,9 @@ void widget_window_ocl_draw(widget *w)
 	glBindTexture(GL_TEXTURE_2D, p->GLid[0]);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 0); glVertex2f(left, top);
-	glTexCoord2f(1, 0); glVertex2f(right, top);
-	glTexCoord2f(1, 1); glVertex2f(right, bottom);
-	glTexCoord2f(0, 1); glVertex2f(left, bottom);
+	glTexCoord2f(tx, 0); glVertex2f(right, top);
+	glTexCoord2f(tx, ty); glVertex2f(right, bottom);
+	glTexCoord2f(0, ty); glVertex2f(left, bottom);
 	glEnd();
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
@@ -898,7 +902,7 @@ widget* spawn_ocl(char* filename)
 	w->free = widget_window_ocl_free;
 	OCLPROGRAM *p = ocl_build(filename);
 	w->data2 = p;
-//	clReleaseProgram(*p);
+	p->window = w;
 	widget_add(w);
 	return w;
 }
@@ -1327,7 +1331,7 @@ int gui_init(int argc, char *argv[])
 
 
 
-void gui_loop(void)
+void gui_input(void)
 {
 
 	if(latched)
@@ -1351,12 +1355,11 @@ void gui_loop(void)
 		if(latched)
 		if(latched->onclick)latched->onclick(latched);
 	}
+}
 
+void gui_draw(void)
+{
 	widget_draw(widget_root);
-
-	if(keys[KEY_ESCAPE])
-		killme=1;
-
 }
 
 void gui_end(void)

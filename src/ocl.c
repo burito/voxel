@@ -43,6 +43,7 @@ freely, subject to the following restrictions:
 #include <string.h>
 
 #include "3dmaths.h"
+#include "gui.h"
 #include "text.h"
 
 
@@ -260,7 +261,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sys_width, sys_height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -407,9 +408,11 @@ void ocl_loop(void)
 		if(!p)continue;
 		if(!p->happy)continue;
 
+		widget *w = p->window;
+
 		cl_int ret;
 //	cl_event e;
-		size_t work_size[] = { 1024, 1024 };
+		size_t work_size[] = { abs(w->size.x - 20), abs(w->size.y - 50) };
 
 		glFinish();
 		ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
