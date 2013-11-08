@@ -71,8 +71,8 @@ int main_init(int argc, char *argv[])
 	return gui_init(argc, argv);
 }
 
-float4 pos = {0.824341, 0.433000, 0.207066, 0};
-float4 angle = {-0.106000, -0.166001, 0.000000, 0};
+float4 pos = { 0, 0, -2, 0};
+float4 angle = {0,0,0,0};
 int p_swim = 0;
 
 void main_loop(void)
