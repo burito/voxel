@@ -415,15 +415,13 @@ void ocl_loop(void)
 
 			ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);
 			if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-//			ret = clSetKernelArg(k, 2, sizeof(float), &time);
-//			if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-//			clSetKernelArg(k, 3, sizeof(cl_mem), &p->CLmem[2]);
-//			clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
-//			clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
-//			clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
-//			clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
-//			clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
-//			clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
+			ret = clSetKernelArg(k, 3, sizeof(float), &time);
+			if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+			clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
+			clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
+			clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
+			clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
+			clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
 			break;
 		
 		default:

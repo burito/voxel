@@ -23,11 +23,16 @@ freely, subject to the following restrictions:
 
 #include <stdio.h>
 #include <GL/glew.h>
+
+#define __USE_BSD	// for M_PI
 #include <math.h>
+#undef __USE_BSD
+
 #include "main.h"
 #include "mesh.h"
 #include "gui.h"
 #include "ocl.h"
+
 
 typedef struct LOADING
 {
@@ -71,9 +76,11 @@ int main_init(int argc, char *argv[])
 	return gui_init(argc, argv);
 }
 
-float4 pos = { 0, 0, -2, 0};
-float4 angle = {0,0,0,0};
 int p_swim = 0;
+
+// last digit of angle is x-fov, in radians
+float4 pos = {-1.031600, 0.518000, -0.671419, 0.0};
+float4 angle = {-0.000000, 5.373001, 0.000000, M_PI*0.5};
 
 void main_loop(void)
 {
@@ -122,8 +129,8 @@ void main_loop(void)
 	}
 	if(keys[KEY_P])
 	{
-		printf("float3 pos = {%f, %f, %f};\n", pos.x, pos.y, pos.z);
-		printf("float3 angle = {%f, %f, %f};\n", angle.x, angle.y, angle.z);
+		printf("float4 pos = {%f, %f, %f, 0.0};\n", pos.x, pos.y, pos.z);
+		printf("float4 angle = {%f, %f, %f, M_PI*0.5};\n", angle.x, angle.y, angle.z);
 	}
 
 	if(p_swim)

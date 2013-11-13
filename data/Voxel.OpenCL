@@ -1,3 +1,34 @@
+/*
+Copyright (c) 2013 Daniel Burke
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+   1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+   3. This notice may not be removed or altered from any source
+   distribution.
+*/
+
+
+
+
+/*
+
+brickpool is 512^3
+nodepool is 100000
+*/
 
 #define B_SIZE 8
 #define B_COUNT 48
@@ -27,20 +58,9 @@ bool slab_ray(float3 p, float3 in, float4 box)
 	return (rmax >= rmin) && (rmax >= 0);
 }
 
-/* original slab_exit(), from 
+// original slab_exit() from 
 // http://www.opengl.org/discussion_boards/showthread.php/176344-Ray-vs-AABB-exit-point-knowing-entry-point
-vec3 ray_box_exit(in Ray r, in Box b)
-{// compute exit point of ray from a AABB
-	vec3 tmax;
-	vec3 div = 1.0 / r.d;
-	ivec3 indexes = ivec3(step(0.0,div));
-	tmax.x = (b.m[indexes[0]].x - r.o.x) * div.x;
-	tmax.y = (b.m[indexes[1]].y - r.o.y) * div.y;
-	tmax.z = (b.m[indexes[2]].z - r.o.z) * div.z;
- 
-	return r.o + min(min(tmax.x, tmax.y), tmax.z) * r.d;
-}
-*/
+
 float slab_exit(float3 p, float3 in, float4 box)
 {
 	float3 near = (box.xyz - p) * in;
@@ -64,7 +84,6 @@ float slab_enter(float3 p, float3 in, float4 box)
 	ret.z = ind.z ? near.z : far.z;
 	return max(max(ret.x, ret.y), ret.z);
 }
-
 
 
 int oct_child(float3 pos, float4 *vol)
@@ -115,25 +134,34 @@ float3 escape(float3 pos, float3 normal, float4 box)
 __kernel void voxel(
 			__write_only image2d_t out,
 			__read_only image3d_t brick,
-			__global float4 *camera)
-//			const float time)
-//			__global float* angle)
+			__global float4 *camera,
+			const float time,
+			__global uint* NodeNode,
+			__global uint* NodeBrick,
+			__global float* NodeUseTime,
+			__global float* NodeReqTime,
+			__global float* BrickUseTime)
 {
 	int2 ipos = {get_global_id(0), get_global_id(1)};
 	float2 size = {get_global_size(0), get_global_size(1)};
-	float2 fpos = {ipos.x, ipos.y};
-	// Translate OpenCL coordinates into per pixel normal
-	fpos = (fpos / size) - 0.5;
-	float3 n = normalize((float3)(fpos, 0.5));
+	float2 fpos = convert_float(ipos);
 
-	float4 colour = { 0, 0, 0, 1 };
-
-//	float3 p = (camera[0], camera[1], camera[2]);
 	float3 p = camera[0].xyz;
 	float3 angle = camera[1].xyz;
+	float fov = camera[1].w;
+	// Translate OpenCL coordinates into per pixel normal
+	// perspective correct method
+	float2 srat = (float2)(0.5, (size.y / size.x) *0.5);
+	fpos = (fpos / size.x) - srat;
+	float3 n = (float3)( sin(fpos.x), sin(fpos.y),
+				cos(fpos.x) * cos(fpos.y) );
+/*	// old method
+	fpos = (fpos / size) - 0.5;
+	float3 n = normalize((float3)(fpos, 0.5));	*/
 
+
+	float4 colour = { 0, 0, 0, 1 };
 	// rotate this normal to face the direction of the camera
-//	float3 angle = ( camera[4], camera[5], camera[6] );
 	float3 c = cos(angle);
 	float3 s = sin(angle);
 	float3 t;
@@ -167,6 +195,8 @@ __kernel void voxel(
 		colour = (float4)(0,1,dist*0.5,1);
 		// ray dispersion should happen when p moves
 	}
+
+	
 
 	write_imagef(out, ipos, colour);
 }
