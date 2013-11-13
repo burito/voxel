@@ -109,19 +109,10 @@ void main_loop(void)
 		req.y += nice;
 	}
 		
-	if(mouse[0])
+	if(mouse[2]) /// right mouse
 	{
 		angle.x += mickey_y * 0.003;
 		angle.y -= mickey_x * 0.003;
-	}
-	if(mouse[2]) // right
-	{
-		req.x += mickey_x *0.001;
-		req.z -= mickey_y *0.001;
-	}
-	if(mouse[1]) // middle
-	{
-		pos.y -= mickey_y *0.001;
 	}
 	if(keys[KEY_O])
 	{

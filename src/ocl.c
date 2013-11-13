@@ -400,10 +400,10 @@ void ocl_loop(void)
 		switch(p->type)
 		{
 		case 1:
-			ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_FALSE, 0, 16,
+			ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, 16,
 				&pos, 0, NULL, NULL);
 			if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
-			ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_FALSE, 16, 16,
+			ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 16, 16,
 				&angle, 0, NULL, NULL);
 			if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
 //			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
