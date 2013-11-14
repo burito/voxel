@@ -111,6 +111,96 @@ int oct_child(float3 pos, float4 *vol)
 	return child;
 }
 
+uint find_brick(
+			__global uint NodeNode[][8],
+			__global uint NodeBrick[][8],
+			__global float NodeUseTime[][8],
+			__global float NodeReqTime[][8],
+			__global float BrickReqTime[][8],
+			__global float BrickUseTime[],
+			float3 pos,
+			float4 *box,
+			float size,
+			float time)
+{
+	uint child = 0;
+	uint index = 0;
+	uint tmp;
+	float volume = 1.0/(float)B_SIZE;
+
+	while(volume > size)
+	{
+		volume *= 0.5;
+		child = oct_child(pos, box);
+		NodeUseTime[index][child] = time;
+		tmp = NodeNode[index][child];
+		if(tmp==0)
+		{
+			NodeReqTime[index][child] = time;
+			break;
+		}
+		if(tmp & 0x8000000)break;
+		index = tmp;
+	}
+
+	tmp = NodeBrick[index][child];
+	if(tmp)BrickUseTime[tmp] = time;
+	return tmp;
+}
+
+float3 brick_origin(uint brick_id)
+{
+	float3 brick_pos;
+	uint brick_tmp;
+	brick_pos.x = (float)(brick_id % B_COUNT);
+	brick_tmp = (brick_id - (uint)brick_pos.x)/B_COUNT;
+	brick_pos.y = (float)(brick_tmp % B_COUNT);
+	brick_pos.z = (float)((brick_tmp - (uint)brick_pos.y)/B_COUNT);
+	return brick_pos / (float)B_COUNT;
+}
+
+
+void brick_sample(
+			__read_only image3d_t bricks,
+			uint brick_id,
+			float3 near,
+			float3 far,
+			float4 *colour,
+			float *steprem)
+{
+	float iSize = 1.0 / (float)B_SIZE;
+	float iCount = 1.0 / (float)B_COUNT;
+	float hs = iSize * 0.5;
+	near = near * (iSize * (B_SIZE-1)) + (float3)hs;
+	far = far * (iSize * (B_SIZE-1)) + (float3)hs;
+	float len = length(far - near);
+	float3 brick_pos = brick_origin(brick_id);
+	float4 result = *colour;
+
+	const sampler_t brSamp = CLK_NORMALIZED_COORDS_TRUE |
+							 CLK_ADDRESS_CLAMP_TO_EDGE |
+							 CLK_FILTER_LINEAR;
+
+	if(len < 0.1)return;
+
+	float steps = 1.0/(len / iSize);
+
+	float pos;
+	for(pos= *steprem * steps; pos < 1.0; pos += steps)
+	{	
+		float3 sample_loc = mix(near, far, pos)*iCount;
+		float4 voxel = read_imagef(bricks, brSamp,
+			(float4)(sample_loc+brick_pos, 0));
+		result.xyz += ((1.0-result.w)*(1.0-result.w) * voxel.xyz)/(1.0 - result.xyz * voxel.xyz);
+		result.w = result.w + (1.0-result.w) * voxel.w;
+//		result.xyz = result.xyz + (1.0-result.w) * voxel.xyz;
+//		result.w = result.w + (1.0-result.w) * voxel.w;
+		if(result.w > 1.0)break;
+	}
+	*steprem = (pos - 1.0) /steps;
+	*colour = result;
+}
+
 
 // we know we're inside the volume
 float3 escape(float3 pos, float3 normal, float4 box)
@@ -133,13 +223,14 @@ float3 escape(float3 pos, float3 normal, float4 box)
 
 __kernel void voxel(
 			__write_only image2d_t out,
-			__read_only image3d_t brick,
+			__read_only image3d_t bricks,
 			__global float4 *camera,
 			const float time,
-			__global uint* NodeNode,
-			__global uint* NodeBrick,
-			__global float* NodeUseTime,
-			__global float* NodeReqTime,
+			__global uint NodeNode[][8],
+			__global uint NodeBrick[][8],
+			__global float NodeUseTime[][8],
+			__global float NodeReqTime[][8],
+			__global float BrickReqTime[][8],
 			__global float* BrickUseTime)
 {
 	int2 ipos = {get_global_id(0), get_global_id(1)};
@@ -149,18 +240,13 @@ __kernel void voxel(
 	float3 p = camera[0].xyz;
 	float3 angle = camera[1].xyz;
 	float fov = camera[1].w;
+	float pfov = sin(fov / size.x);		// pixel fov
+	float psize = 0.0;					// pixel size
 	// Translate OpenCL coordinates into per pixel normal
-	// perspective correct method
 	float2 srat = (float2)(0.5, (size.y / size.x) *0.5);
 	fpos = (fpos / size.x) - srat;
 	float3 n = (float3)( sin(fpos.x), sin(fpos.y),
 				cos(fpos.x) * cos(fpos.y) );
-/*	// old method
-	fpos = (fpos / size) - 0.5;
-	float3 n = normalize((float3)(fpos, 0.5));	*/
-
-
-	float4 colour = { 0, 0, 0, 1 };
 	// rotate this normal to face the direction of the camera
 	float3 c = cos(angle);
 	float3 s = sin(angle);
@@ -178,25 +264,44 @@ __kernel void voxel(
 
 	// Are we inside the Octtree?
 	float4 box = {0,0,0,1};
+	float4 colour = {0,0,0,0};
 
 	if(!slab_ray(p, in, box))
 	{
-		colour = 0;
 		write_imagef(out, ipos, colour);
 		return;
 	}
-
-	colour = (float4)(0,1,0,1);
 
 	if(!inside(p, box))
 	{
 		float dist = slab_enter(p, in, box);
 		p += n * dist;
-		colour = (float4)(0,1,dist*0.5,1);
-		// ray dispersion should happen when p moves
+		psize += pfov * dist;
 	}
+	// p is inside the volume, which brick?
+	uint brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
+		NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
+	float steprem = 0;		// step remainder
 
-	
+	// loop until we hit something solid/exit the volume
+	for(int i=0; i<50 && colour.w < 1.0; i++)
+	{
+		float dist = slab_exit(p, in, box);
+		float3 far = dist * n;
+		if(brick_id != 0)
+		{
+			float boxinvw = 1.0 / box.w;
+			float3 bnear = (p - box.xyz) * boxinvw;
+			float3 bfar = (far - box.xyz) * boxinvw;
+			brick_sample(bricks, brick_id, bnear, bfar, &colour, &steprem);
+		}
+		else steprem = 0;
+
+		if(!inside(far, (float4)(0,0,0,1)))break;
+		brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
+			NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
+
+	}
 
 	write_imagef(out, ipos, colour);
 }

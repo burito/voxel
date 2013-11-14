@@ -307,7 +307,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	{
 		case 1:
 			clprog->num_glid = 2;
-			clprog->num_clmem = 8;
+			clprog->num_clmem = 9;
 			break;
 		default:
 			clprog->num_glid = 1;
@@ -344,7 +344,7 @@ OCLPROGRAM* ocl_build(char *filename)
 		}
 
 		// And the buffers... NodeNode, NodeBrick,
-		// NodeUseTime, NodeReqTime, BrickUseTime
+		// NodeUseTime, NodeReqTime, BrickReqTime, BrickUseTime
 		size_t size = 100000*4;
 		clprog->CLmem[2] = clCreateBuffer(OpenCL->c,
 			CL_MEM_READ_ONLY, sizeof(cl_float)*8, NULL, &ret);
@@ -360,6 +360,8 @@ OCLPROGRAM* ocl_build(char *filename)
 		if(ret != CL_SUCCESS)printf("clvox:buffer 7:%s\n", clStrError(ret));
 		clprog->CLmem[7] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
 		if(ret != CL_SUCCESS)printf("clvox:buffer 8:%s\n", clStrError(ret));
+		clprog->CLmem[8] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
+		if(ret != CL_SUCCESS)printf("clvox:buffer 9:%s\n", clStrError(ret));
 		break;
 	default:
 		break;
@@ -393,7 +395,7 @@ void ocl_loop(void)
 		ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
 		if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
 
-		cl_kernel k = OpenCL->progs[i]->k[0];
+		cl_kernel k2, k = OpenCL->progs[i]->k[0];
 		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
 		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
 
@@ -422,6 +424,10 @@ void ocl_loop(void)
 			clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
 			clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
 			clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
+			clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
+
+			k2 = OpenCL->progs[i]->k[1];
+
 			break;
 		
 		default:
