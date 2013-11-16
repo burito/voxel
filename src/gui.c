@@ -40,6 +40,7 @@ freely, subject to the following restrictions:
 #include "gui.h"
 #include "fontstash.h"
 #include "ocl.h"
+#include "clvoxel.h"
 
 struct sth_stash* stash = 0;
 
@@ -884,6 +885,20 @@ widget* spawn_obj(char* filename)
 	return w;
 }
 
+widget* spawn_voxobj(char* filename)
+{
+	widget *w = widget_window_new(100, 100, filename);
+	WF_OBJ *m = wf_load(filename);
+	w->data2 = m;
+	w->draw = widget_window_obj_draw;
+	w->free = widget_window_obj_free;
+	w->onclick = widget_window_obj_onclick;
+	float3 *p = malloc(sizeof(float3));
+	p->x = p->y = p->z = 0;
+	w->data3 = p;
+	widget_add(w);
+	return w;
+}
 
 void widget_window_ocl_free(widget *w)
 {
@@ -915,7 +930,6 @@ static int cmp_str(const void *p1, const void *p2)
 {
 	return strcmp(* (char * const *) p1, * (char * const *) p2);
 }
-
 
 void open_test(widget *w)
 {
@@ -957,14 +971,45 @@ void open_test(widget *w)
 	}
 }
 
+void open_voxel(widget *w)
+{
+	if(!w)return;
+	if(!w->parent)return;
+	widget *p = w->parent;
+	if(!p->child)return;
+	widget *f = p->child;		// file dialog
+	if(-1 == f->selected)return;			// is a file selected?
+	if(!f->data)return;
+	char **names = (char**)f->data;
+	char *path = (char*)p->data2;
+	char buf[1000];
+	sprintf(buf, "%s/%s", path, names[f->selected]);
+	int len = strlen(buf);
+	switch(buf[len-3]) {
+	case 'o':
+	case 'O':
+		switch(buf[len-2]) {
+		case 'b':
+		case 'B':	// obj - Wavefront OBJ
+			spawn_voxobj(buf);
+			widget_destroy(p);
+			break;
+		}
+		break;
+	
+	default:
+		break;
+	}
+}
+
 void spawn_open(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "OPEN...");
 	w->onclick = widget_open_onclick;
 	w->click = widget_open_click;
-	widget *b = widget_button_new(10, 40, "GitHub");
-	b->action = open_test;
-	b->data = "Open";
+	widget *b = widget_button_new(10, 40, "Open");
+	b->action = x ? open_test : open_voxel;
+
 	widget_child_add(w, b);
 
 
@@ -1006,7 +1051,18 @@ void spawn_open(widget *x)
 				printf("dont forget to malloc some more\n");
 				return;
 			}
-			files[fcnt++] = hcopy(ent->d_name);
+			if(x)
+			{
+				if(strstr(ent->d_name, ".obj"))
+					files[fcnt++] = hcopy(ent->d_name);
+				else if(strstr(ent->d_name, ".OpenCL"))
+					files[fcnt++] = hcopy(ent->d_name);
+			}
+			else
+			{
+				if(strstr(ent->d_name, ".obj"))
+					files[fcnt++] = hcopy(ent->d_name);
+			}
 		}
 		else printf("Unexpected Filetype= %d \"%s\"\n", s.st_mode, ent->d_name);
 
@@ -1028,6 +1084,12 @@ void spawn_open(widget *x)
 	item->action = open_test;
 	widget_add(w);
 }
+
+void spawn_voxopen(widget *x)
+{
+	spawn_open(NULL);
+}
+
 
 /*
  * Widget Menu functions
@@ -1304,14 +1366,16 @@ int gui_init(int argc, char *argv[])
 	widget *w;
 	widget *menu = widget_menu_new();
 	widget *item = widget_menu_add(menu, "File");
-	widget_menu_item_add(item, "New \u2620", 0);
 	widget_menu_item_add(item, "Open", spawn_open);
+	widget_menu_item_add(item, "Voxel Open", spawn_voxopen);
 	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "Exit", menu_killme);
-	item = widget_menu_add(menu, "View");
+	item = widget_menu_add(menu, "Display");
 	w = widget_menu_item_add(item, "     Fullscreen - F11", &menu_fullscreen);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &fullscreen;
+	widget_menu_separator_add(item);
+	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuild);
 	
 	item = widget_menu_add(menu, "Help");
 	widget_menu_item_add(item, "Overview \u2560", 0);

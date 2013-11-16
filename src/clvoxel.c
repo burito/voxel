@@ -35,6 +35,7 @@ freely, subject to the following restrictions:
 #include "main.h"
 #include "3dmaths.h"
 #include "ocl.h"
+#include "gui.h"
 
 #define NODE_COUNT 100000
 #define BRICK_SIZE 8
@@ -42,12 +43,71 @@ freely, subject to the following restrictions:
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)
 
 OCLPROGRAM *clVox=NULL;
-int Knl_Render=0, Knl_ResetNodeTime=0, Knl_ResetBrickTime=0;
+int voxel_rebuild_flag=0;
+int Knl_Render;
+int Knl_ResetNodeTime;
+int Knl_ResetBrickTime;
+
+void voxel_rebuild(widget* foo)
+{
+	voxel_rebuild_flag = 1;
+}
+
+
+static void voxel_FindKernels(void)
+{
+	if(!clVox)return;
+	if(!clVox->happy)return;
+
+	for(int i=0; i<clVox->num_kernels; i++)
+	{
+		char buf[256];
+		clGetKernelInfo(clVox->k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
+		if(strstr(buf, "Render"))Knl_Render = i;
+		else if(strstr(buf, "ResetNodeTime"))Knl_ResetNodeTime = i;
+		else if(strstr(buf, "ResetBrickTime"))Knl_ResetBrickTime = i;
+	}
+}
+
+static void voxel_ResetTime(void)
+{
+	// Tell the GPU to reset the time buffers
+	cl_kernel k = clVox->k[Knl_ResetNodeTime];
+	clSetKernelArg(k, 0, sizeof(float), &time);
+	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[3]);
+	clSetKernelArg(k, 2, sizeof(cl_mem), &clVox->CLmem[4]);
+	clSetKernelArg(k, 3, sizeof(cl_mem), &clVox->CLmem[5]);
+
+	size_t work_size = NODE_COUNT;
+	cl_int ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
+			NULL, 0, NULL, NULL);
+	if(ret != CL_SUCCESS)
+	{
+		clVox->happy = 0;
+		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+	}
+
+	// Tell the GPU to reset the brick time
+	k = clVox->k[Knl_ResetBrickTime];
+	clSetKernelArg(k, 0, sizeof(float), &time);
+	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[8]);
+
+	work_size = BRICK_COUNT;
+	ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
+			NULL, 0, NULL, NULL);
+	if(ret != CL_SUCCESS)
+	{
+		clVox->happy = 0;
+		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+	}
+}
+
 
 void voxel_init(void)
 {
 	clVox = ocl_build("./data/Voxel.OpenCL");
 	ocl_rm(clVox);
+	if(clVox->happy)voxel_FindKernels();
 	
 	clVox->num_glid = 2;
 	clVox->num_clmem = 9;
@@ -109,51 +169,9 @@ void voxel_init(void)
 		BRICK_COUNT * sizeof(float),0,&ret);		// BrickUseTime
 	if(ret != CL_SUCCESS)printf("clvox:buffer 9:%s\n", clStrError(ret));
 
-	// And the buffers... NodeNode, NodeBrick,
-	// NodeUseTime, NodeReqTime, BrickReqTime, BrickUseTime
-	if(clVox->happy)printf("everythign is happy\n");
+	voxel_ResetTime();
 
-	for(int i=0; i<clVox->num_kernels; i++)
-	{
-		char buf[256];
-		clGetKernelInfo(clVox->k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
-		if(strstr(buf, "Render"))Knl_Render = i;
-		else if(strstr(buf, "ResetNodeTime"))Knl_ResetNodeTime = i;
-		else if(strstr(buf, "ResetBrickTime"))Knl_ResetBrickTime = i;
-	}
-
-
-	// Tell the GPU to reset the time buffers
-	cl_kernel k = clVox->k[Knl_ResetNodeTime];
-	clSetKernelArg(k, 0, sizeof(float), &time);
-	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[3]);
-	clSetKernelArg(k, 2, sizeof(cl_mem), &clVox->CLmem[4]);
-	clSetKernelArg(k, 3, sizeof(cl_mem), &clVox->CLmem[5]);
-
-	size_t work_size = NODE_COUNT;
-	ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
-			NULL, 0, NULL, NULL);
-	if(ret != CL_SUCCESS)
-	{
-		clVox->happy = 0;
-		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
-	}
-
-	// Tell the GPU to reset the brick time
-	k = clVox->k[Knl_ResetBrickTime];
-	clSetKernelArg(k, 0, sizeof(float), &time);
-	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[8]);
-
-	work_size = BRICK_COUNT;
-	ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
-			NULL, 0, NULL, NULL);
-	if(ret != CL_SUCCESS)
-	{
-		clVox->happy = 0;
-		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
-	}
-
-
+	if(clVox->happy)printf("everything is happy\n");
 }
 
 extern float4 pos;
@@ -163,6 +181,13 @@ extern float4 angle;
 void voxel_loop(void)
 {
 	if(!clVox)return;
+	if(voxel_rebuild_flag)
+	{
+		voxel_rebuild_flag = 0;
+		ocl_rebuild(clVox);
+		if(clVox->happy)voxel_FindKernels();
+	}
+
 	if(!clVox->happy)return;
 	OCLPROGRAM *p = clVox;
 
@@ -250,5 +275,14 @@ void voxel_end(void)
 
 	ocl_free(clVox);
 
+}
+
+
+void voxel_open(char *filename)
+{
+
+
 
 }
+
+
