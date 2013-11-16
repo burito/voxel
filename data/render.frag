@@ -213,7 +213,39 @@ bool enter(in vec3 pos, in vec3 normal, out vec3 res)
 	return false;
 }
 
+bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
+{
+	vec3 near = (box.xyz - p) * inv;
+	vec3 far = ((box.xyz+box.w) - p) * inv;
+	vec3 tmin = min(near, far), tmax = max(near, far);
+	float rmin = max(tmin.x, max(tmin.y, tmin.z));
+	float rmax = min(tmax.x, min(tmax.y, tmax.z));
+	return (rmax >= rmin) && (rmax >= 0);
+}
 
+float slab_exit(in vec3 p, in vec3 inv, in vec4 box)
+{
+	vec3 near = (box.xyz - p) * inv;
+	vec3 far = ((box.xyz+box.w) - p) * inv;
+	ivec3 ind = ivec3(step(0.0, inv));
+	vec3 ret;
+	ret.x = ind.x>0 ? far.x : near.x;
+	ret.y = ind.y>0 ? far.y : near.y;
+	ret.z = ind.z>0 ? far.z : near.z;
+	return min(min(ret.x, ret.y), ret.z);
+}
+
+float slab_enter(in vec3 p, in vec3 inv, in vec4 box)
+{
+	vec3 near = (box.xyz - p) * inv;
+	vec3 far = ((box.xyz+box.w) - p) * inv;
+	ivec3 ind = ivec3(step(0.0, inv));
+	vec3 ret;
+	ret.x = ind.x>0 ? near.x : far.x;
+	ret.y = ind.y>0 ? near.y : far.y;
+	ret.z = ind.z>0 ? near.z : far.z;
+	return max(max(ret.x, ret.y), ret.z);
+}
 // we know we're inside the volume
 vec3 escape(in vec3 pos, in vec3 normal, in vec4 box)
 {
@@ -284,12 +316,14 @@ void brick_path(in vec3 pos, in vec3 normal, in float ratio)
 	vec4 box = vec4(0,0,0,1);
 	float size = 0.0000001;
 	float distance=0;
+	vec3 invnorm = 1.0 / normal;
 	
 	vec3 hit;
 	if(!inside(pos, box))
 	{
-		if(!enter(pos, normal, hit))
+		if(!slab_ray(pos, invnorm, box))
 			discard;
+		hit = slab_enter(pos, invnorm, box) * normal;
 	}
 	else hit = pos;
 

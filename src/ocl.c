@@ -47,8 +47,8 @@ freely, subject to the following restrictions:
 #include "text.h"
 
 
+
 OCLCONTEXT *OpenCL;
-static char* clStrError(cl_int error);
 
 void ocl_end(void)
 {
@@ -320,52 +320,6 @@ OCLPROGRAM* ocl_build(char *filename)
 	clprog->GLid[0] = id;
 	clprog->CLmem[0] = output;
 
-	switch(clprog->type) {
-	case 1:
-		// create GL brick texture
-		glGenTextures(1, &id);
-		clprog->GLid[1] = id;
-		glBindTexture(GL_TEXTURE_3D, id);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
-		glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 512, 512, 512, 0,
-				GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		glBindTexture(GL_TEXTURE_3D, 0);
-
-		clprog->CLmem[1] = clCreateFromGLTexture3D(OpenCL->c, CL_MEM_READ_ONLY,
-			GL_TEXTURE_3D, 0, id, &ret);
-		if(ret != CL_SUCCESS)
-		{
-			printf("clCreateFromGLTexture3D():%s\n", clStrError(ret));
-		}
-
-		// And the buffers... NodeNode, NodeBrick,
-		// NodeUseTime, NodeReqTime, BrickReqTime, BrickUseTime
-		size_t size = 100000*4;
-		clprog->CLmem[2] = clCreateBuffer(OpenCL->c,
-			CL_MEM_READ_ONLY, sizeof(cl_float)*8, NULL, &ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 2:%s\n", clStrError(ret));
-		clprog->CLmem[3] = clCreateBuffer(OpenCL->c,
-			CL_MEM_READ_WRITE, size, 0, &ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 4:%s\n", clStrError(ret));
-		clprog->CLmem[4] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 5:%s\n", clStrError(ret));
-		clprog->CLmem[5] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 6:%s\n", clStrError(ret));
-		clprog->CLmem[6] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 7:%s\n", clStrError(ret));
-		clprog->CLmem[7] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 8:%s\n", clStrError(ret));
-		clprog->CLmem[8] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
-		if(ret != CL_SUCCESS)printf("clvox:buffer 9:%s\n", clStrError(ret));
-		break;
-	default:
-		break;
-	}
 
 	ocl_add(clprog);
 	ocl_rebuild(clprog);
@@ -376,8 +330,6 @@ void ocl_loop(void)
 {
 	if(!OpenCL)return;
 	if(!OpenCL->happy)return;
-
-	extern float4 pos, angle;
 
 	for(int i=0; i<OpenCL->num_progs; i++)
 	{
@@ -395,45 +347,11 @@ void ocl_loop(void)
 		ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
 		if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
 
-		cl_kernel k2, k = OpenCL->progs[i]->k[0];
+		cl_kernel k = OpenCL->progs[i]->k[0];
 		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
 		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
 
-		switch(p->type)
-		{
-		case 1:
-			ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, 16,
-				&pos, 0, NULL, NULL);
-			if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
-			ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 16, 16,
-				&angle, 0, NULL, NULL);
-			if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
-//			clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
-			// get brick texture
-			ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[1], 0, 0, 0);
-			if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
-			ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);
-			if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-
-			ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);
-			if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-			ret = clSetKernelArg(k, 3, sizeof(float), &time);
-			if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-			clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
-			clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
-			clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
-			clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
-			clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
-			clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
-
-			k2 = OpenCL->progs[i]->k[1];
-
-			break;
-		
-		default:
-			clSetKernelArg(k, 1, sizeof(float), &time);
-			break;
-		}
+		clSetKernelArg(k, 1, sizeof(float), &time);
 
 		ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size,
 				NULL, 0, NULL, NULL);
@@ -443,18 +361,8 @@ void ocl_loop(void)
 			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
 		}
 
-
 		ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
 		if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
-
-		switch(p->type) {
-		case 1:
-			ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[1], 0, 0, 0);
-			if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
-			break;
-		default:
-			break;
-		}
 
 		clFinish(OpenCL->q);
 	//	clWaitForEvents(1, &e);
@@ -463,7 +371,7 @@ void ocl_loop(void)
 }
 
 
-static char* clStrError(cl_int error)
+char* clStrError(cl_int error)
 {
 	switch(error) {
 	case CL_SUCCESS: return "CL_SUCCESS";

@@ -38,6 +38,8 @@ void ocl_free(OCLPROGRAM *p);
 void ocl_loop();
 OCLPROGRAM* ocl_build(char *filename);
 void ocl_rebuild(OCLPROGRAM *clprog);
+void ocl_rm(OCLPROGRAM *clprog);
+char* clStrError(cl_int error);
 
 
 

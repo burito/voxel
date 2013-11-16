@@ -268,6 +268,7 @@ __kernel void voxel(
 
 	if(!slab_ray(p, in, box))
 	{
+		colour = (float4)(0,1,0,1);
 		write_imagef(out, ipos, colour);
 		return;
 	}
@@ -277,7 +278,11 @@ __kernel void voxel(
 		float dist = slab_enter(p, in, box);
 		p += n * dist;
 		psize += pfov * dist;
+		colour = (float4)(0,0,1,1);
+	write_imagef(out, ipos, colour);
+
 	}
+	return;
 	// p is inside the volume, which brick?
 	uint brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
 		NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
@@ -306,3 +311,23 @@ __kernel void voxel(
 	write_imagef(out, ipos, colour);
 }
 
+__kernel void TimeBufReset(
+			const float time,
+			__global float NodeUseTime[][8],
+			__global float NodeReqTime[][8],
+			__global float BrickReqTime[][8])
+{
+	int i = get_global_id(0);
+	for(int j=0; j< 8; j++)
+	{
+		NodeUseTime[i][j] = time;
+		NodeReqTime[i][j] = time;
+		BrickReqTime[i][j] = time;
+	}
+}
+
+__kernel void BrickBufReset(const float time, __global float* BrickUseTime)
+{
+	int i = get_global_id(0);
+	BrickUseTime[i] = time;
+}

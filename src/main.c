@@ -32,6 +32,7 @@ freely, subject to the following restrictions:
 #include "mesh.h"
 #include "gui.h"
 #include "ocl.h"
+#include "clvoxel.h"
 
 
 typedef struct LOADING
@@ -72,6 +73,7 @@ int main_init(int argc, char *argv[])
 		printf("Initialising OpenCL failed.\n");
 
 	time_start = sys_time();
+	voxel_init();
 
 	return gui_init(argc, argv);
 }
@@ -151,8 +153,12 @@ void main_loop(void)
 
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
 
+	glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
 	gui_input();
 	ocl_loop();
+	voxel_loop();
 	gui_draw();
 }
 
@@ -160,6 +166,7 @@ void main_loop(void)
 
 void main_end(void)
 {
+	voxel_end();
 	ocl_end();
 	gui_end();
 
