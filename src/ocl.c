@@ -276,11 +276,6 @@ OCLPROGRAM* ocl_build(char *filename)
 	memset(clprog, 0, sizeof(OCLPROGRAM));
 	clprog->filename = hcopy(filename);
 
-	if(strstr(filename, "Voxel"))
-	{
-		clprog->type = 1;
-	}
-		
 	// Allocate the appropriate buffers.
 	// Everyone gets an imgout buffer
 	GLuint id;
@@ -303,23 +298,12 @@ OCLPROGRAM* ocl_build(char *filename)
 		printf("clCreateFromGLTexture2D():%s\n", clStrError(ret));
 	}
 	
-	switch(clprog->type)
-	{
-		case 1:
-			clprog->num_glid = 2;
-			clprog->num_clmem = 9;
-			break;
-		default:
-			clprog->num_glid = 1;
-			clprog->num_clmem = 1;
-			break;
-	}
-
+	clprog->num_glid = 1;
+	clprog->num_clmem = 1;
 	clprog->GLid = malloc(sizeof(GLuint)*clprog->num_glid);
 	clprog->CLmem = malloc(sizeof(cl_mem)*clprog->num_clmem);
 	clprog->GLid[0] = id;
 	clprog->CLmem[0] = output;
-
 
 	ocl_add(clprog);
 	ocl_rebuild(clprog);

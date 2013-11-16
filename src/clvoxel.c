@@ -30,6 +30,7 @@ freely, subject to the following restrictions:
 #include <CL/cl.h>
 
 #include <stdio.h>
+#include <string.h>
 
 #include "main.h"
 #include "3dmaths.h"
@@ -41,11 +42,24 @@ freely, subject to the following restrictions:
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)
 
 OCLPROGRAM *clVox=NULL;
+int Knl_Render=0, Knl_ResetNodeTime=0, Knl_ResetBrickTime=0;
 
 void voxel_init(void)
 {
 	clVox = ocl_build("./data/Voxel.OpenCL");
 	ocl_rm(clVox);
+	
+	clVox->num_glid = 2;
+	clVox->num_clmem = 9;
+
+	void* tmp;
+	tmp = realloc(clVox->GLid, sizeof(GLuint)*clVox->num_glid);
+	if(!tmp){printf("voxel_init():realloc(GLid) fail\n");return;}
+	clVox->GLid = tmp;
+
+	tmp = realloc(clVox->CLmem, sizeof(cl_mem)*clVox->num_clmem);
+	if(!tmp){printf("voxel_init():realloc(CLmem) fail\n");return;}
+	clVox->CLmem = tmp;
 	
 	cl_int ret;
 	GLuint id;
@@ -73,30 +87,44 @@ void voxel_init(void)
 	// And the buffers... NodeNode, NodeBrick,
 	// NodeUseTime, NodeReqTime, BrickReqTime, BrickUseTime
 	size_t size = NODE_COUNT*8*4;
-	clVox->CLmem[2] = clCreateBuffer(OpenCL->c,
-		CL_MEM_READ_ONLY, sizeof(cl_float)*8, NULL, &ret);
+	clVox->CLmem[2] = clCreateBuffer(OpenCL->c, CL_MEM_READ_ONLY,
+		sizeof(cl_float)*8, NULL, &ret);	// camera
 	if(ret != CL_SUCCESS)printf("clvox:buffer 2:%s\n", clStrError(ret));
-	clVox->CLmem[3] = clCreateBuffer(OpenCL->c,
-		CL_MEM_READ_WRITE, size, 0, &ret);
+	clVox->CLmem[3] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
+		size, 0, &ret);		// NodeNode
 	if(ret != CL_SUCCESS)printf("clvox:buffer 4:%s\n", clStrError(ret));
-	clVox->CLmem[4] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
+	clVox->CLmem[4] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE, 
+		size,0,&ret);		// NodeBrick
 	if(ret != CL_SUCCESS)printf("clvox:buffer 5:%s\n", clStrError(ret));
-	clVox->CLmem[5] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
+	clVox->CLmem[5] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
+		size,0,&ret);		// NodeUseTime
 	if(ret != CL_SUCCESS)printf("clvox:buffer 6:%s\n", clStrError(ret));
-	clVox->CLmem[6] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
+	clVox->CLmem[6] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
+		size,0,&ret);		// NodeReqTime
 	if(ret != CL_SUCCESS)printf("clvox:buffer 7:%s\n", clStrError(ret));
-	clVox->CLmem[7] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
+	clVox->CLmem[7] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
+		size,0,&ret);		// BrickReqTime
 	if(ret != CL_SUCCESS)printf("clvox:buffer 8:%s\n", clStrError(ret));
-	size = BRICK_COUNT * sizeof(float);
-	clVox->CLmem[8] = clCreateBuffer(OpenCL->c,CL_MEM_READ_WRITE,size,0,&ret);
+	clVox->CLmem[8] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
+		BRICK_COUNT * sizeof(float),0,&ret);		// BrickUseTime
 	if(ret != CL_SUCCESS)printf("clvox:buffer 9:%s\n", clStrError(ret));
 
 	// And the buffers... NodeNode, NodeBrick,
 	// NodeUseTime, NodeReqTime, BrickReqTime, BrickUseTime
 	if(clVox->happy)printf("everythign is happy\n");
 
+	for(int i=0; i<clVox->num_kernels; i++)
+	{
+		char buf[256];
+		clGetKernelInfo(clVox->k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
+		if(strstr(buf, "Render"))Knl_Render = i;
+		else if(strstr(buf, "ResetNodeTime"))Knl_ResetNodeTime = i;
+		else if(strstr(buf, "ResetBrickTime"))Knl_ResetBrickTime = i;
+	}
+
+
 	// Tell the GPU to reset the time buffers
-	cl_kernel k = clVox->k[2];
+	cl_kernel k = clVox->k[Knl_ResetNodeTime];
 	clSetKernelArg(k, 0, sizeof(float), &time);
 	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[3]);
 	clSetKernelArg(k, 2, sizeof(cl_mem), &clVox->CLmem[4]);
@@ -112,7 +140,7 @@ void voxel_init(void)
 	}
 
 	// Tell the GPU to reset the brick time
-	k = clVox->k[1];
+	k = clVox->k[Knl_ResetBrickTime];
 	clSetKernelArg(k, 0, sizeof(float), &time);
 	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[8]);
 
@@ -146,7 +174,7 @@ void voxel_loop(void)
 	ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
 	if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
 
-	cl_kernel k = p->k[0];
+	cl_kernel k = p->k[Knl_Render];
 	ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
 	if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
 

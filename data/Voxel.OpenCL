@@ -221,7 +221,7 @@ float3 escape(float3 pos, float3 normal, float4 box)
 
 
 
-__kernel void voxel(
+__kernel void Render(
 			__write_only image2d_t out,
 			__read_only image3d_t bricks,
 			__global float4 *camera,
@@ -311,7 +311,7 @@ __kernel void voxel(
 	write_imagef(out, ipos, colour);
 }
 
-__kernel void TimeBufReset(
+__kernel void ResetNodeTime(
 			const float time,
 			__global float NodeUseTime[][8],
 			__global float NodeReqTime[][8],
@@ -326,8 +326,10 @@ __kernel void TimeBufReset(
 	}
 }
 
-__kernel void BrickBufReset(const float time, __global float* BrickUseTime)
+__kernel void ResetBrickTime(const float time, __global float* BrickUseTime)
 {
 	int i = get_global_id(0);
 	BrickUseTime[i] = time;
 }
+
+
