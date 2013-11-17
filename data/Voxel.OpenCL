@@ -31,7 +31,8 @@ nodepool is 100000
 */
 
 #define B_SIZE 8
-#define B_COUNT 48
+#define B_EDGE 64
+#define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
 #define NP_SIZE 100000
 
@@ -152,11 +153,11 @@ float3 brick_origin(uint brick_id)
 {
 	float3 brick_pos;
 	uint brick_tmp;
-	brick_pos.x = (float)(brick_id % B_COUNT);
-	brick_tmp = (brick_id - (uint)brick_pos.x)/B_COUNT;
-	brick_pos.y = (float)(brick_tmp % B_COUNT);
-	brick_pos.z = (float)((brick_tmp - (uint)brick_pos.y)/B_COUNT);
-	return brick_pos / (float)B_COUNT;
+	brick_pos.x = (float)(brick_id % B_EDGE);
+	brick_tmp = (brick_id - (uint)brick_pos.x)/B_EDGE;
+	brick_pos.y = (float)(brick_tmp % B_EDGE);
+	brick_pos.z = (float)((brick_tmp - (uint)brick_pos.y)/B_EDGE);
+	return brick_pos / (float)B_EDGE;
 }
 
 
@@ -169,7 +170,7 @@ void brick_sample(
 			float *steprem)
 {
 	float iSize = 1.0 / (float)B_SIZE;
-	float iCount = 1.0 / (float)B_COUNT;
+	float iCount = 1.0 / (float)B_EDGE;
 	float hs = iSize * 0.5;
 	near = near * (iSize * (B_SIZE-1)) + (float3)hs;
 	far = far * (iSize * (B_SIZE-1)) + (float3)hs;
