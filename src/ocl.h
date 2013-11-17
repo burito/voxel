@@ -30,10 +30,10 @@ typedef struct OCLPROGRAM
 	cl_program pr;
 	cl_kernel *k;
 	int num_kernels;
+	int num_mem;
 	GLuint *GLid;
-	int num_glid;
+	GLuint *GLtype;
 	cl_mem *CLmem;
-	int num_clmem;
 	int type;
 	void* window;
 } OCLPROGRAM;
@@ -63,5 +63,11 @@ void ocl_rebuild(OCLPROGRAM *clprog);
 void ocl_rm(OCLPROGRAM *clprog);
 char* clStrError(cl_int error);
 
+void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format);
+void ocl_gltex3d(OCLPROGRAM *p, int3 size, GLuint type, GLuint format);
+void ocl_glbuf(OCLPROGRAM *p, int size, void *ptr);
+
+void ocl_acquire(OCLPROGRAM *p);
+void ocl_release(OCLPROGRAM *p);
 
 

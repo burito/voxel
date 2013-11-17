@@ -35,6 +35,7 @@ freely, subject to the following restrictions:
 
 #include <CL/cl.h>
 
+#include "3dmaths.h"
 #include "ocl.h"
 #include "main.h"
 
@@ -42,13 +43,129 @@ freely, subject to the following restrictions:
 #include <stdlib.h>
 #include <string.h>
 
-#include "3dmaths.h"
 #include "gui.h"
 #include "text.h"
 
 
 
 OCLCONTEXT *OpenCL;
+
+static void ocl_allocmem(OCLPROGRAM *p)
+{
+	void *tmp;
+	p->num_mem++;
+	tmp = realloc(p->GLid, sizeof(GLuint)*p->num_mem);
+	if(!tmp){printf("ocl_realloc(GLid) fail\n");return;}
+	p->GLid = tmp;
+
+	tmp = realloc(p->GLtype, sizeof(GLuint)*p->num_mem);
+	if(!tmp){printf("ocl_realloc(GLtype) fail\n");return;}
+	p->GLtype = tmp;
+
+	tmp = realloc(p->CLmem, sizeof(cl_mem)*p->num_mem);
+	if(!tmp){printf("ocl_realloc(GLtype) fail\n");return;}
+	p->CLmem = tmp;
+}
+
+void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format)
+{
+	GLuint id;
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D, id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, type, size.x, size.y, 0,
+			type, format, NULL);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	cl_int ret;
+	cl_mem mem = clCreateFromGLTexture2D(OpenCL->c, CL_MEM_READ_WRITE,
+		GL_TEXTURE_2D, 0, id, &ret);
+	if(ret != CL_SUCCESS)
+	{
+		printf("clCreateFromGLTexture2D():%s\n", clStrError(ret));
+//		glDeleteTextures(1, &id);
+	}
+
+	ocl_allocmem(p);
+	int i = p->num_mem - 1;
+	p->GLid[i] = id;
+	p->GLtype[i] = GL_TEXTURE_2D;
+	p->CLmem[i] = mem;
+}
+
+void ocl_gltex3d(OCLPROGRAM *p, int3 size, GLuint type, GLuint format)
+{
+	GLuint id;
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_3D, id);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage3D(GL_TEXTURE_3D, 0, type, size.x, size.y, size.z, 0,
+			type, format, NULL);
+	glBindTexture(GL_TEXTURE_3D, 0);
+
+	cl_int ret;
+	cl_mem mem = clCreateFromGLTexture3D(OpenCL->c, CL_MEM_READ_WRITE,
+		GL_TEXTURE_3D, 0, id, &ret);
+	if(ret != CL_SUCCESS)
+	{
+		printf("clCreateFromGLTexture3D():%s\n", clStrError(ret));
+//		glDeleteTextures(1, &id);
+	}
+
+	ocl_allocmem(p);
+	int i = p->num_mem - 1;
+	p->GLid[i] = id;
+	p->GLtype[i] = GL_TEXTURE_3D;
+	p->CLmem[i] = mem;
+}
+
+void ocl_glbuf(OCLPROGRAM *p, int size, void *ptr)
+{
+	GLuint buf;
+	glGenBuffers(1, &buf);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, buf);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, size, ptr, GL_DYNAMIC_COPY);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	cl_int ret;
+	cl_mem mem = clCreateFromGLBuffer(OpenCL->c, CL_MEM_READ_WRITE, buf, &ret);
+	if(ret != CL_SUCCESS)
+	{
+		printf("glbuf(%d):%s\n", size, clStrError(ret));
+//		glDeleteBuffers(1, &buf);
+	}
+	ocl_allocmem(p);
+	int i = p->num_mem - 1;
+	p->GLid[i] = buf;
+	p->GLtype[i] = GL_ARRAY_BUFFER;
+	p->CLmem[i] = mem;
+}
+
+void ocl_acquire(OCLPROGRAM *p)
+{
+	cl_int ret;
+	ret = clEnqueueAcquireGLObjects(OpenCL->q, p->num_mem, p->CLmem, 0, 0, 0);
+	if(ret != CL_SUCCESS)
+		printf("clEnqueueAcquireGLObject():%s\n",	clStrError(ret));
+}
+
+void ocl_release(OCLPROGRAM *p)
+{
+	cl_int ret;
+	ret = clEnqueueReleaseGLObjects(OpenCL->q, p->num_mem, p->CLmem, 0, 0, 0);
+	if(ret != CL_SUCCESS)
+		printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
+}
+
+
 
 void ocl_end(void)
 {
@@ -62,7 +179,6 @@ void ocl_end(void)
 	free(OpenCL->pid);
 	free(OpenCL);
 }
-
 
 int ocl_init(void)
 {
@@ -189,11 +305,21 @@ void ocl_free(OCLPROGRAM *p)
 	}
 	clReleaseProgram(p->pr);
 
-	glDeleteTextures(p->num_glid, p->GLid);
-	free(p->GLid);
-
-	for(int i=0; i<p->num_clmem; i++)
+	for(int i=0; i<p->num_mem; i++)
+	{
+		switch(p->GLtype[i]) {
+		case GL_TEXTURE_2D:
+		case GL_TEXTURE_3D:
+			glDeleteTextures(1, &p->GLid[i]);
+			break;
+		case GL_ARRAY_BUFFER:
+			glDeleteBuffers(1, &p->GLid[i]);
+			break;
+		}
 		clReleaseMemObject(p->CLmem[i]);
+	}
+	free(p->GLid);
+	free(p->GLtype);
 	free(p->CLmem);
 
 	free(p);
@@ -277,34 +403,9 @@ OCLPROGRAM* ocl_build(char *filename)
 	clprog->filename = hcopy(filename);
 
 	// Allocate the appropriate buffers.
-	// Everyone gets an imgout buffer
-	GLuint id;
-	glGenTextures(1, &id);
-	glBindTexture(GL_TEXTURE_2D, id);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sys_width, sys_height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	cl_int ret;
-	cl_mem output = clCreateFromGLTexture2D(OpenCL->c, CL_MEM_WRITE_ONLY,
-		GL_TEXTURE_2D, 0, id, &ret);
-	if(ret != CL_SUCCESS)
-	{
-		printf("clCreateFromGLTexture2D():%s\n", clStrError(ret));
-	}
 	
-	clprog->num_glid = 1;
-	clprog->num_clmem = 1;
-	clprog->GLid = malloc(sizeof(GLuint)*clprog->num_glid);
-	clprog->CLmem = malloc(sizeof(cl_mem)*clprog->num_clmem);
-	clprog->GLid[0] = id;
-	clprog->CLmem[0] = output;
-
+	int2 size = {sys_width, sys_height};
+	ocl_gltex2d(clprog, size, GL_RGBA, GL_UNSIGNED_BYTE);
 	ocl_add(clprog);
 	ocl_rebuild(clprog);
 	return clprog;
@@ -328,8 +429,7 @@ void ocl_loop(void)
 		size_t work_size[] = { abs(w->size.x - 20), abs(w->size.y - 50) };
 
 		glFinish();
-		ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
+		ocl_acquire(p);
 
 		cl_kernel k = OpenCL->progs[i]->k[0];
 		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
@@ -345,9 +445,7 @@ void ocl_loop(void)
 			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
 		}
 
-		ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-		if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
-
+		ocl_release(p);
 		clFinish(OpenCL->q);
 	//	clWaitForEvents(1, &e);
 	}

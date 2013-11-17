@@ -37,7 +37,7 @@ freely, subject to the following restrictions:
 #include "ocl.h"
 #include "gui.h"
 
-#define NODE_COUNT 100000
+#define NODE_COUNT 100
 #define BRICK_SIZE 8
 #define BRICK_EDGE 64
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)
@@ -72,6 +72,8 @@ static void voxel_FindKernels(void)
 static void voxel_ResetTime(void)
 {
 	// Tell the GPU to reset the time buffers
+	glFinish();
+	ocl_acquire(clVox);
 	cl_kernel k = clVox->k[Knl_ResetNodeTime];
 	clSetKernelArg(k, 0, sizeof(float), &time);
 	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[3]);
@@ -100,8 +102,8 @@ static void voxel_ResetTime(void)
 		clVox->happy = 0;
 		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
 	}
+	ocl_release(clVox);
 }
-
 
 void voxel_init(void)
 {
@@ -109,65 +111,16 @@ void voxel_init(void)
 	ocl_rm(clVox);
 	if(clVox->happy)voxel_FindKernels();
 	
-	clVox->num_glid = 2;
-	clVox->num_clmem = 9;
-
-	void* tmp;
-	tmp = realloc(clVox->GLid, sizeof(GLuint)*clVox->num_glid);
-	if(!tmp){printf("voxel_init():realloc(GLid) fail\n");return;}
-	clVox->GLid = tmp;
-
-	tmp = realloc(clVox->CLmem, sizeof(cl_mem)*clVox->num_clmem);
-	if(!tmp){printf("voxel_init():realloc(CLmem) fail\n");return;}
-	clVox->CLmem = tmp;
-	
-	cl_int ret;
-	GLuint id;
-	// create GL brick texture
-	glGenTextures(1, &id);
-	clVox->GLid[1] = id;
-	glBindTexture(GL_TEXTURE_3D, id);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 512, 512, 512, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glBindTexture(GL_TEXTURE_3D, 0);
-
-	clVox->CLmem[1] = clCreateFromGLTexture3D(OpenCL->c, CL_MEM_READ_ONLY,
-		GL_TEXTURE_3D, 0, id, &ret);
-	if(ret != CL_SUCCESS)
-	{
-		printf("clCreateFromGLTexture3D():%s\n", clStrError(ret));
-	}
-
-	// And the buffers... NodeNode, NodeBrick,
-	// NodeUseTime, NodeReqTime, BrickReqTime, BrickUseTime
 	size_t size = NODE_COUNT*8*4;
-	clVox->CLmem[2] = clCreateBuffer(OpenCL->c, CL_MEM_READ_ONLY,
-		sizeof(cl_float)*8, NULL, &ret);	// camera
-	if(ret != CL_SUCCESS)printf("clvox:buffer 2:%s\n", clStrError(ret));
-	clVox->CLmem[3] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
-		size, 0, &ret);		// NodeNode
-	if(ret != CL_SUCCESS)printf("clvox:buffer 4:%s\n", clStrError(ret));
-	clVox->CLmem[4] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE, 
-		size,0,&ret);		// NodeBrick
-	if(ret != CL_SUCCESS)printf("clvox:buffer 5:%s\n", clStrError(ret));
-	clVox->CLmem[5] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
-		size,0,&ret);		// NodeUseTime
-	if(ret != CL_SUCCESS)printf("clvox:buffer 6:%s\n", clStrError(ret));
-	clVox->CLmem[6] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
-		size,0,&ret);		// NodeReqTime
-	if(ret != CL_SUCCESS)printf("clvox:buffer 7:%s\n", clStrError(ret));
-	clVox->CLmem[7] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
-		size,0,&ret);		// BrickReqTime
-	if(ret != CL_SUCCESS)printf("clvox:buffer 8:%s\n", clStrError(ret));
-	clVox->CLmem[8] = clCreateBuffer(OpenCL->c, CL_MEM_READ_WRITE,
-		BRICK_COUNT * sizeof(float),0,&ret);		// BrickUseTime
-	if(ret != CL_SUCCESS)printf("clvox:buffer 9:%s\n", clStrError(ret));
+	int3 cube = {512, 512, 512};
+	ocl_gltex3d(clVox, cube, GL_RGBA, GL_UNSIGNED_BYTE);
+	ocl_glbuf(clVox, sizeof(cl_float)*8, NULL);	// camera
+	ocl_glbuf(clVox, size, NULL);	// NodeNode
+	ocl_glbuf(clVox, size, NULL);	// NodeBrick
+	ocl_glbuf(clVox, size, NULL);	// NodeUseTime
+	ocl_glbuf(clVox, size, NULL);	// NodeReqTime
+	ocl_glbuf(clVox, size, NULL);	// BrickReqTime
+	ocl_glbuf(clVox, BRICK_COUNT*4, NULL);	// BrickUseTime
 
 	voxel_ResetTime();
 
@@ -196,8 +149,7 @@ void voxel_loop(void)
 	size_t work_size[] = { vid_width, vid_height };
 
 	glFinish();
-	ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-	if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
+	ocl_acquire(p);
 
 	cl_kernel k = p->k[Knl_Render];
 	ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
@@ -210,9 +162,6 @@ void voxel_loop(void)
 		&angle, 0, NULL, NULL);
 	if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
 //	clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
-	// get brick texture
-	ret = clEnqueueAcquireGLObjects(OpenCL->q, 1, &p->CLmem[1], 0, 0, 0);
-	if(ret != CL_SUCCESS)printf("clEnqueueAcquireGLObjects():%s\n",	clStrError(ret));
 	ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);
 	if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
 
@@ -235,13 +184,7 @@ void voxel_loop(void)
 		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
 	}
 
-
-	ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[0], 0, 0, 0);
-	if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
-
-	ret = clEnqueueReleaseGLObjects(OpenCL->q, 1, &p->CLmem[1], 0, 0, 0);
-	if(ret != CL_SUCCESS)printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
-
+	ocl_release(p);
 	clFinish(OpenCL->q);
 //	clWaitForEvents(1, &e);
 
