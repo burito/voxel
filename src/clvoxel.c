@@ -37,7 +37,7 @@ freely, subject to the following restrictions:
 #include "ocl.h"
 #include "gui.h"
 
-#define NODE_COUNT 100
+#define NODE_COUNT 100000
 #define BRICK_SIZE 8
 #define BRICK_EDGE 64
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)

@@ -34,7 +34,7 @@ nodepool is 100000
 #define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
-#define NP_SIZE 100
+#define NP_SIZE 100000
 
 
 
