@@ -36,22 +36,35 @@ freely, subject to the following restrictions:
 #include "3dmaths.h"
 #include "ocl.h"
 #include "gui.h"
+#include "clvoxel.h"
+#include "shader.h"
 
 #define NODE_COUNT 100000
 #define BRICK_SIZE 8
 #define BRICK_EDGE 64
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)
 
+GLSLVOXEL *glVox=NULL;
 OCLPROGRAM *clVox=NULL;
-int voxel_rebuild_flag=0;
+int voxel_rebuildkernel_flag=0;
+int voxel_rebuildshader_flag=0;
 int Knl_Render;
 int Knl_ResetNodeTime;
 int Knl_ResetBrickTime;
 
-void voxel_rebuild(widget* foo)
+int use_glsl = 1;
+
+void voxel_rebuildkernel(widget* foo)
 {
-	voxel_rebuild_flag = 1;
+	voxel_rebuildkernel_flag = 1;
 }
+
+void voxel_rebuildshader(widget* foo)
+{
+	voxel_rebuildshader_flag = 1;
+}
+
+
 
 
 static void voxel_FindKernels(void)
@@ -105,6 +118,46 @@ static void voxel_ResetTime(void)
 	ocl_release(clVox);
 }
 
+int cam_loc;
+
+void voxel_glslrebuild(void)
+{
+	if(glVox->r_vert)glDeleteShader(glVox->r_vert);
+	glVox->r_vert = 0;
+	if(glVox->r_frag)glDeleteShader(glVox->r_frag);
+	glVox->r_frag = 0;
+	if(glVox->render)glDeleteProgram(glVox->render);
+	glVox->render = 0;
+
+	GLint vert = shader_load(GL_VERTEX_SHADER, "data/Vertex.GLSL");
+	GLint frag = shader_load(GL_FRAGMENT_SHADER, "data/Voxel.GLSL");
+	GLuint prog = glCreateProgram();
+	glAttachShader(prog, vert);
+	glAttachShader(prog, frag);
+	glLinkProgram(prog);
+	GLint param;
+	glGetProgramiv(prog, GL_LINK_STATUS, &param);
+	printf("*** Shader linking %s.\n",
+		param == GL_FALSE ? "went as expected" : "worked");
+	printProgramInfoLog(prog);
+
+	if(param == GL_FALSE)
+		glVox->happy = 0;
+	else
+		glVox->happy = 1;
+	
+	cam_loc = glGetUniformLocation(prog, "camera");
+
+
+
+
+	glVox->r_vert = vert;
+	glVox->r_frag = frag;
+	glVox->render = prog;
+
+}
+
+
 void voxel_init(void)
 {
 	clVox = ocl_build("./data/Voxel.OpenCL");
@@ -125,7 +178,15 @@ void voxel_init(void)
 	voxel_ResetTime();
 
 	if(clVox->happy)printf("everything is happy\n");
+
+	glVox = malloc(sizeof(GLSLVOXEL));
+	memset(glVox, 0, sizeof(GLSLVOXEL));
+	
+	voxel_glslrebuild();
 }
+
+
+
 
 extern float4 pos;
 extern float4 angle;
@@ -134,64 +195,118 @@ extern float4 angle;
 void voxel_loop(void)
 {
 	if(!clVox)return;
-	if(voxel_rebuild_flag)
+
+	if(voxel_rebuildkernel_flag)
 	{
-		voxel_rebuild_flag = 0;
+		voxel_rebuildkernel_flag = 0;
 		ocl_rebuild(clVox);
 		if(clVox->happy)voxel_FindKernels();
 	}
 
-	if(!clVox->happy)return;
-	OCLPROGRAM *p = clVox;
-
-	cl_int ret;
-//	cl_event e;
-	size_t work_size[] = { vid_width, vid_height };
-
-	glFinish();
-	ocl_acquire(p);
-
-	cl_kernel k = p->k[Knl_Render];
-	ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
-	if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-
-	ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, 16,
-		&pos, 0, NULL, NULL);
-	if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
-	ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 16, 16,
-		&angle, 0, NULL, NULL);
-	if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
-//	clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
-	ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);
-	if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-
-	ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);
-	if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-	ret = clSetKernelArg(k, 3, sizeof(float), &time);
-	if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-	clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
-	clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
-	clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
-	clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
-	clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
-	clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
-
-	ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size,
-			NULL, 0, NULL, NULL);
-	if(ret != CL_SUCCESS)
+	if(voxel_rebuildshader_flag)
 	{
-		p->happy = 0;
-		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+		voxel_rebuildshader_flag = 0;
+		voxel_glslrebuild();
 	}
 
-	ocl_release(p);
-	clFinish(OpenCL->q);
-//	clWaitForEvents(1, &e);
+
+	float tleft, tright;
+	float ttop, tbottom;
+
+	if(!use_glsl)
+	{
+		if(!clVox->happy)return;
+		OCLPROGRAM *p = clVox;
+
+		cl_int ret;
+	//	cl_event e;
+		size_t work_size[] = { vid_width, vid_height };
+
+		glFinish();
+		ocl_acquire(p);
+
+		cl_kernel k = p->k[Knl_Render];
+		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+
+		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, 16,
+			&pos, 0, NULL, NULL);
+		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
+		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 16, 16,
+			&angle, 0, NULL, NULL);
+		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
+	//	clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
+		ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+
+		ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		ret = clSetKernelArg(k, 3, sizeof(float), &time);
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
+		clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
+		clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
+		clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
+		clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
+		clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
+
+		ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size,
+				NULL, 0, NULL, NULL);
+		if(ret != CL_SUCCESS)
+		{
+			p->happy = 0;
+			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+		}
+
+		ocl_release(p);
+		clFinish(OpenCL->q);
+	//	clWaitForEvents(1, &e);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, p->GLid[0]);
+
+		tleft = ttop = 0;
+		tright = (float)(vid_width)/(float)sys_width;
+		tbottom = (float)(vid_height)/(float)sys_height;
+	}
+	else
+	{
+
+		if(!glVox)return;
+		if(!glVox->happy)return;
+		glUseProgram(glVox->render);
 
 
-	float tx = (float)(vid_width)/(float)sys_width;
-	float ty = (float)(vid_height)/(float)sys_height;
-	
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, clVox->GLid[2]);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 16, &pos);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, 16, &angle);
+
+		GLint x;
+//		glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &x);
+//		printf("max ssbb=%d\n", x);
+
+		GLuint bi = glGetProgramResourceIndex(glVox->render,
+			GL_SHADER_STORAGE_BLOCK, "camera");
+		glShaderStorageBlockBinding(glVox->render, bi, 0);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[2]);
+
+//		GLuint bi = glGetUniformBlockIndex(glVox->render, "camera");
+//		glUniformBlockBinding(glVox->render, bi, clVox->GLid[2]);
+//		glUniformBlockBinding(glVox->render, bi, GL_SHADER_STORAGE_BUFFER);
+//		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+//		glSetUniform
+
+
+//		glActiveTexture(GL_TEXTURE0);
+//		glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+//		glBindBuffer(GL_ARRAY_BUFFER, node_pool);
+
+		tleft = 0; tright = 1;
+		float srat = ((float)vid_height / (float)vid_width) * 0.5;
+		ttop = 0.5 - srat;
+		tbottom = 0.5 + srat;
+	}
+
 	float left = 0, right = vid_width;
 	float top = 0, bottom = vid_height;
 	glMatrixMode(GL_PROJECTION);
@@ -201,16 +316,22 @@ void voxel_loop(void)
 	glLoadIdentity();
 
 	glColor4f(1,1,1,1);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, p->GLid[0]);
 	glBegin(GL_QUADS);
-	glTexCoord2f(0, 0); glVertex2f(left, top);
-	glTexCoord2f(tx, 0); glVertex2f(right, top);
-	glTexCoord2f(tx, ty); glVertex2f(right, bottom);
-	glTexCoord2f(0, ty); glVertex2f(left, bottom);
+	glTexCoord2f(tleft, ttop); glVertex2f(left, top);
+	glTexCoord2f(tright, ttop); glVertex2f(right, top);
+	glTexCoord2f(tright, tbottom); glVertex2f(right, bottom);
+	glTexCoord2f(tleft, tbottom); glVertex2f(left, bottom);
 	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glDisable(GL_TEXTURE_2D);
+
+	if(!use_glsl)
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_TEXTURE_2D);
+	}
+	else
+	{
+		glUseProgram(0);
+	}
 }
 
 void voxel_end(void)

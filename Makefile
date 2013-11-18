@@ -3,7 +3,7 @@ PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
 LIBRARIES = -lm -lOpenCL
 SDIR = src
 
-OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o ocl.o clvoxel.o
+OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o ocl.o clvoxel.o shader.o
 
 # Build rules
 

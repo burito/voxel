@@ -1333,6 +1333,11 @@ void menu_fullscreen(widget *w)
 	fullscreen_toggle++;
 }
 
+void menu_glsl(widget *w)
+{
+	use_glsl = !use_glsl;
+}
+
 
 void font_load(int i, char *path)
 {
@@ -1374,8 +1379,12 @@ int gui_init(int argc, char *argv[])
 	w = widget_menu_item_add(item, "     Fullscreen - F11", &menu_fullscreen);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &fullscreen;
+	w = widget_menu_item_add(item, "     GLSL Renderer", &menu_glsl);
+	w->draw = widget_menu_bool_draw;
+	w->data2 = &use_glsl;
 	widget_menu_separator_add(item);
-	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuild);
+	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
+	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
 	
 	item = widget_menu_add(menu, "Help");
 	widget_menu_item_add(item, "Overview \u2560", 0);

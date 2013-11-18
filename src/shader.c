@@ -27,6 +27,8 @@ freely, subject to the following restrictions:
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include "text.h"
+
 static void printShaderInfoLog(GLuint obj)
 {
 	int infologLength = 0;
@@ -61,20 +63,6 @@ void printProgramInfoLog(GLuint obj)
 	}
 }
 
-char* file_load(char *filename)
-{
-	struct stat stbuf;
-	stat(filename, &stbuf);
-	int size = stbuf.st_size;
-	char *buf = malloc(size+1);
-	if(!buf)return 0;
-	buf[size] = 0;
-	FILE *fptr = fopen(filename, "rb");
-	if(!fptr){ free(buf); return 0; }
-	fread(buf, size, 1, fptr);
-	fclose(fptr);
-	return buf;
-}
 
 GLuint shader_load(int type, char * filename)
 {
@@ -82,7 +70,7 @@ GLuint shader_load(int type, char * filename)
 	int param;
 	char *buf;
 
-	buf = file_load(filename);
+	buf = loadTextFile(filename);
 	if(!buf)return 0;
 	x = glCreateShader(type);
 	glShaderSource(x, 1, (const GLchar**)&buf, NULL);

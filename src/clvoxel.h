@@ -21,10 +21,24 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+typedef struct GLSLVOXEL
+{
+	GLuint render, r_frag, r_vert;
+	GLint *uniforms;
+	int num_uniforms;
+	int happy;
+
+} GLSLVOXEL;
+
+
+extern int use_glsl;
 
 void voxel_init(void);
 void voxel_loop(void);
 void voxel_end(void);
 void voxel_rebuild(widget*);
 void voxel_open(char *filename);
+
+void voxel_rebuildkernel(widget* foo);
+void voxel_rebuildshader(widget* foo);
 
