@@ -118,7 +118,8 @@ static void voxel_ResetTime(void)
 	ocl_release(clVox);
 }
 
-int cam_loc;
+int loc_cam, loc_time;
+
 
 void voxel_glslrebuild(void)
 {
@@ -146,7 +147,18 @@ void voxel_glslrebuild(void)
 	else
 		glVox->happy = 1;
 	
-	cam_loc = glGetUniformLocation(prog, "camera");
+//	loc_cam = glGetUniformLocation(prog, "camera");
+	loc_time = glGetUniformLocation(prog, "time");
+
+
+	GLuint ri_camera;
+
+	GLuint ssb = GL_SHADER_STORAGE_BLOCK;
+
+	ri_camera = glGetProgramResourceIndex(glVox->render, ssb, "camera");
+
+
+//	glShaderStorageBlockBinding(glVox->render, ri_camera, 0);
 
 
 
@@ -280,25 +292,28 @@ void voxel_loop(void)
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 16, &pos);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, 16, &angle);
 
-		GLint x;
+//		GLint x;
 //		glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &x);
 //		printf("max ssbb=%d\n", x);
 
-		GLuint bi = glGetProgramResourceIndex(glVox->render,
-			GL_SHADER_STORAGE_BLOCK, "camera");
-		glShaderStorageBlockBinding(glVox->render, bi, 0);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[2]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[2]); // cam
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[3]); // nn
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[4]); // nb
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[5]); // nut
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, clVox->GLid[6]); // nrt
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, clVox->GLid[7]); // brt
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, clVox->GLid[8]); // but
 
 //		GLuint bi = glGetUniformBlockIndex(glVox->render, "camera");
 //		glUniformBlockBinding(glVox->render, bi, clVox->GLid[2]);
 //		glUniformBlockBinding(glVox->render, bi, GL_SHADER_STORAGE_BUFFER);
 //		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-//		glSetUniform
+		glUniform1f(loc_time, time);
 
 
-//		glActiveTexture(GL_TEXTURE0);
-//		glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 //		glBindBuffer(GL_ARRAY_BUFFER, node_pool);
 
 		tleft = 0; tright = 1;

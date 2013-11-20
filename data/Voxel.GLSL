@@ -22,14 +22,24 @@ freely, subject to the following restrictions:
 */
 
 #version 430
+#extension GL_ARB_enhanced_layouts : enable
 //#extension GL_NV_shader_buffer_load :enable
 
+uniform sampler3D brick_samp;
+//uniform image3D bricks;
+layout(shared) buffer camera { vec4 f[]; } cam;
+layout(shared) buffer node_node { uint i[][8]; } NodeNode;
+layout(shared) buffer node_brick { uint i[][8]; } NodeBrick;
+layout(shared) buffer node_usetime { float f[][8]; } NodeUseTime;
+layout(shared) buffer node_reqtime { float f[][8]; } NodeReqTime;
+layout(shared) buffer brick_reqtime { float f[][8]; } BrickReqTime;
+layout(shared) buffer brick_usetime { float f[]; } BrickUseTime;
 
-//uniform sampler3D bricks;
+uniform float time;
+
 in vec2 TexCoord;
-//in vec4 gl_FragCoord;
-//layout(location = 0) out vec4 color;
 out vec4 color;
+
 
 #define B_SIZE 8
 #define B_EDGE 64
@@ -106,16 +116,13 @@ int oct_child(in vec3 pos, inout vec4 vol)
 	return child;
 }
 
-layout(shared) buffer camera
-{
-	vec4 f[];
-}cam;
-
 
 
 void main(void)
 {
 	vec2 fpos = TexCoord.xy - 0.5;
+	float difference = cam.f[0].w;
+	fpos -= difference;	// correct for texel offset
 	vec3 p = cam.f[0].xyz;
 	vec3 angle = cam.f[1].xyz;
 	float fov = cam.f[1].w;

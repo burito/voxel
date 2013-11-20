@@ -86,6 +86,8 @@ float4 angle = {-0.000000, 5.373001, 0.000000, M_PI*0.5};
 
 void main_loop(void)
 {
+	pos.w = 0.5 / (float)vid_width;
+
 	float3 req = {0,0,0};
 	float nice = 0.007;
 
