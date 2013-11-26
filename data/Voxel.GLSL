@@ -25,21 +25,19 @@ freely, subject to the following restrictions:
 //#extension GL_ARB_enhanced_layouts : enable
 //#extension GL_NV_shader_buffer_load :enable
 
-uniform sampler3D brick_samp;
-//uniform image3D bricks;
+uniform sampler3D bricks;
 layout(shared) buffer camera { vec4 f[]; } cam;
-layout(shared) buffer node_node { uint i[][8]; } NodeNode;
-layout(shared) buffer node_brick { uint i[][8]; } NodeBrick;
-layout(shared) buffer node_usetime { float f[][8]; } NodeUseTime;
-layout(shared) buffer node_reqtime { float f[][8]; } NodeReqTime;
-layout(shared) buffer brick_reqtime { float f[][8]; } BrickReqTime;
-layout(shared) buffer brick_usetime { float f[]; } BrickUseTime;
+layout(shared) buffer node_node { int i[][8]; } NodeNode;
+layout(shared) buffer node_brick { int i[][8]; } NodeBrick;
+layout(shared) buffer node_usetime { int i[][8]; } NodeUseTime;
+layout(shared) buffer node_reqtime { int i[][8]; } NodeReqTime;
+layout(shared) buffer brick_reqtime { int i[][8]; } BrickReqTime;
+layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
 
-uniform float time;
+uniform int time;
 
 in vec2 TexCoord;
 out vec4 color;
-
 
 #define B_SIZE 8
 #define B_EDGE 64

@@ -45,6 +45,7 @@ freely, subject to the following restrictions:
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)
 
 GLSLVOXEL *glVox=NULL;
+GLSLVOXEL *glBrick=NULL;
 OCLPROGRAM *clVox=NULL;
 int voxel_rebuildkernel_flag=0;
 int voxel_rebuildshader_flag=0;
@@ -120,18 +121,20 @@ static void voxel_ResetTime(void)
 
 int loc_cam, loc_time;
 
-
-void voxel_glslrebuild(void)
+void voxel_glslrebuild(GLSLVOXEL *s)
 {
-	if(glVox->r_vert)glDeleteShader(glVox->r_vert);
-	glVox->r_vert = 0;
-	if(glVox->r_frag)glDeleteShader(glVox->r_frag);
-	glVox->r_frag = 0;
-	if(glVox->render)glDeleteProgram(glVox->render);
-	glVox->render = 0;
+	if(s->r_vert)glDeleteShader(s->r_vert);
+	s->r_vert = 0;
+	if(s->r_frag)glDeleteShader(s->r_frag);
+	s->r_frag = 0;
+	if(s->render)glDeleteProgram(s->render);
+	s->render = 0;
+	s->happy = 0;
 
 	GLint vert = shader_load(GL_VERTEX_SHADER, "data/Vertex.GLSL");
-	GLint frag = shader_load(GL_FRAGMENT_SHADER, "data/Voxel.GLSL");
+	GLint frag = shader_load(GL_FRAGMENT_SHADER, s->filename);
+	if(!vert)return;
+	if(!frag)return;
 	GLuint prog = glCreateProgram();
 	glAttachShader(prog, vert);
 	glAttachShader(prog, frag);
@@ -142,32 +145,29 @@ void voxel_glslrebuild(void)
 	{
 		printf("*** Shader linking went as expected.\n");
 		printProgramInfoLog(prog);
-		glVox->happy = 0;
 	}
 	else
-		glVox->happy = 1;
+	{
+		s->happy = 1;
+		s->time = glGetUniformLocation(prog, "time");
+		s->depth = glGetUniformLocation(prog, "depth");
+	}
 	
-//	loc_cam = glGetUniformLocation(prog, "camera");
-	loc_time = glGetUniformLocation(prog, "time");
-
-
-	GLuint ri_camera;
-
-	GLuint ssb = GL_SHADER_STORAGE_BLOCK;
-
-	ri_camera = glGetProgramResourceIndex(glVox->render, ssb, "camera");
-
-
-//	glShaderStorageBlockBinding(glVox->render, ri_camera, 0);
-
-
-
-
-	glVox->r_vert = vert;
-	glVox->r_frag = frag;
-	glVox->render = prog;
-
+	s->r_vert = vert;
+	s->r_frag = frag;
+	s->render = prog;
 }
+
+
+GLSLVOXEL* voxel_shader(char *filename)
+{
+	GLSLVOXEL *s = malloc(sizeof(GLSLVOXEL));
+	memset(s, 0, sizeof(GLSLVOXEL));
+	s->filename = hcopy(filename);
+	voxel_glslrebuild(s);
+	return s;
+}
+
 
 
 void voxel_init(void)
@@ -191,10 +191,9 @@ void voxel_init(void)
 
 	if(!clVox->happy)printf("clVox is unhappy\n");
 
-	glVox = malloc(sizeof(GLSLVOXEL));
-	memset(glVox, 0, sizeof(GLSLVOXEL));
-	
-	voxel_glslrebuild();
+	glVox = voxel_shader("data/Voxel.GLSL");
+	glBrick = voxel_shader("data/Brick.GLSL");
+
 }
 
 
@@ -218,7 +217,8 @@ void voxel_loop(void)
 	if(voxel_rebuildshader_flag)
 	{
 		voxel_rebuildshader_flag = 0;
-		voxel_glslrebuild();
+		voxel_glslrebuild(glVox);
+		voxel_glslrebuild(glBrick);
 	}
 
 

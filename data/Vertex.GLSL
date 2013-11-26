@@ -21,11 +21,15 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+varying out vec3 Position;
+varying out vec3 Normal;
 varying out vec2 TexCoord;
 
 void main(void)
 {
 	gl_Position = ftransform();
 	TexCoord = gl_MultiTexCoord0.xy;
+	Normal = gl_Normal;
+	Position = gl_Vertex.xyz;
 }
 

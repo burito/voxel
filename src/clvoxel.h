@@ -24,8 +24,8 @@ freely, subject to the following restrictions:
 typedef struct GLSLVOXEL
 {
 	GLuint render, r_frag, r_vert;
-	GLint *uniforms;
-	int num_uniforms;
+	GLint time, depth;
+	char *filename;
 	int happy;
 
 } GLSLVOXEL;
