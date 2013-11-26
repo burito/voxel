@@ -24,9 +24,12 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <GL/glew.h>
 
-#define __USE_BSD	// for M_PI
 #include <math.h>
-#undef __USE_BSD
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+
 
 #include "main.h"
 #include "mesh.h"
