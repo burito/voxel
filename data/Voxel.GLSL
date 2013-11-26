@@ -22,8 +22,12 @@ freely, subject to the following restrictions:
 */
 
 #version 430
-//#extension GL_ARB_enhanced_layouts : enable
-//#extension GL_NV_shader_buffer_load :enable
+
+
+#define B_SIZE 8
+#define B_EDGE 64
+#define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
+
 
 uniform sampler3D bricks;
 layout(shared) buffer camera { vec4 f[]; } cam;
@@ -37,7 +41,7 @@ layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
 uniform int time;
 
 in vec2 TexCoord;
-out vec4 color;
+out vec4 Colour;
 
 #define B_SIZE 8
 #define B_EDGE 64
@@ -148,11 +152,11 @@ void main(void)
 
 	if(!slab_ray(p, invnorm, box))
 	{
-		color = vec4(0,1,0,1);
+		Colour = vec4(0,1,0,1);
 		return;
 	}
 	
-	color = vec4(0,0,1,1);
+	Colour = vec4(0,0,1,1);
 	return;
 
 }

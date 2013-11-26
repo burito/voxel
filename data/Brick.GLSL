@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 
 #version 430
 
+
 #define B_SIZE 8
 #define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
@@ -37,15 +38,14 @@ layout(shared) buffer node_reqtime { int i[][8]; } NodeReqTime;
 layout(shared) buffer brick_reqtime { int i[][8]; } BrickReqTime;
 layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
 
-uniform uint time;
-uniform uint depth;
+uniform int time;
+uniform int depth;
 
 //in bool gl_FrontFacing;
 in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
-
-out vec4 colour;
+out vec4 Colour;
 
 
 int alloc_node(void)
@@ -86,7 +86,6 @@ int oct_child(in vec3 pos, inout vec4 vol)
 	return child;
 }
 
-// integer version for writing
 ivec3 brick_origin(in int brick_id)
 {
 	ivec3 brick_pos;
@@ -131,21 +130,11 @@ void main(void)
 	float invbox = 1.0 / box.w;
 	vec3 pos = (Position - box.xyz) * invbox;
 	pos *= B_SIZE;
-
 	ivec3 ipos = brick_origin(brick) + ivec3(pos);
-
+	// write to the 3D texture
 	vec4 colour = vec4(Normal, 1.0);
-
 	imageStore(bricks, ipos, colour);
 	discard;
 }
-
-
-
-
-
-
-
-
 
 
