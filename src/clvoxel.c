@@ -23,10 +23,8 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-
 #define _MSC_VER 1
 #include <CL/cl_gl.h>
-
 #include <CL/cl.h>
 
 #include <stdio.h>
@@ -38,11 +36,14 @@ freely, subject to the following restrictions:
 #include "gui.h"
 #include "clvoxel.h"
 #include "shader.h"
+#include "text.h"
 
-#define NODE_COUNT 100000
+
 #define BRICK_SIZE 8
 #define BRICK_EDGE 64
 #define BRICK_COUNT (BRICK_EDGE*BRICK_EDGE*BRICK_EDGE)
+#define NODE_COUNT 100000
+
 
 GLSLVOXEL *glVox=NULL;
 GLSLVOXEL *glBrick=NULL;
@@ -196,6 +197,23 @@ void voxel_init(void)
 
 }
 
+void voxel_brick(void)
+{
+	glUseProgram(glBrick->render);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[3]); // nn
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[4]); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[5]); // nut
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[6]); // nrt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, clVox->GLid[7]); // brt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, clVox->GLid[8]); // but
+	glUniform1i(glBrick->time, time);
+	glUniform1i(glBrick->depth, 4);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+
+	glUseProgram(0);
+	glBindTexture(GL_TEXTURE_3D, 0);
+}
 
 
 
@@ -220,6 +238,10 @@ void voxel_loop(void)
 		voxel_glslrebuild(glVox);
 		voxel_glslrebuild(glBrick);
 	}
+
+	// prepare the LRU table
+
+	// create some bricks
 
 
 	float tleft, tright;
