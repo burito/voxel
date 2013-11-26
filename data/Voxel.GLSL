@@ -43,10 +43,6 @@ uniform int time;
 in vec2 TexCoord;
 out vec4 Colour;
 
-#define B_SIZE 8
-#define B_EDGE 64
-#define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
-
 
 #define WIGGLE 0.0000001
 bool inside(in vec3 pos, in vec4 box)
@@ -116,6 +112,19 @@ int oct_child(in vec3 pos, inout vec4 vol)
 		child += 4;
 	}
 	return child;
+}
+
+vec3 brick_origin(in int brick_id)
+{
+	vec3 brick_pos;
+	int brick_tmp;
+
+	brick_pos.x = float(brick_id % B_COUNT);
+	brick_tmp = (brick_id - int(brick_pos.x))/B_COUNT;
+	brick_pos.y = float(brick_tmp % B_COUNT);
+	brick_pos.z = float((brick_tmp - int(brick_pos.y))/B_COUNT);
+
+	return brick_pos / float(B_COUNT);
 }
 
 
