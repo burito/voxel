@@ -377,7 +377,7 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 	cl_kernel *k = malloc(sizeof(cl_kernel)*nk);
 	memset(k, 0, sizeof(cl_kernel)*nk);
 	ret = clCreateKernelsInProgram(p, nk, k, NULL);
-
+/*	// print the names of the kernels, and their arg count
 	for(int i=0; i<nk; i++)
 	{
 		char buf[256];
@@ -387,7 +387,7 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 		clGetKernelInfo(k[i], CL_KERNEL_NUM_ARGS, sizeof(cl_uint), &argc, NULL);
 		printf("Kernel[%d]:%s(%d)\n", i, buf, argc);
 	}
-
+*/
 	clprog->pr = p;
 	clprog->k = k;
 	clprog->num_kernels = nk;

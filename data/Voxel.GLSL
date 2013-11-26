@@ -22,7 +22,7 @@ freely, subject to the following restrictions:
 */
 
 #version 430
-#extension GL_ARB_enhanced_layouts : enable
+//#extension GL_ARB_enhanced_layouts : enable
 //#extension GL_NV_shader_buffer_load :enable
 
 uniform sampler3D brick_samp;

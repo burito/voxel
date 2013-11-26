@@ -138,12 +138,12 @@ void voxel_glslrebuild(void)
 	glLinkProgram(prog);
 	GLint param;
 	glGetProgramiv(prog, GL_LINK_STATUS, &param);
-	printf("*** Shader linking %s.\n",
-		param == GL_FALSE ? "went as expected" : "worked");
-	printProgramInfoLog(prog);
-
 	if(param == GL_FALSE)
+	{
+		printf("*** Shader linking went as expected.\n");
+		printProgramInfoLog(prog);
 		glVox->happy = 0;
+	}
 	else
 		glVox->happy = 1;
 	
@@ -189,7 +189,7 @@ void voxel_init(void)
 
 	voxel_ResetTime();
 
-	if(clVox->happy)printf("everything is happy\n");
+	if(!clVox->happy)printf("clVox is unhappy\n");
 
 	glVox = malloc(sizeof(GLSLVOXEL));
 	memset(glVox, 0, sizeof(GLSLVOXEL));

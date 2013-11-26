@@ -77,10 +77,11 @@ GLuint shader_load(int type, char * filename)
 	free(buf);
 	glCompileShader(x);
 	glGetShaderiv(x, GL_COMPILE_STATUS, &param);
-	printf("*** Shader compile of \"%s\" %s.\n", filename,
-			param == GL_FALSE ? "went as expected" : "worked");
-	
-	printShaderInfoLog(x);
+	if(param == GL_FALSE)
+	{
+		printShaderInfoLog(x);
+		printf("*** Shader compile of \"%s\" went as expected.\n", filename);
+	}
 	return x;
 }
 
