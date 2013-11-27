@@ -246,6 +246,7 @@ __kernel void Render(
 	// Translate OpenCL coordinates into per pixel normal
 	float2 srat = (float2)(0.5, (size.y / size.x) *0.5);
 	fpos = (fpos / size.x) - srat;
+	fpos *= fov;
 	float3 n = (float3)( sin(fpos.x), sin(fpos.y),
 				cos(fpos.x) * cos(fpos.y) );
 	// rotate this normal to face the direction of the camera

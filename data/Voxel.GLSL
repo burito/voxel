@@ -138,6 +138,8 @@ void main(void)
 	vec3 angle = cam.f[1].xyz;
 	float fov = cam.f[1].w;
 
+	fpos *= fov;
+
 	vec3 n = vec3( sin(fpos.x), sin(fpos.y),
 				cos(fpos.x) * cos(fpos.y) );
 	// rotate this normal to face the direction of the camera
