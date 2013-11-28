@@ -23,45 +23,18 @@ freely, subject to the following restrictions:
 
 #version 430
 
-
-#define B_SIZE 8
-#define B_EDGE 64
-#define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
-#define NP_SIZE 100000
-
-
-layout(binding=0, offset=0) uniform atomic_uint atomNode;
-layout(binding=0, offset=4) uniform atomic_uint atomBrick;
-
-uniform writeonly image3D bricks;
 layout(shared) buffer node_node { int i[][8]; } NodeNode;
 layout(shared) buffer node_brick { int i[][8]; } NodeBrick;
-layout(shared) buffer node_usetime { int i[][8]; } NodeUseTime;
 layout(shared) buffer node_reqtime { int i[][8]; } NodeReqTime;
 layout(shared) buffer brick_reqtime { int i[][8]; } BrickReqTime;
-layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
 
 uniform int time;
 uniform int depth;
 
-//in bool gl_FrontFacing;
 in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
 out vec4 Colour;
-
-ivec3 brick_origin(in int brick_id)
-{
-	ivec3 brick_pos;
-	int brick_tmp;
-
-	brick_pos.x = brick_id % B_COUNT;
-	brick_tmp = (brick_id - brick_pos.x)/B_COUNT;
-	brick_pos.y = brick_tmp % B_COUNT;
-	brick_pos.z = (brick_tmp - brick_pos.y)/B_COUNT;
-
-	return brick_pos;
-}
 
 int oct_child(in vec3 pos, inout vec4 vol)
 {
@@ -88,7 +61,13 @@ int oct_child(in vec3 pos, inout vec4 vol)
 	return child;
 }
 
-
+/*
+Mark only bricks
+	* that were requested by the renderer
+	* we can draw
+Then NodeAlloc and BrickAlloc will be called.
+then Brick draw will be called.
+*/
 
 void main(void)
 {
@@ -103,19 +82,21 @@ void main(void)
 		node = target;
 		child = oct_child(Position, box);
 		target = NodeNode.i[node][child];
-		if(0==target)discard;
+		if(0==target)
+		{
+			if( time-1 == NodeReqTime.i[node][child])
+				NodeReqTime.i[node][child] = time;
+			discard;
+		}
 	}
 	// find our brick id
 	int brick = NodeBrick.i[node][child];
-	if(0==brick)discard;
-	// find our brick relative coords
-	float invbox = 1.0 / box.w;
-	vec3 pos = (Position - box.xyz) * invbox;
-	pos *= B_SIZE;
-	ivec3 ipos = brick_origin(brick) + ivec3(pos);
-	// write to the 3D texture
-	vec4 colour = vec4(Normal, 1.0);
-	imageStore(bricks, ipos, colour);
+	if(0==brick)
+	{
+		if(time-1 == BrickReqTime.i[node][child])
+			BrickReqTime.i[node][child] = time;
+		discard;
+	}
 	discard;
 }
 
