@@ -21,15 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-typedef struct GLSLVOXEL
-{
-	GLuint render, r_frag, r_vert;
-	GLint time, depth;
-	char *filename;
-	int happy;
-
-} GLSLVOXEL;
-
 
 extern int use_glsl;
 

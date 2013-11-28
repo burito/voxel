@@ -45,8 +45,6 @@ freely, subject to the following restrictions:
 #define NODE_COUNT 100000
 
 
-GLSLVOXEL *glVox=NULL;
-GLSLVOXEL *glBrick=NULL;
 OCLPROGRAM *clVox=NULL;
 int voxel_rebuildkernel_flag=0;
 int voxel_rebuildshader_flag=0;
@@ -137,7 +135,6 @@ static void voxel_ResetTime(void)
 	ocl_release(clVox);
 }
 
-int loc_cam, loc_time;
 
 void voxel_shader_args(void)
 {
@@ -151,6 +148,7 @@ void voxel_shader_args(void)
 		b_depth = glGetUniformLocation(s_brick->prog, "depth");
 	}
 }
+
 
 void voxel_init(void)
 {
@@ -184,6 +182,7 @@ void voxel_init(void)
 	voxel_shader_args();
 
 }
+
 
 void voxel_brick(void)
 {
