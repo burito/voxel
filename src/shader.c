@@ -26,8 +26,10 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <string.h>
 
 #include "text.h"
+#include "shader.h"
 
 static void printShaderInfoLog(GLuint obj)
 {
@@ -46,7 +48,8 @@ static void printShaderInfoLog(GLuint obj)
 	}
 }
 
-void printProgramInfoLog(GLuint obj)
+
+static void printProgramInfoLog(GLuint obj)
 {
 	int infologLength = 0;
 	int charsWritten  = 0;
@@ -64,7 +67,7 @@ void printProgramInfoLog(GLuint obj)
 }
 
 
-GLuint shader_load(int type, char * filename)
+static GLuint shader_fileload(int type, char * filename)
 {
 	GLuint x;
 	int param;
@@ -82,10 +85,59 @@ GLuint shader_load(int type, char * filename)
 		printf("*** Shader compile of \"%s\" went as expected.\n", filename);
 		printShaderInfoLog(x);
 		glDeleteShader(x);
-		x = NULL;
+		x = 0;
 	}
 	return x;
 }
 
+
+
+void shader_rebuild(GLSLSHADER *s)
+{
+	if(s->vert) { glDeleteShader(s->vert); s->vert = 0; }
+	if(s->frag) { glDeleteShader(s->frag); s->frag = 0; }
+	if(s->prog) { glDeleteProgram(s->prog);s->prog = 0; }
+	s->happy = 0;
+
+	s->prog = glCreateProgram();
+	if(s->fragfile)
+	{
+		s->vert = shader_fileload(GL_VERTEX_SHADER, s->vertfile);
+		s->frag = shader_fileload(GL_FRAGMENT_SHADER, s->fragfile);
+		if(!s->vert)return;
+		if(!s->frag)return;
+		glAttachShader(s->prog, s->vert);
+		glAttachShader(s->prog, s->frag);
+	}
+	else
+	{
+		s->vert = shader_fileload(GL_COMPUTE_SHADER, s->vertfile);
+		if(!s->vert)return;
+		glAttachShader(s->prog, s->vert);
+	}
+	glLinkProgram(s->prog);
+	GLint param;
+	glGetProgramiv(s->prog, GL_LINK_STATUS, &param);
+	if(param == GL_FALSE)
+	{
+		printf("*** Shader linking went as expected.\n");
+		printProgramInfoLog(s->prog);
+	}
+	else
+	{
+		s->happy = 1;
+	}
+}
+
+
+GLSLSHADER* shader_load(char *vertfile, char *fragfile)
+{
+	GLSLSHADER *s = malloc(sizeof(GLSLSHADER));
+	memset(s, 0, sizeof(GLSLSHADER));
+	s->vertfile = hcopy(vertfile);
+	s->fragfile = hcopy(fragfile);
+	shader_rebuild(s);
+	return s;
+}
 
 

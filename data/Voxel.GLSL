@@ -64,29 +64,59 @@ bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
 	return (rmax >= rmin) && (rmax >= 0);
 }
 
+float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out int axis)
+{
+	vec3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * inv;
+	nearfar[1] = ((box.xyz+box.w) - p) * inv;
+	ivec3 ind = ivec3(step(0.0, inv));
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
+	float r;
+
+	if(ret.x < ret.y)
+	{
+		r = ret.x;
+		axis = 0;	// x axis
+	}
+	else
+	{	
+		r = ret.y;
+		axis = 1;	// y axis
+	}
+	if( ret.z < r)
+	{
+		r = ret.z;
+		axis = 2;	// z axis
+	}
+	return r;
+}
+
 float slab_exit(in vec3 p, in vec3 inv, in vec4 box)
 {
-	vec3 near = (box.xyz - p) * inv;
-	vec3 far = ((box.xyz+box.w) - p) * inv;
+	vec3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * inv;
+	nearfar[1] = ((box.xyz+box.w) - p) * inv;
 	ivec3 ind = ivec3(step(0.0, inv));
-	vec3 ret;
-	ret.x = ind.x>0 ? far.x : near.x;
-	ret.y = ind.y>0 ? far.y : near.y;
-	ret.z = ind.z>0 ? far.z : near.z;
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
 	return min(min(ret.x, ret.y), ret.z);
 }
 
 float slab_enter(in vec3 p, in vec3 inv, in vec4 box)
 {
-	vec3 near = (box.xyz - p) * inv;
-	vec3 far = ((box.xyz+box.w) - p) * inv;
-	ivec3 ind = ivec3(step(0.0, inv));
-	vec3 ret;
-	ret.x = ind.x>0 ? near.x : far.x;
-	ret.y = ind.y>0 ? near.y : far.y;
-	ret.z = ind.z>0 ? near.z : far.z;
+	vec3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * inv;
+	nearfar[1] = ((box.xyz+box.w) - p) * inv;
+	ivec3 ind = ivec3(step(inv, vec3(0.0)));
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
 	return max(max(ret.x, ret.y), ret.z);
 }
+
 
 
 int oct_child(in vec3 pos, inout vec4 vol)
@@ -156,6 +186,7 @@ void main(void)
 	n.z = t.x * s.y - t.z * c.y;
 
 	vec3 invnorm = 1.0 / n;
+	vec3 normsign = sign(n);
 
 	// Are we inside the Octtree?
 	vec4 box = vec4(0,0,0,1);

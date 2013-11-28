@@ -21,8 +21,8 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-
-
+#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+//#pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
 
 /*
 
@@ -158,6 +158,17 @@ float3 brick_origin(uint brick_id)
 	brick_pos.y = (float)(brick_tmp % B_EDGE);
 	brick_pos.z = (float)((brick_tmp - (uint)brick_pos.y)/B_EDGE);
 	return brick_pos / (float)B_EDGE;
+}
+
+int3 brick_origini(uint brick_id)
+{
+	int3 brick_pos;
+	uint brick_tmp;
+	brick_pos.x = brick_id % B_EDGE;
+	brick_tmp = (brick_id - brick_pos.x)/B_EDGE;
+	brick_pos.y = (brick_tmp % B_EDGE);
+	brick_pos.z = (brick_tmp - brick_pos.y)/B_EDGE;
+	return brick_pos;
 }
 
 
@@ -328,10 +339,102 @@ __kernel void ResetNodeTime(
 	}
 }
 
-__kernel void ResetBrickTime(const float time, __global float* BrickUseTime)
+__kernel void ResetBrickTime(const int time,
+		__global int* BrickUseTime,
+		__global int* BrickLRU)
 {
 	int i = get_global_id(0);
 	BrickUseTime[i] = time;
+	BrickLRU[i] = i;
 }
 
 
+__kernel void NodeLRUsort(const int time,
+				__global int* NodeUseTime,
+				__global int* NodeLRU,
+				__global int* NodeLRUOut)
+{
+	__local volatile int atm_used, atm_unused;
+	atm_used = 0; atm_unused = B_COUNT-1;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int i = NodeLRU[get_global_id(0)];
+	int node_time = NodeUseTime[i];
+	if(time == node_time)
+	{
+		NodeLRUOut[atomic_inc(&atm_used)] = i;
+	}
+	else
+	{
+		NodeLRUOut[atomic_dec(&atm_unused)] = i;
+	}
+}
+
+__kernel void BrickLRUsort(const int time,
+				__global int* BrickUseTime,
+				__global int* BrickLRU,
+				__global int* BrickLRUOut)
+{
+	__local volatile int atm_used, atm_unused;
+	atm_used = 0; atm_unused = NP_SIZE-1;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int i = BrickLRU[get_global_id(0)];
+	int brick_time = BrickUseTime[i];
+	if(time == brick_time)
+	{
+		BrickLRUOut[atomic_inc(&atm_used)] = i;
+	}
+	else
+	{
+		BrickLRUOut[atomic_dec(&atm_unused)] = i;
+	}
+}
+
+__kernel void NodeAlloc(const int time,
+				__global int* NodeNode,
+				__global int* NodeBrick,
+				__global int* NodeReqTime,
+				__global int* NodeLRU)
+{
+	__local volatile int atm;
+	atm = NP_SIZE - 1;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int i = get_global_id(0);
+	int req_time = NodeReqTime[i];
+	if(time != req_time)return;
+
+	int out = atomic_dec(&atm);
+	NodeNode[i] = out;
+	// now clear the newly allocated node
+	for(int j=0; j<8; j++)
+	{
+		int offset = out * 8 + j;
+		NodeNode[offset] = 0;
+		NodeBrick[offset] = 0;
+	}
+}
+
+
+__kernel void BrickAlloc(const int time,
+				__write_only image3d_t bricks,
+				__global int* NodeBrick,
+				__global int* BrickReqTime,
+				__global int* BrickLRU)
+{
+	__local volatile int atm;
+	atm = B_COUNT - 1;
+	barrier(CLK_LOCAL_MEM_FENCE);
+	int i = get_global_id(0);
+	int req_time = BrickReqTime[i];
+	if(time != req_time)return;
+
+	int out = atomic_dec(&atm);
+	NodeBrick[i] = out;
+/*
+	int3 bpos = brick_origini(out);
+	// now clear the newly allocated brick
+	for(int x=0; x<B_SIZE; x++)
+	for(int y=0; y<B_SIZE; y++)
+	for(int z=0; z<B_SIZE; z++)
+		write_imagef(bricks, bpos+(int3)(x,y,z), (float4)(0,0,0,0));
+*/
+}

@@ -101,6 +101,7 @@ int eol(char c)
 // Copy a zero terminated string onto the heap
 char* hcopy(const char *string)
 {
+	if(!string)return 0;
 	int len = strlen(string);
 	char * ret = malloc(len+1);
 	if(!ret)return 0;

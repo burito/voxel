@@ -21,6 +21,18 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-void printProgramInfoLog(GLuint obj);
-GLuint shader_load(int type, char * filename);
+typedef struct GLSLSHADER
+{
+	GLuint prog, frag, vert;
+	GLint *unif;
+	char *fragfile, *vertfile;
+	int happy;
+} GLSLSHADER;
+
+
+GLSLSHADER* shader_load(char *vertfile, char * fragfile);
+void shader_rebuild(GLSLSHADER *s);
+
+
+
 

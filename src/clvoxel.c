@@ -53,8 +53,19 @@ int voxel_rebuildshader_flag=0;
 int Knl_Render;
 int Knl_ResetNodeTime;
 int Knl_ResetBrickTime;
+int Knl_NodeLRU;
+int Knl_NodeAlloc;
+int Knl_BrickLRU;
+int Knl_BrickAlloc;
 
 int use_glsl = 1;
+
+GLSLSHADER *s_voxel=NULL;
+int v_time;
+GLSLSHADER *s_brick=NULL;
+int b_time, b_depth;
+
+
 
 void voxel_rebuildkernel(widget* foo)
 {
@@ -81,12 +92,17 @@ static void voxel_FindKernels(void)
 		if(strstr(buf, "Render"))Knl_Render = i;
 		else if(strstr(buf, "ResetNodeTime"))Knl_ResetNodeTime = i;
 		else if(strstr(buf, "ResetBrickTime"))Knl_ResetBrickTime = i;
+		else if(strstr(buf, "NodeLRUSort"))Knl_NodeLRU = i;
+		else if(strstr(buf, "NodeAlloc"))Knl_NodeAlloc = i;
+		else if(strstr(buf, "BrickLRUSort"))Knl_BrickLRU = i;
+		else if(strstr(buf, "BrickAlloc"))Knl_BrickAlloc = i;
 	}
 }
 
 static void voxel_ResetTime(void)
 {
 	// Tell the GPU to reset the time buffers
+	if(!clVox->happy)return;
 	glFinish();
 	ocl_acquire(clVox);
 	cl_kernel k = clVox->k[Knl_ResetNodeTime];
@@ -108,6 +124,7 @@ static void voxel_ResetTime(void)
 	k = clVox->k[Knl_ResetBrickTime];
 	clSetKernelArg(k, 0, sizeof(float), &time);
 	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[8]);
+	clSetKernelArg(k, 2, sizeof(cl_mem), &clVox->CLmem[11]);
 
 	work_size = BRICK_COUNT;
 	ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
@@ -122,54 +139,18 @@ static void voxel_ResetTime(void)
 
 int loc_cam, loc_time;
 
-void voxel_glslrebuild(GLSLVOXEL *s)
+void voxel_shader_args(void)
 {
-	if(s->r_vert)glDeleteShader(s->r_vert);
-	s->r_vert = 0;
-	if(s->r_frag)glDeleteShader(s->r_frag);
-	s->r_frag = 0;
-	if(s->render)glDeleteProgram(s->render);
-	s->render = 0;
-	s->happy = 0;
-
-	GLint vert = shader_load(GL_VERTEX_SHADER, "data/Vertex.GLSL");
-	GLint frag = shader_load(GL_FRAGMENT_SHADER, s->filename);
-	if(!vert)return;
-	if(!frag)return;
-	GLuint prog = glCreateProgram();
-	glAttachShader(prog, vert);
-	glAttachShader(prog, frag);
-	glLinkProgram(prog);
-	GLint param;
-	glGetProgramiv(prog, GL_LINK_STATUS, &param);
-	if(param == GL_FALSE)
+	if(s_voxel && s_voxel->happy)
 	{
-		printf("*** Shader linking went as expected.\n");
-		printProgramInfoLog(prog);
+		v_time = glGetUniformLocation(s_voxel->prog, "time");
 	}
-	else
+	if(s_brick && s_brick->happy)
 	{
-		s->happy = 1;
-		s->time = glGetUniformLocation(prog, "time");
-		s->depth = glGetUniformLocation(prog, "depth");
+		b_time = glGetUniformLocation(s_brick->prog, "time");
+		b_depth = glGetUniformLocation(s_brick->prog, "depth");
 	}
-	
-	s->r_vert = vert;
-	s->r_frag = frag;
-	s->render = prog;
 }
-
-
-GLSLVOXEL* voxel_shader(char *filename)
-{
-	GLSLVOXEL *s = malloc(sizeof(GLSLVOXEL));
-	memset(s, 0, sizeof(GLSLVOXEL));
-	s->filename = hcopy(filename);
-	voxel_glslrebuild(s);
-	return s;
-}
-
-
 
 void voxel_init(void)
 {
@@ -187,29 +168,38 @@ void voxel_init(void)
 	ocl_glbuf(clVox, size, NULL);	// NodeReqTime
 	ocl_glbuf(clVox, size, NULL);	// BrickReqTime
 	ocl_glbuf(clVox, BRICK_COUNT*4, NULL);	// BrickUseTime
+	ocl_glbuf(clVox, size, NULL);	// NodeLRU
+	ocl_glbuf(clVox, size, NULL);	// NodeLRUOut
+	ocl_glbuf(clVox, BRICK_COUNT*4, NULL);	// BrickLRU
+	ocl_glbuf(clVox, BRICK_COUNT*4, NULL);	// BrickLRUOut
 
 	voxel_ResetTime();
 
 	if(!clVox->happy)printf("clVox is unhappy\n");
 
-	glVox = voxel_shader("data/Voxel.GLSL");
-	glBrick = voxel_shader("data/Brick.GLSL");
+
+	s_voxel = shader_load("data/Vertex.GLSL", "data/Voxel.GLSL");
+	s_brick = shader_load("data/Vertex.GLSL", "data/Brick.GLSL");
+
+	voxel_shader_args();
 
 }
 
 void voxel_brick(void)
 {
-	glUseProgram(glBrick->render);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[3]); // nn
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[4]); // nb
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[5]); // nut
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[6]); // nrt
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, clVox->GLid[7]); // brt
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, clVox->GLid[8]); // but
-	glUniform1i(glBrick->time, time);
-	glUniform1i(glBrick->depth, 4);
+	glUseProgram(s_brick->prog);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[3]); // nn
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[4]); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[5]); // nut
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, clVox->GLid[6]); // nrt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, clVox->GLid[7]); // brt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, clVox->GLid[8]); // but
+	glUniform1i(b_time, time);
+	glUniform1i(b_depth, 4);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+
+	// render something
 
 	glUseProgram(0);
 	glBindTexture(GL_TEXTURE_3D, 0);
@@ -235,8 +225,8 @@ void voxel_loop(void)
 	if(voxel_rebuildshader_flag)
 	{
 		voxel_rebuildshader_flag = 0;
-		voxel_glslrebuild(glVox);
-		voxel_glslrebuild(glBrick);
+		shader_rebuild(s_voxel);
+		shader_rebuild(s_brick);
 	}
 
 	// prepare the LRU table
@@ -305,9 +295,9 @@ void voxel_loop(void)
 	else
 	{
 
-		if(!glVox)return;
-		if(!glVox->happy)return;
-		glUseProgram(glVox->render);
+		if(!s_voxel)return;
+		if(!s_voxel->happy)return;
+		glUseProgram(s_voxel->prog);
 
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, clVox->GLid[2]);
@@ -331,7 +321,7 @@ void voxel_loop(void)
 //		glUniformBlockBinding(glVox->render, bi, GL_SHADER_STORAGE_BUFFER);
 //		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-		glUniform1f(loc_time, time);
+		glUniform1f(v_time, time);
 
 
 		glActiveTexture(GL_TEXTURE0);

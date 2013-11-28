@@ -30,6 +30,9 @@ freely, subject to the following restrictions:
 #define NP_SIZE 100000
 
 
+layout(binding=0, offset=0) uniform atomic_uint atomNode;
+layout(binding=0, offset=4) uniform atomic_uint atomBrick;
+
 uniform writeonly image3D bricks;
 layout(shared) buffer node_node { int i[][8]; } NodeNode;
 layout(shared) buffer node_brick { int i[][8]; } NodeBrick;
@@ -47,17 +50,43 @@ in vec3 Normal;
 in vec2 TexCoord;
 out vec4 Colour;
 
+ivec3 brick_origin(in int brick_id)
+{
+	ivec3 brick_pos;
+	int brick_tmp;
+
+	brick_pos.x = brick_id % B_COUNT;
+	brick_tmp = (brick_id - brick_pos.x)/B_COUNT;
+	brick_pos.y = brick_tmp % B_COUNT;
+	brick_pos.z = (brick_tmp - brick_pos.y)/B_COUNT;
+
+	return brick_pos;
+}
 
 int alloc_node(void)
 {
-	int id=0;
-	return id;
+	uint id = atomicCounterIncrement(atomNode);
+	id = NP_SIZE - id;
+
+	for(int i=0; i<8; i++)
+		NodeNode.i[id][i] = 0;
+
+	return int(id);
 }
 
 int alloc_brick(void)
 {
-	int id=0;
-	return id;
+	int id = int(atomicCounterIncrement(atomBrick));
+	id = B_COUNT - id;
+
+	ivec3 bpos = brick_origin(id);
+
+	for(int x=0; x < B_SIZE; x++)
+	for(int y=0; y < B_SIZE; y++)
+	for(int z=0; z < B_SIZE; z++)
+		imageStore(bricks, bpos + ivec3(x,y,z), vec4(0));
+	
+	return int(id);
 }
 
 
@@ -86,18 +115,6 @@ int oct_child(in vec3 pos, inout vec4 vol)
 	return child;
 }
 
-ivec3 brick_origin(in int brick_id)
-{
-	ivec3 brick_pos;
-	int brick_tmp;
-
-	brick_pos.x = brick_id % B_COUNT;
-	brick_tmp = (brick_id - brick_pos.x)/B_COUNT;
-	brick_pos.y = brick_tmp % B_COUNT;
-	brick_pos.z = (brick_tmp - brick_pos.y)/B_COUNT;
-
-	return brick_pos;
-}
 
 
 void main(void)
@@ -116,6 +133,7 @@ void main(void)
 		if(0==target)
 		{
 			target = alloc_node();
+			if(0==target)discard;
 			NodeNode.i[node][child] = target;
 		}
 	}
@@ -124,6 +142,7 @@ void main(void)
 	if(0==brick)
 	{
 		brick = alloc_brick();
+		if(0==brick)discard;
 		NodeBrick.i[node][child] = brick;
 	}
 	// find our brick relative coords
