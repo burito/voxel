@@ -24,13 +24,16 @@ freely, subject to the following restrictions:
 typedef struct GLSLSHADER
 {
 	GLuint prog, frag, vert;
+	int unif_num;
 	GLint *unif;
+	char **unif_name;
 	char *fragfile, *vertfile;
 	int happy;
 } GLSLSHADER;
 
 
 GLSLSHADER* shader_load(char *vertfile, char * fragfile);
+void shader_uniform(GLSLSHADER *s, char *name);
 void shader_rebuild(GLSLSHADER *s);
 
 

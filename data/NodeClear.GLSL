@@ -27,7 +27,6 @@ layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(shared) buffer node_usetime { int i[][8]; } NodeNode;
 layout(shared) buffer node_reqtime { int i[][8]; } NodeBrick;
-uniform int time;
 
 void main(void)
 {

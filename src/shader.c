@@ -90,6 +90,22 @@ static GLuint shader_fileload(int type, char * filename)
 	return x;
 }
 
+static void shader_unifind(GLSLSHADER *s)
+{
+	if(!s)return;
+	if(!s->happy)return;
+	for(int i=0; i<s->unif_num; i++)
+	{
+		s->unif[i] = glGetUniformLocation(s->prog, s->unif_name[i]);
+		if(-1 == s->unif[i])
+		{
+			printf("Shader(\"%s\")uniform(\"%s\"):Not Found\n",
+				s->fragfile, s->unif_name[i]);
+		}
+
+	}
+}
+
 
 
 void shader_rebuild(GLSLSHADER *s)
@@ -100,7 +116,7 @@ void shader_rebuild(GLSLSHADER *s)
 	s->happy = 0;
 
 	s->prog = glCreateProgram();
-	if(s->fragfile)
+	if(s->vertfile)
 	{
 		s->vert = shader_fileload(GL_VERTEX_SHADER, s->vertfile);
 		s->frag = shader_fileload(GL_FRAGMENT_SHADER, s->fragfile);
@@ -111,9 +127,9 @@ void shader_rebuild(GLSLSHADER *s)
 	}
 	else
 	{
-		s->vert = shader_fileload(GL_COMPUTE_SHADER, s->vertfile);
-		if(!s->vert)return;
-		glAttachShader(s->prog, s->vert);
+		s->frag = shader_fileload(GL_COMPUTE_SHADER, s->fragfile);
+		if(!s->frag)return;
+		glAttachShader(s->prog, s->frag);
 	}
 	glLinkProgram(s->prog);
 	GLint param;
@@ -126,6 +142,7 @@ void shader_rebuild(GLSLSHADER *s)
 	else
 	{
 		s->happy = 1;
+		shader_unifind(s);
 	}
 }
 
@@ -138,6 +155,30 @@ GLSLSHADER* shader_load(char *vertfile, char *fragfile)
 	s->fragfile = hcopy(fragfile);
 	shader_rebuild(s);
 	return s;
+}
+
+
+void shader_uniform(GLSLSHADER *s, char *name)
+{
+	if(!s)return;
+	int i = s->unif_num++;
+	void* tmp;
+	// Realloc the name array
+	tmp = realloc(s->unif_name, sizeof(char*)*s->unif_num);
+	if(!tmp)printf("Realloc() failed\n");
+	s->unif_name = tmp;
+	s->unif_name[i] = hcopy(name);
+	// realloc the uniform location id array
+	tmp = realloc(s->unif, sizeof(GLint)*s->unif_num);
+	if(!tmp)printf("Realloc() failed\n");
+	s->unif = tmp;
+	s->unif[i] = glGetUniformLocation(s->prog, name);
+	// Check if we found the uniform
+	if(-1 == s->unif[i])
+	{
+		printf("Shader(\"%s\")uniform(\"%s\"):Not Found\n",
+				s->fragfile, s->unif_name[i]);
+	}
 }
 
 
