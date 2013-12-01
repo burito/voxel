@@ -303,7 +303,7 @@ void ocl_free(OCLPROGRAM *p)
 			clReleaseKernel(p->k[i]);
 		free(p->k);
 	}
-	clReleaseProgram(p->pr);
+	if(p->pr)clReleaseProgram(p->pr);
 
 	for(int i=0; i<p->num_mem; i++)
 	{
@@ -338,7 +338,11 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 		free(clprog->k);
 		clprog->k = NULL;
 	}
-	clReleaseProgram(clprog->pr);
+	if(clprog->pr)
+	{
+		clReleaseProgram(clprog->pr);
+		clprog->pr = 0;
+	}
 
 	int error = 0;
 	const char *src = loadTextFile(clprog->filename);

@@ -25,14 +25,17 @@ freely, subject to the following restrictions:
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
-layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
-layout(shared) buffer brick_lru { int i[]; } BrickLRU;
+layout(shared, binding=0) buffer brick_usetime { int i[]; } BrickUseTime;
+layout(shared, binding=1) buffer brick_lru { int i[]; } BrickLRU;
 uniform int time;
 
 void main(void)
 {
-	int i = int(gl_GlobalInvocationID.x);
-	BrickUseTime.i[i] = time;
-	BrickLRU.i[i] = i;
+	uint off = gl_GlobalInvocationID.x * 64;
+	off = (off+gl_GlobalInvocationID.y)* 64;
+	off += gl_GlobalInvocationID.z;
+
+	BrickUseTime.i[off] = time;
+	BrickLRU.i[off] = int(off);
 }
 

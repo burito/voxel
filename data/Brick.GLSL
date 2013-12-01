@@ -30,18 +30,11 @@ freely, subject to the following restrictions:
 #define NP_SIZE 100000
 
 
-layout(binding=0, offset=0) uniform atomic_uint atomNode;
-layout(binding=0, offset=4) uniform atomic_uint atomBrick;
 
 uniform writeonly image3D bricks;
-layout(shared) buffer node_node { int i[][8]; } NodeNode;
-layout(shared) buffer node_brick { int i[][8]; } NodeBrick;
-layout(shared) buffer node_usetime { int i[][8]; } NodeUseTime;
-layout(shared) buffer node_reqtime { int i[][8]; } NodeReqTime;
-layout(shared) buffer brick_reqtime { int i[][8]; } BrickReqTime;
-layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
+layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
+layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 
-uniform int time;
 uniform int depth;
 
 //in bool gl_FrontFacing;

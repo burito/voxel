@@ -22,6 +22,7 @@ freely, subject to the following restrictions:
 */
 
 #version 430
+#define NP_SIZE 100000
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
@@ -29,18 +30,21 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout(binding=0, offset=0) uniform atomic_uint atomFresh;
 layout(binding=0, offset=4) uniform atomic_uint atomStale;
 
-layout(shared) buffer node_node { int i[]; } NodeNode;
-layout(shared) buffer node_reqtime { int i[]; } NodeReqTime;
-layout(shared) buffer node_lru { int i[]; } NodeLRU;
+layout(shared, binding=1) buffer node_node { int i[]; } NodeNode;
+layout(shared, binding=2) buffer node_reqtime { int i[]; } NodeReqTime;
+layout(shared, binding=3) buffer node_lru { int i[]; } NodeLRU;
 uniform int time;
 
 void main(void)
 {
-	int i = NodeLRU.i[gl_GlobalInvocationID.x];
-	int node_time = NodeReqTime.i[i];
+	uint off = gl_GlobalInvocationID.x * 10;
+	off = (off+gl_GlobalInvocationID.y) * 8;
+	off += gl_GlobalInvocationID.z;
+
+	int node_time = NodeReqTime.i[off];
 	if(time != node_time)return;
-	int dest = NodeLRU.i[atomicCounterDecrement(atomStale)];
-	NodeNode.i[i] = dest;
+	int dest = NodeLRU.i[ (NP_SIZE-1) - atomicCounterIncrement(atomStale)];
+	NodeNode.i[off] = dest;
 
 	for(int j=0; j<8; j++)
 		NodeNode.i[dest*8+j] = 0;

@@ -27,6 +27,9 @@ typedef struct GLSLSHADER
 	int unif_num;
 	GLint *unif;
 	char **unif_name;
+	int buf_num;
+	GLint *buf;
+	char **buf_name;
 	char *fragfile, *vertfile;
 	int happy;
 } GLSLSHADER;
@@ -34,8 +37,10 @@ typedef struct GLSLSHADER
 
 GLSLSHADER* shader_load(char *vertfile, char * fragfile);
 void shader_uniform(GLSLSHADER *s, char *name);
+void shader_buffer(GLSLSHADER *s, char *name);
 void shader_rebuild(GLSLSHADER *s);
 
+char* glError(int error);
 
 
 

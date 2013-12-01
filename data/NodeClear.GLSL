@@ -25,16 +25,18 @@ freely, subject to the following restrictions:
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
-layout(shared) buffer node_usetime { int i[][8]; } NodeNode;
-layout(shared) buffer node_reqtime { int i[][8]; } NodeBrick;
+layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
+layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 
 void main(void)
 {
-	int i = int(gl_GlobalInvocationID.x);
-	for(int j=0; j< 8; j++)
+	uint off = gl_GlobalInvocationID.x * 10;
+	off += gl_GlobalInvocationID.y;
+	
+	for(int i=0; i< 8; i++)
 	{
-		NodeNode.i[i][j] = 0;
-		NodeBrick.i[i][j] = 0;
+		NodeNode.i[off][i] = 0;
+		NodeBrick.i[off][i] = 0;
 	}
 }
 

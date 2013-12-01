@@ -30,13 +30,13 @@ freely, subject to the following restrictions:
 
 
 uniform sampler3D bricks;
-layout(shared) buffer camera { vec4 f[]; } cam;
-layout(shared) buffer node_node { int i[][8]; } NodeNode;
-layout(shared) buffer node_brick { int i[][8]; } NodeBrick;
-layout(shared) buffer node_usetime { int i[][8]; } NodeUseTime;
-layout(shared) buffer node_reqtime { int i[][8]; } NodeReqTime;
-layout(shared) buffer brick_reqtime { int i[][8]; } BrickReqTime;
-layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
+layout(shared, binding=0) buffer camera { vec4 f[]; } cam;
+layout(shared, binding=1) buffer node_node { int i[][8]; } NodeNode;
+layout(shared, binding=2) buffer node_brick { int i[][8]; } NodeBrick;
+layout(shared, binding=3) buffer node_usetime { int i[]; } NodeUseTime;
+layout(shared, binding=4) buffer node_reqtime { int i[][8]; } NodeReqTime;
+layout(shared, binding=5) buffer brick_reqtime { int i[][8]; } BrickReqTime;
+layout(shared, binding=6) buffer brick_usetime { int i[]; } BrickUseTime;
 
 uniform int time;
 
@@ -61,7 +61,7 @@ bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
 	vec3 tmin = min(near, far), tmax = max(near, far);
 	float rmin = max(tmin.x, max(tmin.y, tmin.z));
 	float rmax = min(tmax.x, min(tmax.y, tmax.z));
-	return (rmax >= rmin) && (rmax >= 0);
+	return (rmax >= rmin) && (rmax >= 0.0);
 }
 
 float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out int axis)
@@ -158,15 +158,87 @@ vec3 brick_origin(in int brick_id)
 }
 
 
+int find_brick(in vec3 pos, inout vec4 box, in float size)
+{
+	box = vec4(0,0,0,1);
+
+	int child = 0;
+	int parent = 0;
+	int tmp = 0;
+	float volume = 1.0/float(B_SIZE);
+
+	while(volume > size)
+	{
+		parent = tmp;
+		volume *= 0.5;
+		child = oct_child(pos, box);
+		NodeUseTime.i[parent] = time;
+		tmp = NodeNode.i[parent][child];
+		if(0==tmp)
+		{
+			NodeReqTime.i[parent][child] = time;
+			break;
+		}
+	}
+
+	tmp = NodeBrick.i[parent][child];
+	if(0==tmp)
+	{
+		BrickReqTime.i[parent][child] = time;
+		return 0;
+	}
+	else
+	{
+		BrickUseTime.i[tmp] = time;
+	}
+	return tmp;
+}
+
+void brick_ray(in int brick_id,
+			in vec3 near, in vec3 far,
+			inout vec4 colour, inout float remainder)
+{
+//	vec3 delta = far - near;
+	float iSize = 1.0 / float(B_SIZE);
+	float iCount = 1.0 / float(B_COUNT);
+	float hs = iSize * 0.5;
+	near = near * (iSize * (B_SIZE-1)) + vec3(hs);
+	far = far * (iSize * (B_SIZE-1)) + vec3(hs);
+	float len = length(far - near);
+	vec3 brick_pos = brick_origin(brick_id);
+	vec4 result = colour;
+
+	if(len < 0.1)return;
+
+	float steps = 1.0/(len / iSize);
+
+	float pos;
+	for(pos=steps*remainder; pos < 1.0; pos += steps)
+	{	
+		vec3 sample_loc = mix(near, far, pos)*iCount;
+		vec4 voxel = texture(bricks, sample_loc+brick_pos);
+		result.xyz += ((1.0-result.w)*(1.0-result.w) * voxel.xyz)/(1.0 - result.xyz * voxel.xyz);
+		result.w = result.w + (1.0-result.w) * voxel.w;
+//		result.xyz = result.xyz + (1.0-result.w) * voxel.xyz;
+//		result.w = result.w + (1.0-result.w) * voxel.w;
+		if(result.w > 1.0)break;
+	}
+	remainder = (pos - 1.0) /steps;
+	colour = result;
+	// TODO: interpolate between different resolutions
+}
+
+
 
 void main(void)
 {
 	vec2 fpos = TexCoord.xy - 0.5;
-	float difference = cam.f[0].w;
+	float difference = cam.f[0].w;	// half the width of a pixel
 	fpos -= difference;	// correct for texel offset
 	vec3 p = cam.f[0].xyz;
 	vec3 angle = cam.f[1].xyz;
 	float fov = cam.f[1].w;
+	float prat = sin(fov * (difference*2));	// pixel ratio
 
 	fpos *= fov;
 
@@ -185,21 +257,65 @@ void main(void)
 	n.x = t.x * c.y + t.z * s.y;	// around y
 	n.z = t.x * s.y - t.z * c.y;
 
-	vec3 invnorm = 1.0 / n;
+	vec3 invnorm = 1.0 / normalize(n);
 	vec3 normsign = sign(n);
 
 	// Are we inside the Octtree?
 	vec4 box = vec4(0,0,0,1);
 	vec4 colour = vec4(0);
-
-	if(!slab_ray(p, invnorm, box))
+	float dist = 0;
+	float psize = 0;
+	vec3 far, near = p;
+	if(!inside(p, box))		// if we're not inside the block
 	{
-		Colour = vec4(0,1,0,1);
-		return;
+		if(!slab_ray(near, invnorm, box))	// will we enter the block?
+		{
+			Colour = vec4(0,1,0,1);		// not today
+			return;
+		}
+		dist = slab_enter(near, invnorm, box);	// find entry point
+		psize = dist * prat;	// increase pixel volume
+		near += n * dist;		// advance near point
+	}
+	float rem=0.0;
+
+	int brick_id = find_brick(near, box, psize);
+
+	for(int i=0; i<50 && colour.w < 1.0; i++)
+	{
+		int axis;
+		dist = slab_exitside(near, invnorm, box, axis);
+		far = near + n * dist;
+		psize = dist * prat;	// increase pixel volume
+
+		if(0 != brick_id)
+		{
+			vec3 brick_near = (near - box.xyz) / box.w;
+			vec3 brick_far = (far - box.xyz) / box.w;
+			brick_ray(brick_id, brick_near, brick_far, colour, rem);
+		}
+		else rem = 0;
+
+		vec3 axisa;
+		switch(axis){
+		case 1:
+			axisa = vec3(1,0,0) * normsign;
+			break;
+		case 2:
+			axisa = vec3(0,1,0) * normsign;
+			break;
+		case 3:
+			axisa = vec3(0,0,1) * normsign;
+			break;
+		}
+		box.xyz = box.xyz + axisa * box.w;
+
+		if(!inside(box.xyz+box.w, vec4(0,0,0,1)))break;
+		brick_id = find_brick(box.xyz+box.w*0.5, box, psize);
+		near = far;
 	}
 	
-	Colour = vec4(0,0,1,1);
+	Colour = colour;
 	return;
-
 }
 

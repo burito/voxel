@@ -23,28 +23,37 @@ freely, subject to the following restrictions:
 
 #version 430
 
+#define B_EDGE 64
+#define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
+
 layout(local_size_x = 1, local_size_y = 1) in;
 
 
 layout(binding=0, offset=0) uniform atomic_uint atomFresh;
 layout(binding=0, offset=4) uniform atomic_uint atomStale;
 
-layout(shared) buffer brick_usetime { int i[]; } BrickUseTime;
-layout(shared) buffer brick_lru { int i[]; } BrickLRU;
-layout(shared) buffer brick_lruout { int i[]; } BrickLRUOut;
+layout(shared, binding=1) buffer brick_usetime { int i[]; } BrickUseTime;
+layout(shared, binding=2) buffer brick_lru { int i[]; } BrickLRU;
+layout(shared, binding=3) buffer brick_lruout { int i[]; } BrickLRUOut;
 uniform int time;
 
 void main(void)
 {
-	int i = BrickLRU.i[gl_GlobalInvocationID.x];
+	uint off = gl_GlobalInvocationID.x * 64;
+	off = (off+gl_GlobalInvocationID.y)* 64;
+	off += gl_GlobalInvocationID.z;
+
+	int i = BrickLRU.i[off];
 	int brick_time = BrickUseTime.i[i];
 	if(time == brick_time)
 	{
-		BrickLRUOut.i[atomicCounterIncrement(atomFresh)] = i;
+		off = atomicCounterIncrement(atomFresh);
+		BrickLRUOut.i[off] = i;
 	}
 	else
 	{
-		BrickLRUOut.i[atomicCounterDecrement(atomStale)] = i;
+		off = atomicCounterIncrement(atomStale);
+		BrickLRUOut.i[(B_COUNT-1) - off] = i;
 	}
 }
 

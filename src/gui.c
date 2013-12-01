@@ -889,6 +889,8 @@ widget* spawn_voxobj(char* filename)
 {
 	widget *w = widget_window_new(100, 100, filename);
 	WF_OBJ *m = wf_load(filename);
+	extern WF_OBJ *vobj;
+	vobj = m;
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
 	w->free = widget_window_obj_free;

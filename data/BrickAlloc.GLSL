@@ -34,9 +34,9 @@ layout(binding=0, offset=0) uniform atomic_uint atomFresh;
 layout(binding=0, offset=4) uniform atomic_uint atomStale;
 
 uniform writeonly image3D bricks;
-layout(shared) buffer node_brick { int i[]; } NodeBrick;
-layout(shared) buffer brick_reqtime { int i[]; } BrickReqTime;
-layout(shared) buffer brick_lru { int i[]; } BrickLRU;
+layout(shared, binding=1) buffer node_brick { int i[]; } NodeBrick;
+layout(shared, binding=2) buffer brick_reqtime { int i[]; } BrickReqTime;
+layout(shared, binding=3) buffer brick_lru { int i[]; } BrickLRU;
 uniform int time;
 
 ivec3 brick_origin(in int brick_id)
@@ -54,13 +54,16 @@ ivec3 brick_origin(in int brick_id)
 
 void main(void)
 {
-	int i = int(gl_GlobalInvocationID.x);
-	int req_time = BrickReqTime.i[i];
+	uint off = gl_GlobalInvocationID.x * 64;
+	off = (off+gl_GlobalInvocationID.y)* 64;
+	off += gl_GlobalInvocationID.z;
+
+	int req_time = BrickReqTime.i[off];
 	if(time != req_time)return;
 
-	int dest = int(atomicCounterDecrement(atomStale));
+	int dest = int( (B_COUNT-1) - atomicCounterIncrement(atomStale));
 	dest = BrickLRU.i[dest];
-	NodeBrick.i[i] = dest;
+	NodeBrick.i[off] = dest;
 	ivec3 ipos = brick_origin(dest);
 
 	for(int x=0; x<B_SIZE; x++)
