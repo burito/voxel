@@ -73,9 +73,15 @@ int main_init(int argc, char *argv[])
 /*
 float3 pos = {2.315986, 0.594000, 0.159295};
 float3 angle = {-0.248000, 2.299999, 0.000000};
-*/
+
+// close up of dragon face
 float3 pos = {0.824341, 0.433000, 0.207066};
 float3 angle = {-0.106000, -0.166001, 0.000000};
+*/
+// a fast angle for tbox
+float3 pos = {1.377095, 0.433000, 0.160747};
+float3 angle = {-0.139000, 1.456999, 0.000000};
+
 int p_swim = 0;
 
 void main_loop(void)

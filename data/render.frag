@@ -56,6 +56,44 @@ in vec3 TexCoord;
 out vec4 color;
 
 
+bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
+{
+	vec3 near = (box.xyz - p) * inv;
+	vec3 far = ((box.xyz+box.w) - p) * inv;
+	vec3 tmin = min(near, far), tmax = max(near, far);
+	float rmin = max(tmin.x, max(tmin.y, tmin.z));
+	float rmax = min(tmax.x, min(tmax.y, tmax.z));
+	return (rmax >= rmin) && (rmax >= 0.0);
+}
+
+float slab_exit(in vec3 p, in vec3 inv, in vec4 box)
+{
+	vec3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * inv;
+	nearfar[1] = ((box.xyz+box.w) - p) * inv;
+	ivec3 ind = ivec3(step(0.0, inv));
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
+	return min(min(ret.x, ret.y), ret.z);
+}
+
+float slab_enter(in vec3 p, in vec3 inv, in vec4 box)
+{
+	vec3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * inv;
+	nearfar[1] = ((box.xyz+box.w) - p) * inv;
+	ivec3 ind = ivec3(step(inv, vec3(0.0)));
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
+	return max(max(ret.x, ret.y), ret.z);
+}
+
+
+
+
+
 int oct_child(in vec3 pos, inout vec4 vol)
 {
 	int child=0;
@@ -88,25 +126,24 @@ uint find_brick(in vec3 pos, inout vec4 box, in float size)
 	box = vec4(0,0,0,1);
 
 	uint child = 0;
-	uint index = 0;
+	uint parent = 0;
 	uint tmp;
-	float volume = 1.0/float(B_SIZE);
 
-	while(volume > size)
+//	while(volume > size)
+	for(int i=0; i<10; i++)
 	{
-		volume *= 0.5;
 		child = oct_child(pos, box);
 //		nPool[NP_LRU+index].n[child].child = now;
-		tmp = nPool[index].n[child].child;
+		tmp = nPool[parent].n[child].child;
 		if(tmp==0)
 		{
 //			nPool[NP_REQ+index].n[child].child = now;
 			break;
 		}
-		index = tmp;
+		parent = tmp;
 	}
 
-	return nPool[index].n[child].brick;
+	return nPool[parent].n[child].brick;
 	if(tmp==0)
 	{
 //		nPool[NP_REQ+index].n[child].brick = now;
@@ -122,94 +159,6 @@ bool inside(in vec3 pos, in vec4 box)
 	if(pos.y >= box.y-WIGGLE && pos.y < box.y+box.w+WIGGLE)
 	if(pos.z >= box.z-WIGGLE && pos.z < box.z+box.w+WIGGLE)
 		return true;
-	return false;
-}
-
-// assumes ray origin is outside of brick
-// returns true, and the point that it intersects
-// if it doesn't intersect, returns false and leaves garbage in result
-bool enter(in vec3 pos, in vec3 normal, out vec3 res)
-{
-	vec3 near, far;
-	
-	res = vec3(0);
-
-	near.x = normal.x < 0.0 ? 1.0 : 0.0;
-	near.y = normal.y < 0.0 ? 1.0 : 0.0;
-	near.z = normal.z < 0.0 ? 1.0 : 0.0;
-	far = vec3(1,1,1) - near;
-
-/*
-	if(normal.x < 0.0)
-	{
-		near.x = 1.0;
-		far.x = 0.0;
-		if(pos.x < far.x)
-			return false;
-	}
-	else
-	{
-		near.x = 0.0;
-		far.x = 1.0;
-		if(pos.x > far.x)
-			return false;
-	}
-
-	if(normal.y < 0.0)
-	{
-		near.y = 1.0;
-		far.y = 0.0;
-		if(pos.y < far.y)
-			return false;
-	}
-	else
-	{
-		near.y = 0.0;
-		far.y = 1.0;
-		if(pos.y > far.y)
-			return false;
-	}
-
-	if(normal.z < 0.0)
-	{
-		near.z = 1.0;
-		far.z = 0.0;
-		if(pos.z < far.z)
-			return false;
-	}
-	else
-	{
-		near.z = 0.0;
-		far.z = 1.0;
-		if(pos.z > far.z)
-			return false;
-	}
-*/
-	vec3 rationear = (near - pos)/normal;
-	vec3 ratiofar = (far - pos)/normal;
-	float near_min = min(min(rationear.x, rationear.y), rationear.z);
-	float near_max = max(max(rationear.x, rationear.y), rationear.z);
-	float near_mid = rationear.x == near_min ?
-		(rationear.y == near_min ? rationear.z : rationear.y) :
-		(rationear.z == near_min ? rationear.x : rationear.z); 
-
-	vec4 vol = vec4(-WIGGLE, -WIGGLE, -WIGGLE, 1.0+WIGGLE);
-
-	if(inside(near_min * normal + pos, vol))
-	{
-		res = normal*near_min + pos;
-		return true;
-	}
-	if(inside(near_mid * normal + pos, vol))
-	{
-		res = normal*near_mid + pos;
-		return true;
-	}
-	if(inside(near_max * normal + pos, vol))
-	{
-		res = near_max*normal + pos;
-		return true;
-	}
 	return false;
 }
 
@@ -279,47 +228,74 @@ void brick_ray(in uint brick_id, in vec3 near, in vec3 far, inout vec4 colour, i
 }
 
 
+
+vec3 box_norm(in vec3 pos, in vec4 box)
+{
+	float wiggle = box.w * 0.0001;
+	vec3 n = vec3(0);
+	vec3 l = abs(box.xyz - pos);
+	vec3 h = abs((box.xyz + box.w) - pos);
+	if(l.x < wiggle)n.x = -1.0;
+	if(l.y < wiggle)n.y = -1.0;
+	if(l.z < wiggle)n.z = -1.0;
+	if(h.x < wiggle)n.x = 1.0;
+	if(h.y < wiggle)n.y = 1.0;
+	if(h.z < wiggle)n.z = 1.0;
+	return n;
+}
+
+
 void brick_path(in vec3 pos, in vec3 normal, in float ratio)
 {
 	vec4 box = vec4(0,0,0,1);
 	float size = 0.0000001;
-	float distance=0;
-	
-	vec3 hit;
+
+	vec3 n = normalize(normal);
+	vec3 invnorm = 1.0 / n;
+	float dist =0;
+	vec3 normsign = sign(n);
+
+	vec3 far, near = pos;
 	if(!inside(pos, box))
 	{
-		if(!enter(pos, normal, hit))
+		if(!slab_ray(near, invnorm, box))
 			discard;
+		dist = slab_enter(near, invnorm, box);	// find entry point
+		near += n * dist;		// advance near point
 	}
-	else hit = pos;
-
-
-	float len = length(hit - pos);
-	distance += len;
+	else near = pos;
 
 	vec4 colour = vec4(0.0,0.0,0.0,0.0);
-	uint brick_id = find_brick(hit, box, size);
+	uint brick_id = find_brick(near, box, size);
 	float rem = 0.0;
-	for(int i=0; i<50 && colour.w < 1.0; i++)
+	for(int i=0; i<10 && colour.w < 1.0; i++)
 	{
-		vec3 far = escape(hit, normal, box);
-		len = length(far - hit);
-		vec3 step = normal * len;
+		dist = slab_exit(near, invnorm, box);
+		far = near + n * dist;
+
 		if(brick_id != 0)
 		{
-			vec3 brick_near = (hit - box.xyz) / box.w;
+			vec3 brick_near = (near - box.xyz) / box.w;
 			vec3 brick_far = (far - box.xyz) / box.w;
 			brick_ray(brick_id, brick_near, brick_far, colour, rem);
+//			break;
 		}
 		else rem = 0; // box.w / float(B_SIZE);
 
-		vec3 tmp = hit + step*1.010;
-//		vec3 tmp = far + normal*box.w/float(B_SIZE)*rem;
+	
+		vec3 tbox = box.xyz + vec3(box.w * 0.5);
+		tbox = box.xyz + (box_norm(far, box) * vec3(box.w));
+		if(!inside(tbox, vec4(0,0,0,1)))break;
+
+
+		vec3 tmp = far + n*0.000010;
 		if(!inside(tmp, vec4(0,0,0,1)))break;
 		brick_id = find_brick(tmp, box, size);
-		hit = tmp;
+
+
+		near = far;
 	}
-	vec3 n = normalize(colour.xyz);
+	n = normalize(colour.xyz);
 
 	vec3 lamb = vec3(0.4);
 	vec3 lpwr = vec3(0.3);
