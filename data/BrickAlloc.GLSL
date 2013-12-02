@@ -33,11 +33,25 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout(binding=0, offset=0) uniform atomic_uint atomFresh;
 layout(binding=0, offset=4) uniform atomic_uint atomStale;
 
-//uniform writeonly image3D bricks;
+uniform writeonly image3D bricks;
 layout(shared, binding=1) buffer node_brick { int i[]; } NodeBrick;
 layout(shared, binding=2) buffer brick_reqtime { int i[]; } BrickReqTime;
 layout(shared, binding=3) buffer brick_lru { int i[]; } BrickLRU;
 uniform int time;
+
+
+ivec3 brick_origin(in int brick_id)
+{
+	ivec3 brick_pos;
+	int brick_tmp;
+
+	brick_pos.x = brick_id % B_COUNT;
+	brick_tmp = (brick_id - brick_pos.x)/B_COUNT;
+	brick_pos.y = brick_tmp % B_COUNT;
+	brick_pos.z = (brick_tmp - brick_pos.y)/B_COUNT;
+
+	return brick_pos;
+}
 
 
 void main(void)
@@ -51,10 +65,10 @@ void main(void)
 	int dest = BrickLRU.i[(B_COUNT-1)-atomicCounterIncrement(atomStale)];
 	NodeBrick.i[off] = dest;
 
-//	ivec3 ipos = brick_origin(dest);
-//	for(int x=0; x<B_SIZE; x++)
-//	for(int y=0; y<B_SIZE; y++)
-//	for(int z=0; z<B_SIZE; z++)
-//		imageStore(bricks, ipos + ivec3(x,y,z), vec4(0));
+	ivec3 ipos = brick_origin(dest);
+	for(int x=0; x<B_SIZE; x++)
+	for(int y=0; y<B_SIZE; y++)
+	for(int z=0; z<B_SIZE; z++)
+		imageStore(bricks, ipos + ivec3(x,y,z), vec4(0));
 }
 

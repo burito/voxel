@@ -295,7 +295,9 @@ void voxel_Brick(int frame, int depth)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glUniform1i(s_Brick->unif[0], depth);
+	glUniform1i(s_Brick->unif[1], 0);
 	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 
 }
@@ -357,8 +359,6 @@ void voxel_Voxel(int frame)
 //		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glUniform1i(s_Voxel->unif[0], frame);
-
-
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 
@@ -526,6 +526,7 @@ void voxel_init(void)
 //	shader_buffer(s_Voxel, "brick_reqtime");
 //	shader_buffer(s_Voxel, "brick_usetime");
 	shader_uniform(s_Brick, "depth");
+	shader_uniform(s_Brick, "bricks");
 	shader_uniform(s_BrickDry, "time");
 	shader_uniform(s_BrickDry, "depth");
 	shader_uniform(s_NodeLRUReset, "time");
@@ -709,46 +710,28 @@ void voxel_loop(void)
 	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickLRUOut		12
 */
 
-//	print_salloc(xNB);
-//	print_salloc(xBRT);
-//	print_balloc(xBUT);
-//	print_int(xBLU);
-//	print_int(xBLO);
-//	print_balloc(clVox->GLid[4]);
-
 	voxel_NodeLRUSort(frame);
-//	printf("nlrus glerror=%s\n", glError(glGetError()));
 	voxel_BrickLRUSort(frame);
 	odd_frame = !odd_frame;
-//	printf("blrus glerror=%s\n", glError(glGetError()));
 	frame++;
 	voxel_BrickDry(frame, depth);
-//	print_esalloc(xBRT);
-//	print_salloc(xBRT);
-//	printf("bd glerror=%s\n", glError(glGetError()));
 	// render
 	if(vobj)vobj->draw(vobj);
+
 //	printf("rend glerror=%s\n", glError(glGetError()));
-
-//	print_int(clVox->GLid[3]);
-//	print_int(clVox->GLid[4]);
-//	print_int(clVox->GLid[5]);
-//	print_int(clVox->GLid[7]);
-//	print_int(clVox->GLid[8]);
-//	print_int(clVox->GLid[9]);
-//	printf("*****\n");
-
 
 	voxel_NodeAlloc(frame);
 //	printf("na glerror=%s\n", glError(glGetError()));
 	voxel_BrickAlloc(frame);
 //	printf("ba glerror=%s\n", glError(glGetError()));
-//	print_balloc(clVox->GLid[4]);
 	voxel_Brick(frame, depth);
 //	printf("b glerror=%s\n", glError(glGetError()));
 
 	// render
 	if(vobj)vobj->draw(vobj);
+
+	glDisable(GL_TEXTURE_3D);
+	glBindTexture(GL_TEXTURE_3D, 0);
 
 	glUseProgram(0);
 //	glMatrixMode(GL_PROJECTION);
