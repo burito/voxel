@@ -284,6 +284,9 @@ void voxel_BrickAlloc(int frame)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBLO); // bLRUo
 	}
 	glUniform1i(s_BrickAlloc->unif[0], frame);
+	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
+	GL_WRITE_ONLY, GL_RGBA8);
+
 	glDispatchCompute(NP_SIZE/10, 10, 8);
 	glUseProgram(0);
 }
@@ -296,9 +299,11 @@ void voxel_Brick(int frame, int depth)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glUniform1i(s_Brick->unif[0], depth);
 	glUniform1i(s_Brick->unif[1], 0);
-	glActiveTexture(GL_TEXTURE0);
+//	glActiveTexture(GL_TEXTURE0);
 	glEnable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
+	GL_WRITE_ONLY, GL_RGBA8);
 
 }
 
@@ -553,6 +558,8 @@ void voxel_init(void)
 extern float4 pos;
 extern float4 angle;
 
+float texdepth= 0;
+
 void voxel_loop(void)
 {
 	if(!clVox)return;
@@ -564,6 +571,16 @@ void voxel_loop(void)
 		exit(0);
 	}
 
+	if(keys[KEY_M])
+	{
+		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
+		printf("%d\n", (int)(texdepth*512.0));
+	}
+	if(keys[KEY_N])
+	{
+		if(texdepth > 0.0) texdepth -= 1.0 / 512;
+		printf("%d\n", (int)(texdepth*512.0));
+	}
 
 	if(voxel_rebuildkernel_flag)
 	{
@@ -670,6 +687,8 @@ void voxel_loop(void)
 	glTexCoord2f(tleft, tbottom); glVertex2f(left, bottom);
 	glEnd();
 
+
+
 	if(!use_glsl)
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -723,6 +742,7 @@ void voxel_loop(void)
 	voxel_NodeAlloc(frame);
 //	printf("na glerror=%s\n", glError(glGetError()));
 	voxel_BrickAlloc(frame);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //	printf("ba glerror=%s\n", glError(glGetError()));
 	voxel_Brick(frame, depth);
 //	printf("b glerror=%s\n", glError(glGetError()));
@@ -730,8 +750,6 @@ void voxel_loop(void)
 	// render
 	if(vobj)vobj->draw(vobj);
 
-	glDisable(GL_TEXTURE_3D);
-	glBindTexture(GL_TEXTURE_3D, 0);
 
 	glUseProgram(0);
 //	glMatrixMode(GL_PROJECTION);
@@ -740,6 +758,20 @@ void voxel_loop(void)
 //	glPopMatrix();
 	glDisable(GL_DEPTH_TEST);
 
+	glEnable(GL_TEXTURE_3D);
+	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+	
+	float toff = 0.5 / 512.0;
+
+	glBegin(GL_QUADS);
+	glTexCoord3f(0, 0, texdepth + toff); glVertex2f(1, 0);
+	glTexCoord3f(1, 0, texdepth+toff); glVertex2f(2, 0);
+	glTexCoord3f(1, 1, texdepth+toff); glVertex2f(2, 1);
+	glTexCoord3f(0, 1, texdepth+toff); glVertex2f(1, 1);
+	glEnd();
+
+	glDisable(GL_TEXTURE_3D);
+	glBindTexture(GL_TEXTURE_3D, 0);
 }
 
 void voxel_end(void)
