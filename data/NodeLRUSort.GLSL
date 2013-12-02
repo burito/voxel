@@ -40,6 +40,7 @@ void main(void)
 {
 	uint off = gl_GlobalInvocationID.x * 10;
 	off += gl_GlobalInvocationID.y;
+
 	int i = NodeLRU.i[off];
 	int node_time = NodeUseTime.i[i];
 	if(time == node_time)

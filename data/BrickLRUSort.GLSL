@@ -26,7 +26,7 @@ freely, subject to the following restrictions:
 #define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
-layout(local_size_x = 1, local_size_y = 1) in;
+layout(local_size_x = 1, local_size_y = 1, local_size_x = 1) in;
 
 
 layout(binding=0, offset=0) uniform atomic_uint atomFresh;

@@ -296,22 +296,9 @@ void main(void)
 		}
 		else rem = 0;
 
-		vec3 axisa;
-		switch(axis){
-		case 1:
-			axisa = vec3(1,0,0) * normsign;
-			break;
-		case 2:
-			axisa = vec3(0,1,0) * normsign;
-			break;
-		case 3:
-			axisa = vec3(0,0,1) * normsign;
-			break;
-		}
-		box.xyz = box.xyz + axisa * box.w;
-
-		if(!inside(box.xyz+box.w, vec4(0,0,0,1)))break;
-		brick_id = find_brick(box.xyz+box.w*0.5, box, psize);
+		vec3 tmp = far + n *0.00001;
+		if(!inside(tmp, vec4(0,0,0,1)))break;
+		brick_id = find_brick(tmp, box, psize);
 		near = far;
 	}
 	

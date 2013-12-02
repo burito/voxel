@@ -76,6 +76,17 @@ int odd_frame = 0;
 
 WF_OBJ * vobj=NULL;
 
+#define xNN		clVox->GLid[3]
+#define xNB		clVox->GLid[4]
+#define xNRT	clVox->GLid[5]
+#define xBRT	clVox->GLid[6]
+#define xNUT	clVox->GLid[7]
+#define xNLU	clVox->GLid[8]
+#define xNLO	clVox->GLid[9]
+#define xBUT	clVox->GLid[10]
+#define xBLU	clVox->GLid[11]
+#define xBLO	clVox->GLid[12]
+
 
 void voxel_rebuildkernel(widget* foo)
 {
@@ -160,8 +171,8 @@ void voxel_atom(int x, int y)
 void voxel_NodeClear(void)
 {
 	glUseProgram(s_NodeClear->prog);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[3]); // nn
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[4]); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNN); // nn
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glDispatchCompute(NP_SIZE / 10, 10, 1);
 	glUseProgram(0);
 }
@@ -170,10 +181,10 @@ void voxel_NodeClear(void)
 void voxel_NodeLRUReset(int frame)
 {
 	glUseProgram(s_NodeLRUReset->prog);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[7]); // nut
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[8]); // nLRU
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[5]); // nrt
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[6]); // brq
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNUT); // nut
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNLU); // nLRU
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xNRT); // nrt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBRT); // brq
 	glUniform1i(s_NodeLRUReset->unif[0], frame);
 	glDispatchCompute(NP_SIZE / 10, 10, 1);
 	glUseProgram(0);
@@ -183,8 +194,8 @@ void voxel_NodeLRUReset(int frame)
 void voxel_BrickLRUReset(int frame)
 {
 	glUseProgram(s_BrickLRUReset->prog);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[10]); // but
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[11]); // bLRU
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xBUT); // but
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xBLU); // bLRU
 	glUniform1i(s_BrickLRUReset->unif[0], frame);
 	glDispatchCompute(B_EDGE, B_EDGE, B_EDGE);
 	glUseProgram(0);
@@ -196,16 +207,16 @@ void voxel_NodeLRUSort(int frame)
 	glUseProgram(s_NodeLRUSort->prog);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[7]); // nut
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNUT); // nut
 	if(!odd_frame)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[8]); // nLRU
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[9]); // nLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xNLU); // nLRU
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xNLO); // nLRUo
 	}
 	else
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[9]); // nLRUo
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[8]); // nLRU
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xNLO); // nLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xNLU); // nLRU
 	}
 	glUniform1i(s_NodeLRUSort->unif[0], frame);
 	glDispatchCompute(NP_SIZE/10, 10, 1);
@@ -218,16 +229,16 @@ void voxel_BrickLRUSort(int frame)
 	glUseProgram(s_BrickLRUSort->prog);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[10]); // but
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xBUT); // but
 	if(!odd_frame)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[11]); // bLRU
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[12]); // bLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xBLU); // bLRU
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBLO); // bLRUo
 	}
 	else
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[12]); // bLRU
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[11]); // bLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xBLO); // bLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBLU); // bLRU
 	}
 	glUniform1i(s_BrickLRUSort->unif[0], frame);
 	glDispatchCompute(B_EDGE, B_EDGE, B_EDGE);
@@ -240,15 +251,15 @@ void voxel_NodeAlloc(int frame)
 	glUseProgram(s_NodeAlloc->prog);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[3]); // nn
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[5]); // nrt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNN); // nn
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xNRT); // nrt
 	if(!odd_frame)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[8]); // nLRU
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xNLU); // nLRU
 	}
 	else
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[9]); // nLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xNLO); // nLRUo
 
 	}
 	glUniform1i(s_NodeAlloc->unif[0], frame);
@@ -262,18 +273,18 @@ void voxel_BrickAlloc(int frame)
 	glUseProgram(s_BrickAlloc->prog);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[4]); // nb
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[6]); // brt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xBRT); // brt
 	if(!odd_frame)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[11]); // bLRU
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBLU); // bLRU
 	}
 	else
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[12]); // bLRUo
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBLO); // bLRUo
 	}
 	glUniform1i(s_BrickAlloc->unif[0], frame);
-	glDispatchCompute(B_EDGE, B_EDGE, B_EDGE);
+	glDispatchCompute(NP_SIZE/10, 10, 8);
 	glUseProgram(0);
 }
 
@@ -281,8 +292,8 @@ void voxel_BrickAlloc(int frame)
 void voxel_Brick(int frame, int depth)
 {
 	glUseProgram(s_Brick->prog);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[3]); // nn
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[4]); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNN); // nn
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glUniform1i(s_Brick->unif[0], depth);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
@@ -293,10 +304,10 @@ void voxel_Brick(int frame, int depth)
 void voxel_BrickDry(int frame, int depth)
 {
 	glUseProgram(s_BrickDry->prog);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, clVox->GLid[3]); // nn
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, clVox->GLid[4]); // nb
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, clVox->GLid[5]); // nrt
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, clVox->GLid[6]); // brt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNN); // nn
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xNRT); // nrt
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, xBRT); // brt
 	glUniform1i(s_BrickDry->unif[0], frame);
 	glUniform1i(s_BrickDry->unif[1], depth);
 }
@@ -361,7 +372,7 @@ void print_int(GLuint id)
 
 	int* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 	printf("%d=(", id);
-	for(int i=0; i<16; i++)
+	for(int i=0; i<12; i++)
 	{
 		printf("%d,", p[i]);
 	}
@@ -369,6 +380,99 @@ void print_int(GLuint id)
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
+
+
+
+void print_balloc(GLuint id)
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
+	
+
+	int* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	printf("%d=(", id);
+	for(int i=0; i<B_COUNT; i++)
+	{
+		if(p[i])printf("%d,", p[i]);
+	}
+	printf(")\n");
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void print_nalloc(GLuint id)
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
+	
+
+	int* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	printf("%d=(", id);
+	for(int i=0; i<NP_SIZE; i++)
+	{
+		if(p[i])printf("%d,", p[i]);
+	}
+	printf(")\n");
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+void print_salloc(GLuint id)
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
+	
+
+	int* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	printf("%d=(", id);
+	for(int i=0; i<NP_SIZE*8; i++)
+	{
+		if(p[i])printf("%d,", p[i]);
+	}
+	printf(")\n");
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+
+void print_osalloc(GLuint id)
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
+	
+
+	int* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	printf("%d=(", id);
+	for(int i=0; i<NP_SIZE*8; i++)
+	{
+		if(p[i])
+		{
+			if(p[i]%2)
+				printf("%d,", p[i]);
+
+		}
+	}
+	printf(")\n");
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void print_esalloc(GLuint id)
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
+	
+
+	int* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	printf("%d=(", id);
+	for(int i=0; i<NP_SIZE*8; i++)
+	{
+		if(p[i])
+		{
+			if(!(p[i]%2))
+				printf("%d,", p[i]);
+
+		}
+	}
+	printf(")\n");
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
 
 
 
@@ -435,6 +539,7 @@ void voxel_init(void)
 	voxel_NodeClear();
 	voxel_NodeLRUReset(frame);
 	voxel_BrickLRUReset(frame);
+//	print_int(clVox->GLid[11]);
 
 	glGenBuffers(1, &atomics);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
@@ -451,6 +556,13 @@ void voxel_loop(void)
 {
 	if(!clVox)return;
 	frame++;
+
+	if(keys[KEY_L])
+	{
+		print_int(clVox->GLid[xBLU]);
+		exit(0);
+	}
+
 
 	if(voxel_rebuildkernel_flag)
 	{
@@ -581,7 +693,7 @@ void voxel_loop(void)
 	glDisable(GL_DEPTH_TEST);
 	float scale = 500;	
 	glScalef(scale, scale, scale);
-	if(vobj)vobj->draw(vobj);
+//	if(vobj)vobj->draw(vobj);
 /*
 	ocl_gltex3d(clVox, cube, GL_RGBA, GL_UNSIGNED_BYTE); //	1
 	ocl_glbuf(clVox, sizeof(cl_float)*8, NULL);	// camera	2
@@ -597,6 +709,12 @@ void voxel_loop(void)
 	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickLRUOut		12
 */
 
+//	print_salloc(xNB);
+//	print_salloc(xBRT);
+//	print_balloc(xBUT);
+//	print_int(xBLU);
+//	print_int(xBLO);
+//	print_balloc(clVox->GLid[4]);
 
 	voxel_NodeLRUSort(frame);
 //	printf("nlrus glerror=%s\n", glError(glGetError()));
@@ -605,23 +723,27 @@ void voxel_loop(void)
 //	printf("blrus glerror=%s\n", glError(glGetError()));
 	frame++;
 	voxel_BrickDry(frame, depth);
+//	print_esalloc(xBRT);
+//	print_salloc(xBRT);
 //	printf("bd glerror=%s\n", glError(glGetError()));
 	// render
 	if(vobj)vobj->draw(vobj);
+//	printf("rend glerror=%s\n", glError(glGetError()));
 
-	print_int(clVox->GLid[3]);
-	print_int(clVox->GLid[4]);
-	print_int(clVox->GLid[5]);
-	print_int(clVox->GLid[7]);
-	print_int(clVox->GLid[8]);
-	print_int(clVox->GLid[9]);
-	printf("*****\n");
+//	print_int(clVox->GLid[3]);
+//	print_int(clVox->GLid[4]);
+//	print_int(clVox->GLid[5]);
+//	print_int(clVox->GLid[7]);
+//	print_int(clVox->GLid[8]);
+//	print_int(clVox->GLid[9]);
+//	printf("*****\n");
 
 
 	voxel_NodeAlloc(frame);
 //	printf("na glerror=%s\n", glError(glGetError()));
 	voxel_BrickAlloc(frame);
 //	printf("ba glerror=%s\n", glError(glGetError()));
+//	print_balloc(clVox->GLid[4]);
 	voxel_Brick(frame, depth);
 //	printf("b glerror=%s\n", glError(glGetError()));
 

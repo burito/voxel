@@ -96,11 +96,23 @@ void main(void)
 		node = target;
 		child = oct_child(Position, box);
 		target = NodeNode.i[node][child];
-		if(0==target)discard;
+		if(0==target)
+		{
+			Colour = vec4(0,0,1,1);
+			return;
+//			discard;
+		}
 	}
 	// find our brick id
 	int brick = NodeBrick.i[node][child];
-	if(0==brick)discard;
+	if(0==brick)
+	{
+//		Colour = vec4(1,0,0,1);
+		Colour = vec4(Position,1);
+
+		return;
+//		discard;
+	}
 	// find our brick relative coords
 	float invbox = 1.0 / box.w;
 	vec3 pos = (Position - box.xyz) * invbox;
@@ -109,7 +121,9 @@ void main(void)
 	// write to the 3D texture
 	vec4 colour = vec4(Normal, 1.0);
 	imageStore(bricks, ipos, colour);
-	discard;
+	Colour = vec4(1,0,1,1);
+	return;
+//	discard;
 }
 
 

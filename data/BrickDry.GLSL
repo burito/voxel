@@ -86,7 +86,7 @@ void main(void)
 		{
 			if( time-1 == NodeReqTime.i[node][child])
 				NodeReqTime.i[node][child] = time;
-			discard;
+			break;
 		}
 	}
 	// find our brick id
@@ -95,7 +95,6 @@ void main(void)
 	{
 		if(time-1 == BrickReqTime.i[node][child])
 			BrickReqTime.i[node][child] = time;
-		discard;
 	}
 	discard;
 }
