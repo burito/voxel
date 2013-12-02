@@ -149,12 +149,12 @@ vec3 brick_origin(in int brick_id)
 	vec3 brick_pos;
 	int brick_tmp;
 
-	brick_pos.x = float(brick_id % B_COUNT);
-	brick_tmp = (brick_id - int(brick_pos.x))/B_COUNT;
-	brick_pos.y = float(brick_tmp % B_COUNT);
-	brick_pos.z = float((brick_tmp - int(brick_pos.y))/B_COUNT);
+	brick_pos.x = float(brick_id % B_EDGE);
+	brick_tmp = (brick_id - int(brick_pos.x))/B_EDGE;
+	brick_pos.y = float(brick_tmp % B_EDGE);
+	brick_pos.z = float((brick_tmp - int(brick_pos.y))/B_EDGE);
 
-	return brick_pos / float(B_COUNT);
+	return brick_pos / float(B_EDGE);
 }
 
 

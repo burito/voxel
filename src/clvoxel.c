@@ -742,7 +742,7 @@ void voxel_loop(void)
 	voxel_NodeAlloc(frame);
 //	printf("na glerror=%s\n", glError(glGetError()));
 	voxel_BrickAlloc(frame);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+//	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //	printf("ba glerror=%s\n", glError(glGetError()));
 	voxel_Brick(frame, depth);
 //	printf("b glerror=%s\n", glError(glGetError()));

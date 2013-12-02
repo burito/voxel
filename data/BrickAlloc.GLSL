@@ -45,12 +45,12 @@ ivec3 brick_origin(in int brick_id)
 	ivec3 brick_pos;
 	int brick_tmp;
 
-	brick_pos.x = brick_id % B_COUNT;
-	brick_tmp = (brick_id - brick_pos.x)/B_COUNT;
-	brick_pos.y = brick_tmp % B_COUNT;
-	brick_pos.z = (brick_tmp - brick_pos.y)/B_COUNT;
+	brick_pos.x = brick_id % B_EDGE;
+	brick_tmp = (brick_id - brick_pos.x)/B_EDGE;
+	brick_pos.y = brick_tmp % B_EDGE;
+	brick_pos.z = (brick_tmp - brick_pos.y)/B_EDGE;
 
-	return brick_pos;
+	return brick_pos * B_SIZE;
 }
 
 
