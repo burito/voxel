@@ -299,7 +299,6 @@ void voxel_Brick(int frame, int depth)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glUniform1i(s_Brick->unif[0], depth);
 	glUniform1i(s_Brick->unif[1], 0);
-//	glActiveTexture(GL_TEXTURE0);
 	glEnable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
@@ -334,12 +333,7 @@ void voxel_Voxel(int frame)
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, 16, &angle);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-//		GLint x;
-//		glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &x);
-//		printf("max ssbb=%d\n", x);
-
 	GLenum ssb = GL_SHADER_STORAGE_BUFFER;
-//	glUniformBlockBinding(s->prog, s->buf[1], 1); // nn
 
 	glBindBufferBase(ssb, 0, clVox->GLid[2]); // cam
 	glBindBufferBase(ssb, 1, xNN); // nn
@@ -349,23 +343,8 @@ void voxel_Voxel(int frame)
 	glBindBufferBase(ssb, 5, xBRT); // brt
 	glBindBufferBase(ssb, 6, xBUT); // but
 
-/*
-	glUniformBlockBinding(s->prog, s->buf[0], clVox->GLid[2]); // cam
-	glUniformBlockBinding(s->prog, s->buf[1], clVox->GLid[3]); // nn
-	glUniformBlockBinding(s->prog, s->buf[2], clVox->GLid[4]); // nb
-	glUniformBlockBinding(s->prog, s->buf[3], clVox->GLid[7]); // nut
-	glUniformBlockBinding(s->prog, s->buf[4], clVox->GLid[5]); // nrt
-	glUniformBlockBinding(s->prog, s->buf[5], clVox->GLid[6]); // brt
-	glUniformBlockBinding(s->prog, s->buf[6], clVox->GLid[10]); // but
-*/
-//		GLuint bi = glGetUniformBlockIndex(glVox->render, "camera");
-//		glUniformBlockBinding(glVox->render, bi, clVox->GLid[2]);
-//		glUniformBlockBinding(glVox->render, bi, GL_SHADER_STORAGE_BUFFER);
-//		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glUniform1i(s_Voxel->unif[0], frame);
-//	glActiveTexture(GL_TEXTURE0);
-//	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 
@@ -483,9 +462,7 @@ void print_esalloc(GLuint id)
 }
 
 
-
-
-int frame;
+int frame = 0;
 void voxel_init(void)
 {
 	frame = 0;
@@ -527,13 +504,6 @@ void voxel_init(void)
 
 	
 	shader_uniform(s_Voxel, "time");
-//	shader_buffer(s_Voxel, "camera");
-//	shader_buffer(s_Voxel, "node_node");
-//	shader_buffer(s_Voxel, "node_brick");
-//	shader_buffer(s_Voxel, "node_usetime");
-//	shader_buffer(s_Voxel, "node_reqtime");
-//	shader_buffer(s_Voxel, "brick_reqtime");
-//	shader_buffer(s_Voxel, "brick_usetime");
 	shader_uniform(s_Brick, "depth");
 	shader_uniform(s_Brick, "bricks");
 	shader_uniform(s_BrickDry, "time");
@@ -549,7 +519,6 @@ void voxel_init(void)
 	voxel_NodeClear();
 	voxel_NodeLRUReset(frame);
 	voxel_BrickLRUReset(frame);
-//	print_int(clVox->GLid[11]);
 
 	glGenBuffers(1, &atomics);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
@@ -562,23 +531,12 @@ void voxel_init(void)
 extern float4 pos;
 extern float4 angle;
 
-float texdepth= 0;
 
 void voxel_loop(void)
 {
 	if(!clVox)return;
 	frame++;
 
-	if(keys[KEY_M])
-	{
-		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
-		printf("%d\n", (int)(texdepth*512.0));
-	}
-	if(keys[KEY_N])
-	{
-		if(texdepth > 0.0) texdepth -= 1.0 / 512;
-		printf("%d\n", (int)(texdepth*512.0));
-	}
 
 
 	if(voxel_rebuildkernel_flag)
@@ -594,11 +552,6 @@ void voxel_loop(void)
 		shader_rebuild(s_Voxel);
 		shader_rebuild(s_Brick);
 	}
-
-	// prepare the LRU table
-
-	// create some bricks
-
 
 	float tleft, tright;
 	float ttop, tbottom;
@@ -662,8 +615,6 @@ void voxel_loop(void)
 	{
 
 		voxel_Voxel(frame);
-//		glBindBuffer(GL_ARRAY_BUFFER, node_pool);
-
 		tleft = 0; tright = 1;
 		float srat = ((float)vid_height / (float)vid_width) * 0.5;
 		ttop = 0.5 - srat;
@@ -687,7 +638,6 @@ void voxel_loop(void)
 	glEnd();
 
 
-
 	if(!use_glsl)
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -698,36 +648,11 @@ void voxel_loop(void)
 		glUseProgram(0);
 	}
 
-	int depth = 3;
+	int depth = 7;
 
-
-//	glPushMatrix();
-//	glMatrixMode(GL_PROJECTION);
-//	glPushMatrix();
-//	glLoadIdentity();
-//	glMatrixMode(GL_MODELVIEW);
-//	glLoadIdentity();
-//	glClearDepth(5000.0f);
-//	glClear(GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	float scale = 500;	
 	glScalef(scale, scale, scale);
-//	if(vobj)vobj->draw(vobj);
-/*
-	ocl_gltex3d(clVox, cube, GL_RGBA, GL_UNSIGNED_BYTE); //	1
-	ocl_glbuf(clVox, sizeof(cl_float)*8, NULL);	// camera	2
-	ocl_glbuf(clVox, size, NULL);	// NodeNode				3
-	ocl_glbuf(clVox, size, NULL);	// NodeBrick			4
-	ocl_glbuf(clVox, size, NULL);	// NodeReqTime			5
-	ocl_glbuf(clVox, size, NULL);	// BrickReqTime			6
-	ocl_glbuf(clVox, NP_SIZE*4, NULL);	// NodeUseTime		7
-	ocl_glbuf(clVox, NP_SIZE*4, NULL);	// NodeLRU			8
-	ocl_glbuf(clVox, NP_SIZE*4, NULL);	// NodeLRUOut		9
-	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickUseTime		10
-	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickLRU			11
-	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickLRUOut		12
-*/
-//	print_salloc(xNB);
 
 	voxel_NodeLRUSort(frame);
 	voxel_BrickLRUSort(frame);
@@ -737,39 +662,16 @@ void voxel_loop(void)
 	// render
 	if(vobj)vobj->draw(vobj);
 
-//	printf("rend glerror=%s\n", glError(glGetError()));
-
 	voxel_NodeAlloc(frame);
-//	printf("na glerror=%s\n", glError(glGetError()));
 	voxel_BrickAlloc(frame);
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-//	printf("ba glerror=%s\n", glError(glGetError()));
+//	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	voxel_Brick(frame, depth);
-//	printf("b glerror=%s\n", glError(glGetError()));
 
 	// render
 	if(vobj)vobj->draw(vobj);
 
-
+	// all done
 	glUseProgram(0);
-//	glMatrixMode(GL_PROJECTION);
-//	glPopMatrix();
-//	glMatrixMode(GL_MODELVIEW);
-//	glPopMatrix();
-	glDisable(GL_DEPTH_TEST);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
-
-	float toff = 0.5 / 512.0;
-	glBegin(GL_QUADS);
-	glTexCoord3f(0, 0, texdepth + toff); glVertex2f(1, 0);
-	glTexCoord3f(1, 0, texdepth+toff); glVertex2f(2, 0);
-	glTexCoord3f(1, 1, texdepth+toff); glVertex2f(2, 1);
-	glTexCoord3f(0, 1, texdepth+toff); glVertex2f(1, 1);
-	glEnd();
-	
-
 	glDisable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, 0);
 }
@@ -779,6 +681,37 @@ void voxel_end(void)
 
 	ocl_free(clVox);
 
+}
+
+
+
+float texdepth= 0;
+void voxel_3dtexdraw(void)
+{
+	if(keys[KEY_M])
+	{
+		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
+		printf("%d\n", (int)(texdepth*512.0));
+	}
+	if(keys[KEY_N])
+	{
+		if(texdepth > 0.0) texdepth -= 1.0 / 512;
+		printf("%d\n", (int)(texdepth*512.0));
+	}
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+
+	float toff = 0.5 / 512.0;
+	glBegin(GL_QUADS);
+	glTexCoord3f(0, 0, texdepth+toff); glVertex2f(1, 0);
+	glTexCoord3f(1, 0, texdepth+toff); glVertex2f(2, 0);
+	glTexCoord3f(1, 1, texdepth+toff); glVertex2f(2, 1);
+	glTexCoord3f(0, 1, texdepth+toff); glVertex2f(1, 1);
+	glEnd();
+
+	glDisable(GL_TEXTURE_3D);
+	glBindTexture(GL_TEXTURE_3D, 0);
 }
 
 
