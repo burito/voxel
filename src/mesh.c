@@ -238,7 +238,7 @@ static void wf_bound(WF_OBJ *w)
 	if(!w)return;
 	float3 *v = w->v;
 	if(!v)return;
-	float3 min, max, size;
+	float3 min, max, size, mid;
 	max = min = v[0];
 	for(int i=0; i<w->nv; i++)
 	{
@@ -254,9 +254,12 @@ static void wf_bound(WF_OBJ *w)
 
 	F3SUB(size, max, min);
 	float longest = F3MAX(size);
+	F3SSUB(mid, longest, size);
+	F3MULS(mid, mid, 0.5);
 	for(int i=0; i<w->nv; i++)
 	{
 		F3SUB(v[i], v[i], min);
+		F3ADD(v[i], v[i], mid);
 		vect_sdivide(&v[i], &v[i], longest);
 	}
 

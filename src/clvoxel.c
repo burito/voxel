@@ -342,12 +342,12 @@ void voxel_Voxel(int frame)
 //	glUniformBlockBinding(s->prog, s->buf[1], 1); // nn
 
 	glBindBufferBase(ssb, 0, clVox->GLid[2]); // cam
-	glBindBufferBase(ssb, 1, clVox->GLid[3]); // nn
-	glBindBufferBase(ssb, 2, clVox->GLid[4]); // nb
-	glBindBufferBase(ssb, 3, clVox->GLid[7]); // nut
-	glBindBufferBase(ssb, 4, clVox->GLid[5]); // nrt
-	glBindBufferBase(ssb, 5, clVox->GLid[6]); // brt
-	glBindBufferBase(ssb, 6, clVox->GLid[10]); // but
+	glBindBufferBase(ssb, 1, xNN); // nn
+	glBindBufferBase(ssb, 2, xNB); // nb
+	glBindBufferBase(ssb, 3, xNUT); // nut
+	glBindBufferBase(ssb, 4, xNRT); // nrt
+	glBindBufferBase(ssb, 5, xBRT); // brt
+	glBindBufferBase(ssb, 6, xBUT); // but
 
 /*
 	glUniformBlockBinding(s->prog, s->buf[0], clVox->GLid[2]); // cam
@@ -364,9 +364,13 @@ void voxel_Voxel(int frame)
 //		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glUniform1i(s_Voxel->unif[0], frame);
+//	glActiveTexture(GL_TEXTURE0);
+//	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 
+//	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
+//	GL_READ_ONLY, GL_RGBA8);
 
 }
 
@@ -565,12 +569,6 @@ void voxel_loop(void)
 	if(!clVox)return;
 	frame++;
 
-	if(keys[KEY_L])
-	{
-		print_int(clVox->GLid[xBLU]);
-		exit(0);
-	}
-
 	if(keys[KEY_M])
 	{
 		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
@@ -581,6 +579,7 @@ void voxel_loop(void)
 		if(texdepth > 0.0) texdepth -= 1.0 / 512;
 		printf("%d\n", (int)(texdepth*512.0));
 	}
+
 
 	if(voxel_rebuildkernel_flag)
 	{
@@ -699,7 +698,7 @@ void voxel_loop(void)
 		glUseProgram(0);
 	}
 
-	int depth = 4;
+	int depth = 7;
 
 
 //	glPushMatrix();
@@ -728,6 +727,7 @@ void voxel_loop(void)
 	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickLRU			11
 	ocl_glbuf(clVox, B_COUNT*4, NULL);	// BrickLRUOut		12
 */
+//	print_salloc(xNB);
 
 	voxel_NodeLRUSort(frame);
 	voxel_BrickLRUSort(frame);
@@ -742,7 +742,7 @@ void voxel_loop(void)
 	voxel_NodeAlloc(frame);
 //	printf("na glerror=%s\n", glError(glGetError()));
 	voxel_BrickAlloc(frame);
-//	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //	printf("ba glerror=%s\n", glError(glGetError()));
 	voxel_Brick(frame, depth);
 //	printf("b glerror=%s\n", glError(glGetError()));
@@ -758,9 +758,6 @@ void voxel_loop(void)
 //	glPopMatrix();
 	glDisable(GL_DEPTH_TEST);
 
-	glEnable(GL_TEXTURE_3D);
-	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
-	
 	float toff = 0.5 / 512.0;
 
 	glBegin(GL_QUADS);
@@ -769,6 +766,7 @@ void voxel_loop(void)
 	glTexCoord3f(1, 1, texdepth+toff); glVertex2f(2, 1);
 	glTexCoord3f(0, 1, texdepth+toff); glVertex2f(1, 1);
 	glEnd();
+	
 
 	glDisable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, 0);

@@ -31,7 +31,7 @@ freely, subject to the following restrictions:
 
 
 
-layout(rgba8) uniform writeonly image3D bricks;
+layout(rgba8, location=0) uniform writeonly image3D bricks;
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 
@@ -98,9 +98,9 @@ void main(void)
 		target = NodeNode.i[node][child];
 		if(0==target)
 		{
-			Colour = vec4(0,0,1,1);
-			return;
-//			discard;
+//			Colour = vec4(0,0,1,1);
+//			return;
+			discard;
 		}
 	}
 	// find our brick id
@@ -108,10 +108,10 @@ void main(void)
 	if(0==brick)
 	{
 //		Colour = vec4(1,0,0,1);
-		Colour = vec4(Position,1);
+//		Colour = vec4(Position,1);
 
-		return;
-//		discard;
+//		return;
+		discard;
 	}
 	// find our brick relative coords
 	float invbox = 1.0 / box.w;
@@ -121,9 +121,9 @@ void main(void)
 	// write to the 3D texture
 	vec4 colour = vec4(Normal, 1.0);
 	imageStore(bricks, ipos, colour);
-	Colour = vec4(box.xyz,1);
-	return;
-//	discard;
+//	Colour = vec4(box.xyz,1);
+//	return;
+	discard;
 }
 
 

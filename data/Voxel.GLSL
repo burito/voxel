@@ -169,7 +169,6 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 
 	while(volume > size)
 	{
-		parent = tmp;
 		volume *= 0.5;
 		child = oct_child(pos, box);
 		NodeUseTime.i[parent] = time;
@@ -179,6 +178,7 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 			NodeReqTime.i[parent][child] = time;
 			break;
 		}
+		parent = tmp;
 	}
 
 	tmp = NodeBrick.i[parent][child];
@@ -279,12 +279,12 @@ void main(void)
 	}
 	float rem=0.0;
 
+	float cy=0;
 	int brick_id = find_brick(near, box, psize);
-
-	for(int i=0; i<50 && colour.w < 1.0; i++)
+	int i;
+	for(i=0; i<50 && colour.w < 1.0; i++)
 	{
-		int axis;
-		dist = slab_exitside(near, invnorm, box, axis);
+		dist = slab_exit(near, invnorm, box);
 		far = near + n * dist;
 		psize = dist * prat;	// increase pixel volume
 
@@ -293,6 +293,7 @@ void main(void)
 			vec3 brick_near = (near - box.xyz) / box.w;
 			vec3 brick_far = (far - box.xyz) / box.w;
 			brick_ray(brick_id, brick_near, brick_far, colour, rem);
+			cy += 0.1;
 		}
 		else rem = 0;
 
@@ -302,7 +303,9 @@ void main(void)
 		near = far;
 	}
 	
-	Colour = colour;
+	float l = float(i*5) / 256.0;
+//	Colour = colour;
+	Colour = vec4(colour.w, cy, l, 1);
 	return;
 }
 

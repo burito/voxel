@@ -73,6 +73,8 @@ typedef struct byte4 {
 #define F3ADD(D,A,B) D.x=A.x+B.x;D.y=A.y+B.y;D.z=A.z+B.z
 #define F3ADDS(D,A,B) D.x=A.x+B;D.y=A.y+B;D.z=A.z+B
 #define F3SUB(D,A,B) D.x=A.x-B.x;D.y=A.y-B.y;D.z=A.z-B.z
+#define F3SUBS(D,A,B) D.x=A.x-B;D.y=A.y-B;D.z=A.z-B
+#define F3SSUB(D,B,A) D.x=B-A.x;D.y=B-A.y;D.z=B-A.z
 #define F3MUL(D,A,B) D.x=A.x*B.x;D.y=A.y*B.y;D.z=A.z*B.z
 #define F3MULS(D,A,B) D.x=A.x*B;D.y=A.y*B;D.z=A.z*B
 #define F3DIV(D,A,B) D.x=A.x/B.x;D.y=A.y/B.y;D.z=A.z/B.z
