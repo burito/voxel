@@ -680,10 +680,10 @@ void voxel_loop(void)
 
 	glColor4f(1,1,1,1);
 	glBegin(GL_QUADS);
-	glTexCoord2f(tleft, ttop); glVertex2f(left, top);
-	glTexCoord2f(tright, ttop); glVertex2f(right, top);
-	glTexCoord2f(tright, tbottom); glVertex2f(right, bottom);
-	glTexCoord2f(tleft, tbottom); glVertex2f(left, bottom);
+	glTexCoord2f(tleft, tbottom); glVertex2f(left, top);
+	glTexCoord2f(tright, tbottom); glVertex2f(right, top);
+	glTexCoord2f(tright, ttop); glVertex2f(right, bottom);
+	glTexCoord2f(tleft, ttop); glVertex2f(left, bottom);
 	glEnd();
 
 
@@ -698,7 +698,7 @@ void voxel_loop(void)
 		glUseProgram(0);
 	}
 
-	int depth = 7;
+	int depth = 3;
 
 
 //	glPushMatrix();
@@ -758,8 +758,10 @@ void voxel_loop(void)
 //	glPopMatrix();
 	glDisable(GL_DEPTH_TEST);
 
-	float toff = 0.5 / 512.0;
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 
+	float toff = 0.5 / 512.0;
 	glBegin(GL_QUADS);
 	glTexCoord3f(0, 0, texdepth + toff); glVertex2f(1, 0);
 	glTexCoord3f(1, 0, texdepth+toff); glVertex2f(2, 0);

@@ -113,11 +113,11 @@ void main_loop(void)
 	}
 	if(keys[KEY_A])
 	{
-		req.x += nice;
+		req.x -= nice;
 	}
 	if(keys[KEY_D])
 	{
-		req.x -= nice;
+		req.x += nice;
 	}
 	if(keys[KEY_LCONTROL])
 	{
@@ -131,7 +131,7 @@ void main_loop(void)
 	if(mouse[2]) /// right mouse
 	{
 		angle.x += mickey_y * 0.003;
-		angle.y -= mickey_x * 0.003;
+		angle.y += mickey_x * 0.003;
 	}
 	if(keys[KEY_O])
 	{

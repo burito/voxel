@@ -31,6 +31,5 @@ void main(void)
 	TexCoord = gl_MultiTexCoord0.xy;
 	Normal = gl_Normal;
 	Position = gl_Vertex.xyz;
-	Position.y = 1.0 - Position.y;
 }
 
