@@ -293,7 +293,7 @@ void main(void)
 			vec3 brick_near = (near - box.xyz) / box.w;
 			vec3 brick_far = (far - box.xyz) / box.w;
 			brick_ray(brick_id, brick_near, brick_far, colour, rem);
-			cy += 0.1;
+			cy += 1;
 		}
 		else rem = 0;
 

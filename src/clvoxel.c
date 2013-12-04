@@ -715,11 +715,13 @@ void voxel_3dtexdraw(void)
 }
 
 
-void voxel_open(char *filename)
+void voxel_open(void)
 {
-
-
-
+	frame = 0;
+	odd_frame = 0;
+	voxel_NodeClear();
+	voxel_NodeLRUReset(frame);
+	voxel_BrickLRUReset(frame);
 }
 
 

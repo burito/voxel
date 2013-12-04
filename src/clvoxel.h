@@ -28,7 +28,7 @@ void voxel_init(void);
 void voxel_loop(void);
 void voxel_end(void);
 void voxel_rebuild(widget*);
-void voxel_open(char *filename);
+void voxel_open(void);
 
 void voxel_rebuildkernel(widget* foo);
 void voxel_rebuildshader(widget* foo);

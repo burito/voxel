@@ -887,19 +887,21 @@ widget* spawn_obj(char* filename)
 
 widget* spawn_voxobj(char* filename)
 {
-	widget *w = widget_window_new(100, 100, filename);
+//	widget *w = widget_window_new(100, 100, filename);
 	WF_OBJ *m = wf_load(filename);
 	extern WF_OBJ *vobj;
+	if(vobj)wf_free(vobj);
 	vobj = m;
-	w->data2 = m;
-	w->draw = widget_window_obj_draw;
-	w->free = widget_window_obj_free;
-	w->onclick = widget_window_obj_onclick;
-	float3 *p = malloc(sizeof(float3));
-	p->x = p->y = p->z = 0;
-	w->data3 = p;
-	widget_add(w);
-	return w;
+	voxel_open();
+//	w->data2 = m;
+//	w->draw = widget_window_obj_draw;
+//	w->free = widget_window_obj_free;
+//	w->onclick = widget_window_obj_onclick;
+//	float3 *p = malloc(sizeof(float3));
+//	p->x = p->y = p->z = 0;
+//	w->data3 = p;
+//	widget_add(w);
+	return NULL;
 }
 
 void widget_window_ocl_free(widget *w)

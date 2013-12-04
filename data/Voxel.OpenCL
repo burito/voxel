@@ -238,12 +238,12 @@ __kernel void Render(
 			__read_only image3d_t bricks,
 			__global float4 *camera,
 			const float time,
-			__global uint NodeNode[][8],
-			__global uint NodeBrick[][8],
-			__global float NodeUseTime[][8],
-			__global float NodeReqTime[][8],
-			__global float BrickReqTime[][8],
-			__global float* BrickUseTime)
+			__global int NodeNode[][8],
+			__global int NodeBrick[][8],
+			__global int NodeUseTime[][8],
+			__global int NodeReqTime[][8],
+			__global int BrickReqTime[][8],
+			__global int BrickUseTime[])
 {
 	int2 ipos = {get_global_id(0), get_global_id(1)};
 	float2 size = {get_global_size(0), get_global_size(1)};
@@ -253,7 +253,6 @@ __kernel void Render(
 	float3 angle = camera[1].xyz;
 	float fov = camera[1].w;
 	float pfov = sin(fov / size.x);		// pixel fov
-	float psize = 0.0;					// pixel size
 	// Translate OpenCL coordinates into per pixel normal
 	float2 srat = (float2)(0.5, (size.y / size.x) *0.5);
 	fpos = (fpos / size.x) - srat;
@@ -273,43 +272,43 @@ __kernel void Render(
 	n.x = t.x * c.y + t.z * s.y;	// around y
 	n.z = t.x * s.y - t.z * c.y;
 
-	float3 in = 1.0 / n;
+	float3 invnorm = 1.0 / n;
+
 
 	// Are we inside the Octtree?
 	float4 box = {0,0,0,1};
 	float4 colour = {0,0,0,0};
+	float dist = 0;
+	float psize = 0;
+	float3 far, near = p;
 
-	if(!slab_ray(p, in, box))
+	if(!inside(near, box))
 	{
-		colour = (float4)(0,1,0,1);
-		write_imagef(out, ipos, colour);
-		return;
-	}
-
-	if(!inside(p, box))
-	{
-		float dist = slab_enter(p, in, box);
-		p += n * dist;
+		if(!slab_ray(near, invnorm, box))	// will we enter the block?
+		{
+			colour = (float4)(0,1,0,1);
+			write_imagef(out, ipos, colour);
+			return;
+		}
+		float dist = slab_enter(near, invnorm, box);
+		near += n * dist;
 		psize += pfov * dist;
-		colour = (float4)(0,0,1,1);
-	write_imagef(out, ipos, colour);
-
 	}
-	return;
 	// p is inside the volume, which brick?
 	uint brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
 		NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
 	float steprem = 0;		// step remainder
 
 	// loop until we hit something solid/exit the volume
+	int i;
 	for(int i=0; i<50 && colour.w < 1.0; i++)
 	{
-		float dist = slab_exit(p, in, box);
-		float3 far = dist * n;
+		dist = slab_exit(near, invnorm, box);
+		far = dist * n;
 		if(brick_id != 0)
 		{
 			float boxinvw = 1.0 / box.w;
-			float3 bnear = (p - box.xyz) * boxinvw;
+			float3 bnear = (near - box.xyz) * boxinvw;
 			float3 bfar = (far - box.xyz) * boxinvw;
 			brick_sample(bricks, brick_id, bnear, bfar, &colour, &steprem);
 		}
@@ -318,7 +317,7 @@ __kernel void Render(
 		if(!inside(far, (float4)(0,0,0,1)))break;
 		brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
 			NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
-
+		near = far;
 	}
 
 	write_imagef(out, ipos, colour);
