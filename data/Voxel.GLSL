@@ -178,6 +178,7 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 			NodeReqTime.i[parent][child] = time;
 			break;
 		}
+		if(-1 == tmp)return 0;
 		parent = tmp;
 	}
 
@@ -194,13 +195,11 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 	return tmp;
 }
 
-void brick_ray(in int brick_id,
-			in vec3 near, in vec3 far,
-			inout vec4 colour, inout float remainder)
+void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour, inout float remainder)
 {
 //	vec3 delta = far - near;
 	float iSize = 1.0 / float(B_SIZE);
-	float iCount = 1.0 / float(B_COUNT);
+	float iCount = 1.0 / 60.0;
 	float hs = iSize * 0.5;
 	near = near * (iSize * (B_SIZE-1)) + vec3(hs);
 	far = far * (iSize * (B_SIZE-1)) + vec3(hs);
@@ -227,7 +226,6 @@ void brick_ray(in int brick_id,
 	colour = result;
 	// TODO: interpolate between different resolutions
 }
-
 
 
 void main(void)
@@ -304,8 +302,8 @@ void main(void)
 	}
 	
 	float l = float(i*5) / 256.0;
-//	Colour = colour;
-	Colour = vec4(colour.w, cy, l, 1);
+	Colour = colour;
+//	Colour = vec4(colour.w, cy, l, 1);
 	return;
 }
 

@@ -53,7 +53,7 @@ ivec3 brick_origin(in int brick_id)
 	brick_pos.y = brick_tmp % B_EDGE;
 	brick_pos.z = (brick_tmp - brick_pos.y)/B_EDGE;
 
-	return brick_pos * B_SIZE;
+	return brick_pos * B_EDGE;
 }
 
 int oct_child(in vec3 pos, inout vec4 vol)

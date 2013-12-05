@@ -77,15 +77,20 @@ void main(void)
 	int child;
 	int target = 0;
 	// search the OctTree
-	for(int i=0; i< depth; i++)
+	int i;
+	for(i=0; i< depth; i++)
 	{
 		node = target;
 		child = oct_child(Position, box);
 		target = NodeNode.i[node][child];
-		if(0==target)
+		if(target <= 0)
 		{
 			if( time-1 == NodeReqTime.i[node][child])
+			{
+				NodeNode.i[node][child] = 0;
+				if(i != depth-1)
 				NodeReqTime.i[node][child] = time;
+			}
 			break;
 		}
 	}
@@ -93,6 +98,7 @@ void main(void)
 	int brick = NodeBrick.i[node][child];
 	if(0==brick)
 	{
+		if(i == depth-1)
 		if(time-1 == BrickReqTime.i[node][child])
 			BrickReqTime.i[node][child] = time;
 	}

@@ -1342,6 +1342,11 @@ void menu_glsl(widget *w)
 	use_glsl = !use_glsl;
 }
 
+void menu_texdraw(widget *w)
+{
+	extern int texdraw;
+	texdraw = !texdraw;
+}
 
 void font_load(int i, char *path)
 {
@@ -1386,6 +1391,11 @@ int gui_init(int argc, char *argv[])
 	w = widget_menu_item_add(item, "     GLSL Renderer", &menu_glsl);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &use_glsl;
+	w = widget_menu_item_add(item, "     Draw 3D Texture", &menu_texdraw);
+	w->draw = widget_menu_bool_draw;
+	extern int texdraw;
+	w->data2 = &texdraw;
+
 	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
 	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
