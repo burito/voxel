@@ -199,7 +199,7 @@ void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour, in
 {
 //	vec3 delta = far - near;
 	float iSize = 1.0 / float(B_SIZE);
-	float iCount = 1.0 / 60.0;
+	float iCount = 1.0 / float(B_EDGE);
 	float hs = iSize * 0.5;
 	near = near * (iSize * (B_SIZE-1)) + vec3(hs);
 	far = far * (iSize * (B_SIZE-1)) + vec3(hs);
