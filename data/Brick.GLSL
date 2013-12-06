@@ -98,70 +98,63 @@ int find_brick(in vec3 pos, inout vec4 box)
 	return NodeBrick.i[node][child];
 }
 
-void main(void)
+void brick_write(in vec3 position, vec4 colour)
 {
 	vec4 box;
-
-	Colour = vec4(Position,1);
-	// search the OctTree
 	int brick = find_brick(Position, box);
 	float delta = box.w;
 	// find our brick relative coords
-	float invbox = 1.0 / box.w;
-	vec3 pos = (Position - box.xyz) * invbox;
+	vec3 pos = (position - box.xyz) / box.w;
 	pos *= (B_SIZE-1);
 	ivec3 ibpos = ivec3(pos);
 	ivec3 ipos = brick_origin(brick);
-	// write to the 3D texture
-//	vec4 colour = vec4((vec3(1)+Normal)*0.5, 1.0);
-	vec4 colour = vec4(Normal, 1.0);
 
-
-	if(pass < 4)
+	imageStore(bricks, ipos+ibpos, colour);
+	if(ibpos.x == 0)
 	{
-		imageStore(bricks, ipos+ibpos, colour);
-		if(ibpos.x == 0)
+		vec3 tpos = position - vec3(delta,0,0);
+		brick = find_brick(tpos, box);
+		if(brick > 0)
 		{
-			vec3 tpos = Position - vec3(delta,0,0);
-			brick = find_brick(tpos, box);
-			if(brick > 0)
-			{
-				ipos = brick_origin(brick);
-				ibpos.x = 7;
-				imageStore(bricks, ipos+ibpos, colour);
-				ibpos.x = 0;
-			}
+			ipos = brick_origin(brick);
+			ibpos.x = 7;
+			imageStore(bricks, ipos+ibpos, colour);
+			ibpos.x = 0;
 		}
-		if(ibpos.y == 0)
+	}
+	if(ibpos.y == 0)
+	{
+		vec3 tpos = position - vec3(0, delta, 0);
+		brick = find_brick(tpos, box);
+		if(brick > 0)
 		{
-			vec3 tpos = Position - vec3(0, delta, 0);
-			brick = find_brick(tpos, box);
-			if(brick > 0)
-			{
-				ipos = brick_origin(brick);
-				ibpos.y = 7;
-				imageStore(bricks, ipos+ibpos, colour);
-				ibpos.y = 0;
-			}
+			ipos = brick_origin(brick);
+			ibpos.y = 7;
+			imageStore(bricks, ipos+ibpos, colour);
+			ibpos.y = 0;
 		}
-		if(ibpos.z == 0)
+	}
+	if(ibpos.z == 0)
+	{
+		vec3 tpos = position - vec3(0, 0, delta);
+		brick = find_brick(tpos, box);
+		if(brick > 0)
 		{
-			vec3 tpos = Position - vec3(0, 0, delta);
-			brick = find_brick(tpos, box);
-			if(brick > 0)
-			{
-				ipos = brick_origin(brick);
-				ibpos.z = 7;
-				imageStore(bricks, ipos+ibpos, colour);
-				ibpos.z = 0;
-			}
+			ipos = brick_origin(brick);
+			ibpos.z = 7;
+			imageStore(bricks, ipos+ibpos, colour);
+			ibpos.z = 0;
 		}
-
-//		imageStore(bricks, ipos+ivec3(sign(vec3(0)-Normal)), colour);
-		discard;
-		return;
 	}
 
+}
+
+void main(void)
+{
+	vec4 colour = vec4(Normal, 1.0);
+	brick_write(Position, colour);
+	discard;
+/*
 	vec4 front, back;
 	int stepdir = -1;
 	if(Normal.x > 0) stepdir = 1;
@@ -176,6 +169,7 @@ void main(void)
 	}
 	discard;
 	return;
+*/
 }
 
 
