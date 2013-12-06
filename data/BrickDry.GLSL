@@ -23,6 +23,8 @@ freely, subject to the following restrictions:
 
 #version 430
 
+#define B_SIZE 8
+
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 layout(shared, binding=2) buffer node_reqtime { int i[][8]; } NodeReqTime;
@@ -69,10 +71,9 @@ Then NodeAlloc and BrickAlloc will be called.
 then Brick draw will be called.
 */
 
-void main(void)
+void brick_mark(in vec3 position, out vec4 box)
 {
-	vec4 box = vec4(0,0,0,1);
-
+	box = vec4(0,0,0,1);
 	int node;
 	int child;
 	int target = 0;
@@ -81,7 +82,7 @@ void main(void)
 	for(i=0; i< depth; i++)
 	{
 		node = target;
-		child = oct_child(Position, box);
+		child = oct_child(position, box);
 		target = NodeNode.i[node][child];
 		if(target <= 0)
 		{
@@ -102,6 +103,31 @@ void main(void)
 		if(time-1 == BrickReqTime.i[node][child])
 			BrickReqTime.i[node][child] = time;
 	}
+}
+
+
+void main(void)
+{
+	vec4 box;
+	brick_mark(Position, box);
+
+
+
+	ivec3 ibpos = ivec3(((Position - box.xyz) / box.w)*(B_SIZE-1));
+	float boxw = box.w;
+	if(ibpos.x == 0)
+	{
+		brick_mark(Position-vec3(boxw,0,0), box);
+	}
+	if(ibpos.y == 0)
+	{
+		brick_mark(Position-vec3(0,boxw,0), box);
+	}
+	if(ibpos.z == 0)
+	{
+		brick_mark(Position-vec3(0,0,boxw), box);
+	}
+
 	discard;
 }
 

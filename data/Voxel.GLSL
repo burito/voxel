@@ -54,17 +54,18 @@ bool inside(in vec3 pos, in vec4 box)
 	return false;
 }
 
-bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
+bool slab_ray(in vec3 p, in vec3 n, in vec4 box)
 {
-	vec3 near = (box.xyz - p) * inv;
-	vec3 far = ((box.xyz+box.w) - p) * inv;
+	vec3 near = (box.xyz - p) / n;
+	vec3 far = ((box.xyz+box.w) - p) / n;
 	vec3 tmin = min(near, far), tmax = max(near, far);
 	float rmin = max(tmin.x, max(tmin.y, tmin.z));
 	float rmax = min(tmax.x, min(tmax.y, tmax.z));
 	return (rmax >= rmin) && (rmax >= 0.0);
 }
 
-float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out int axis)
+
+float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out vec3 axis)
 {
 	vec3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * inv;
@@ -78,20 +79,21 @@ float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out int axis)
 	if(ret.x < ret.y)
 	{
 		r = ret.x;
-		axis = 0;	// x axis
+		axis = vec3(sign(inv.x),0,0);	// x axis
 	}
 	else
 	{	
 		r = ret.y;
-		axis = 1;	// y axis
+		axis = vec3(0,sign(inv.y),0);	// y axis
 	}
 	if( ret.z < r)
 	{
 		r = ret.z;
-		axis = 2;	// z axis
+		axis = vec3(0,0,sign(inv.z));	// z axis
 	}
 	return r;
 }
+
 
 float slab_exit(in vec3 p, in vec3 inv, in vec4 box)
 {
@@ -265,11 +267,11 @@ void main(void)
 	vec3 far, near = p;
 	if(!inside(p, box))		// if we're not inside the block
 	{
-		if(!slab_ray(near, invnorm, box))	// will we enter the block?
-		{
-			Colour = vec4(0,1,0,1);		// not today
-			return;
-		}
+//		if(!slab_ray(near, n, box))	// will we enter the block?
+//		{
+//			Colour = vec4(0,1,0,1);		// not today
+//			return;
+//		}
 		dist = slab_enter(near, invnorm, box);	// find entry point
 		psize = dist * prat;	// increase pixel volume
 		near += n * dist;		// advance near point
@@ -280,9 +282,10 @@ void main(void)
 	vec4 colour = vec4(0);
 	int brick_id = find_brick(near, box, psize);
 	int i;
-	for(i=0; i<50 && colour.w < 0.1; i++)
+	for(i=0; i<50 && colour.w < 1.0; i++)
 	{
-		dist = slab_exit(near, invnorm, box);
+		vec3 axis;
+		dist = slab_exitside(near, invnorm, box, axis);
 		far = near + n * dist;
 		psize = dist * prat;	// increase pixel volume
 
@@ -295,7 +298,8 @@ void main(void)
 		}
 		else rem = 0;
 
-		vec3 tmp = far + n *0.00001;
+//		vec3 tmp = far + axis*(box.w);
+		vec3 tmp = far + axis*(box.w*0.1);
 		if(!inside(tmp, vec4(0,0,0,1)))break;
 		brick_id = find_brick(tmp, box, psize);
 		near = far;
@@ -312,7 +316,7 @@ void main(void)
 	vec3 ldir = vec3(0,-1,0);
 	// diffuse lighting
 	float ill  = dot(ldir, nc);
-	colour = vec4(lamb+ ill * lpwr, 1);
+	colour = vec4(lamb+ ill * lpwr, colour.w);
 //	// specular lighting
 	vec3 h = normalize( ldir + n );
 	ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
