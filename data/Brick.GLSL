@@ -31,11 +31,12 @@ freely, subject to the following restrictions:
 
 
 
-layout(rgba8, location=0) uniform writeonly image3D bricks;
+layout(rgba16f, location=0) uniform image3D bricks;
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 
 uniform int depth;
+uniform int pass;
 
 //in bool gl_FrontFacing;
 in vec3 Position;
@@ -81,50 +82,100 @@ int oct_child(in vec3 pos, inout vec4 vol)
 	return child;
 }
 
-
-
-void main(void)
+int find_brick(in vec3 pos, inout vec4 box)
 {
-	vec4 box = vec4(0,0,0,1);
-
-	int node;
-	int child;
-	int target = 0;
-	// search the OctTree
+	box = vec4(0,0,0,1);
+	int node, child, target = 0;
 	for(int i=0; i< depth; i++)
 	{
 		node = target;
-		child = oct_child(Position, box);
+		child = oct_child(pos, box);
 		target = NodeNode.i[node][child];
-		if(0==target)
-		{
-//			Colour = vec4(0,0,1,1);
-//			return;
-//			discard;
-			break;
-		}
+		if(0==target)break;
 	}
 	// find our brick id
-	int brick = NodeBrick.i[node][child];
-	if(0==brick)
-	{
-//		Colour = vec4(1,0,0,1);
-//		Colour = vec4(Position,1);
+//	if(i == depth) return 0;
+	return NodeBrick.i[node][child];
+}
 
-//		return;
-		discard;
-	}
+void main(void)
+{
+	vec4 box;
+
+	Colour = vec4(Position,1);
+	// search the OctTree
+	int brick = find_brick(Position, box);
+	float delta = box.w;
 	// find our brick relative coords
 	float invbox = 1.0 / box.w;
 	vec3 pos = (Position - box.xyz) * invbox;
-	pos *= B_SIZE;
-	ivec3 ipos = brick_origin(brick) + ivec3(pos);
+	pos *= (B_SIZE-1);
+	ivec3 ibpos = ivec3(pos);
+	ivec3 ipos = brick_origin(brick);
 	// write to the 3D texture
+//	vec4 colour = vec4((vec3(1)+Normal)*0.5, 1.0);
 	vec4 colour = vec4(Normal, 1.0);
-	imageStore(bricks, ipos, colour);
-//	Colour = vec4(box.xyz,1);
-//	return;
+
+
+	if(pass < 4)
+	{
+		imageStore(bricks, ipos+ibpos, colour);
+		if(ibpos.x == 0)
+		{
+			vec3 tpos = Position - vec3(delta,0,0);
+			brick = find_brick(tpos, box);
+			if(brick > 0)
+			{
+				ipos = brick_origin(brick);
+				ibpos.x = 7;
+				imageStore(bricks, ipos+ibpos, colour);
+				ibpos.x = 0;
+			}
+		}
+		if(ibpos.y == 0)
+		{
+			vec3 tpos = Position - vec3(0, delta, 0);
+			brick = find_brick(tpos, box);
+			if(brick > 0)
+			{
+				ipos = brick_origin(brick);
+				ibpos.y = 7;
+				imageStore(bricks, ipos+ibpos, colour);
+				ibpos.y = 0;
+			}
+		}
+		if(ibpos.z == 0)
+		{
+			vec3 tpos = Position - vec3(0, 0, delta);
+			brick = find_brick(tpos, box);
+			if(brick > 0)
+			{
+				ipos = brick_origin(brick);
+				ibpos.z = 7;
+				imageStore(bricks, ipos+ibpos, colour);
+				ibpos.z = 0;
+			}
+		}
+
+//		imageStore(bricks, ipos+ivec3(sign(vec3(0)-Normal)), colour);
+		discard;
+		return;
+	}
+
+	vec4 front, back;
+	int stepdir = -1;
+	if(Normal.x > 0) stepdir = 1;
+	for(int i=int(pos.x); i<B_SIZE, i>-1; i+=stepdir)
+	{
+
+		vec4 colour_in = imageLoad(bricks, ipos);
+		if(colour_in.w > 0.1) break;
+	
+		imageStore(bricks, ipos, back);
+		ipos.x += stepdir;
+	}
 	discard;
+	return;
 }
 
 

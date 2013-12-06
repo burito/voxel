@@ -25,11 +25,6 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 
 #include <math.h>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-
 
 #include "main.h"
 #include "mesh.h"
@@ -163,7 +158,7 @@ void main_loop(void)
 
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
 
-	glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	gui_input();

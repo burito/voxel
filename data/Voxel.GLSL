@@ -260,7 +260,6 @@ void main(void)
 
 	// Are we inside the Octtree?
 	vec4 box = vec4(0,0,0,1);
-	vec4 colour = vec4(0);
 	float dist = 0;
 	float psize = 0;
 	vec3 far, near = p;
@@ -278,9 +277,10 @@ void main(void)
 	float rem=0.0;
 
 	float cy=0;
+	vec4 colour = vec4(0);
 	int brick_id = find_brick(near, box, psize);
 	int i;
-	for(i=0; i<50 && colour.w < 1.0; i++)
+	for(i=0; i<50 && colour.w < 0.1; i++)
 	{
 		dist = slab_exit(near, invnorm, box);
 		far = near + n * dist;
@@ -300,10 +300,27 @@ void main(void)
 		brick_id = find_brick(tmp, box, psize);
 		near = far;
 	}
-	
-	float l = float(i*5) / 256.0;
-	Colour = colour;
+	if(colour.w < 0.01)discard;	
+//	float l = float(i*5) / 256.0;
+//	colour.w = 1;
 //	Colour = vec4(colour.w, cy, l, 1);
+
+//	n = normalize(colour.xyz*2-vec3(1));
+	vec3 nc = normalize(colour.xyz);
+	vec3 lamb = vec3(0.4);
+	vec3 lpwr = vec3(0.3);
+	vec3 ldir = vec3(0,-1,0);
+	// diffuse lighting
+	float ill  = dot(ldir, nc);
+	colour = vec4(lamb+ ill * lpwr, 1);
+//	// specular lighting
+	vec3 h = normalize( ldir + n );
+	ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
+	colour += vec4( ill * lpwr, 0);
+	Colour = colour;
+	return;
+
+
 	return;
 }
 

@@ -301,7 +301,7 @@ __kernel void Render(
 
 	// loop until we hit something solid/exit the volume
 	int i;
-	for(int i=0; i<50 && colour.w < 1.0; i++)
+	for(i=0; i<50 && colour.w < 1.0; i++)
 	{
 		dist = slab_exit(near, invnorm, box);
 		far = dist * n;
@@ -319,6 +319,11 @@ __kernel void Render(
 			NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
 		near = far;
 	}
+
+
+	
+
+	colour = (float4)(colour.w, 0, ((float)i*5)/250,  1);
 
 	write_imagef(out, ipos, colour);
 }

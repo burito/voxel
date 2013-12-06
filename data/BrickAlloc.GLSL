@@ -33,7 +33,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout(binding=0, offset=0) uniform atomic_uint atomFresh;
 layout(binding=0, offset=4) uniform atomic_uint atomStale;
 
-layout(rgba8, location=0) uniform writeonly image3D bricks;
+layout(rgba16f, location=0) uniform writeonly image3D bricks;
 layout(shared, binding=1) buffer node_brick { int i[]; } NodeBrick;
 layout(shared, binding=2) buffer brick_reqtime { int i[]; } BrickReqTime;
 layout(shared, binding=3) buffer brick_lru { int i[]; } BrickLRU;

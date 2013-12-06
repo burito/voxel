@@ -107,9 +107,10 @@ void ocl_gltex3d(OCLPROGRAM *p, int3 size, GLuint type, GLuint format)
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage3D(GL_TEXTURE_3D, 0, type, size.x, size.y, size.z, 0,
+//	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, size.x, size.y, size.z, 0,
 			type, format, NULL);
+	printf("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 
 	cl_int ret;

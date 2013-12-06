@@ -104,6 +104,35 @@ void voxel_rebuildshader(widget* foo)
 	voxel_rebuildshader_flag = 1;
 }
 
+float texdepth= 0;
+void voxel_3dtexdraw(void)
+{
+	if(keys[KEY_M])
+	{
+		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
+		printf("%d\n", (int)(texdepth*512.0));
+	}
+	if(keys[KEY_N])
+	{
+		if(texdepth > 0.0) texdepth -= 1.0 / 512;
+		printf("%d\n", (int)(texdepth*512.0));
+	}
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
+	glEnable(GL_TEXTURE_3D);
+
+	float toff = 0.5 / 512.0;
+	glBegin(GL_QUADS);
+	glTexCoord3f(0, 0, texdepth+toff); glVertex2f(1, 0);
+	glTexCoord3f(1, 0, texdepth+toff); glVertex2f(2, 0);
+	glTexCoord3f(1, 1, texdepth+toff); glVertex2f(2, 1);
+	glTexCoord3f(0, 1, texdepth+toff); glVertex2f(1, 1);
+	glEnd();
+
+	glDisable(GL_TEXTURE_3D);
+	glBindTexture(GL_TEXTURE_3D, 0);
+}
 
 static void voxel_FindKernels(void)
 {
@@ -299,24 +328,24 @@ void voxel_BrickAlloc(int frame)
 	}
 	glUniform1i(s_BrickAlloc->unif[0], frame);
 	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
-	GL_WRITE_ONLY, GL_RGBA8);
+	GL_WRITE_ONLY, GL_RGBA16F);
 
 	glDispatchCompute(NP_SIZE/10, 10, 8);
 	glUseProgram(0);
 }
 
 
-void voxel_Brick(int frame, int depth)
+void voxel_Brick(int depth, int pass)
 {
 	glUseProgram(s_Brick->prog);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glUniform1i(s_Brick->unif[0], depth);
-	glUniform1i(s_Brick->unif[1], 0);
+	glUniform1i(s_Brick->unif[1], pass);
 	glEnable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
-	GL_WRITE_ONLY, GL_RGBA8);
+	GL_WRITE_ONLY, GL_RGBA16F);
 
 }
 
@@ -362,8 +391,8 @@ void voxel_Voxel(int frame)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 
-//	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
-//	GL_READ_ONLY, GL_RGBA8);
+	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
+	GL_READ_ONLY, GL_RGBA16F);
 
 }
 
@@ -522,7 +551,7 @@ void voxel_init(void)
 	
 	size_t size = NP_SIZE*8*4;
 	int3 cube = {512, 512, 512};
-	ocl_gltex3d(clVox, cube, GL_RGBA, GL_UNSIGNED_BYTE); //	1
+	ocl_gltex3d(clVox, cube, GL_RGBA, GL_FLOAT); //	1
 	ocl_glbuf(clVox, sizeof(cl_float)*8, NULL);	// camera	2
 	ocl_glbuf(clVox, size, NULL);	// NodeNode				3
 	ocl_glbuf(clVox, size, NULL);	// NodeBrick			4
@@ -555,7 +584,7 @@ void voxel_init(void)
 	
 	shader_uniform(s_Voxel, "time");
 	shader_uniform(s_Brick, "depth");
-	shader_uniform(s_Brick, "bricks");
+	shader_uniform(s_Brick, "pass");
 	shader_uniform(s_BrickDry, "time");
 	shader_uniform(s_BrickDry, "depth");
 	shader_uniform(s_NodeLRUReset, "time");
@@ -698,10 +727,11 @@ void voxel_loop(void)
 		glUseProgram(0);
 	}
 
-	int depth = 5;
+	int depth = 7;
 
 	glDisable(GL_DEPTH_TEST);
-	float scale = 500;	
+	glDisable(GL_CULL_FACE);
+	float scale = 1024;
 	glScalef(scale, scale, scale);
 	
 	if(vobj && populate)
@@ -709,7 +739,7 @@ void voxel_loop(void)
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	//	if(vobj)print_breq(frame);
 
-		voxel_NodeTerminate();
+//		voxel_NodeTerminate();
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		voxel_NodeLRUSort(frame);
 		voxel_BrickLRUSort(frame);
@@ -728,12 +758,20 @@ void voxel_loop(void)
 		voxel_NodeAlloc(frame);
 		voxel_BrickAlloc(frame);
 	//	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		voxel_Brick(frame, depth);
+		voxel_Brick(depth, 0);
+		vobj->draw(vobj);
+	glTranslatef(0.5,0.5,0.5);
+	glRotatef(90, 1, 0.0, 0);
+	glTranslatef(-0.5,-0.5,-0.5);
+		vobj->draw(vobj);
+	glTranslatef(0.5,0.5,0.5);
+	glRotatef(90, -1, 0.0, 0);
+	glRotatef(90, 0, 1, 0);
+	glTranslatef(-0.5,-0.5,-0.5);
+		voxel_Brick(depth, 2);
+		vobj->draw(vobj);
 
-		// render
-		if(vobj)vobj->draw(vobj);
-
-		if(frame > 50) populate = 0;
+		if(frame >= depth*2) populate = 0;
 	}
 	// all done
 	glUseProgram(0);
@@ -752,35 +790,6 @@ void voxel_end(void)
 
 
 
-float texdepth= 0;
-void voxel_3dtexdraw(void)
-{
-	if(keys[KEY_M])
-	{
-		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
-		printf("%d\n", (int)(texdepth*512.0));
-	}
-	if(keys[KEY_N])
-	{
-		if(texdepth > 0.0) texdepth -= 1.0 / 512;
-		printf("%d\n", (int)(texdepth*512.0));
-	}
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
-	glEnable(GL_TEXTURE_3D);
-
-	float toff = 0.5 / 512.0;
-	glBegin(GL_QUADS);
-	glTexCoord3f(0, 0, texdepth+toff); glVertex2f(1, 0);
-	glTexCoord3f(1, 0, texdepth+toff); glVertex2f(2, 0);
-	glTexCoord3f(1, 1, texdepth+toff); glVertex2f(2, 1);
-	glTexCoord3f(0, 1, texdepth+toff); glVertex2f(1, 1);
-	glEnd();
-
-	glDisable(GL_TEXTURE_3D);
-	glBindTexture(GL_TEXTURE_3D, 0);
-}
 
 
 void voxel_open(void)
