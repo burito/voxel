@@ -23,6 +23,8 @@ freely, subject to the following restrictions:
 
 #version 430
 
+precision highp float;
+precision highp int;
 
 #define B_SIZE 8
 #define B_EDGE 64
@@ -254,8 +256,9 @@ void main(void)
 
 	n.x = t.x * c.y + t.z * s.y;	// around y
 	n.z = t.x * s.y - t.z * c.y;
-
-	vec3 invnorm = 1.0 / normalize(n);
+	
+	n = normalize(n);
+	vec3 invnorm = 1.0 / n;
 	vec3 normsign = sign(n);
 
 	// Are we inside the Octtree?
