@@ -34,7 +34,7 @@ freely, subject to the following restrictions:
 layout(rgba16f, location=0) uniform image3D bricks;
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
-layout(shared, binding=1) buffer brick_reqtime { int i[][8]; } BrickReqTime;
+layout(shared, binding=2) buffer brick_reqtime { int i[][8]; } BrickReqTime;
 
 uniform int depth;
 uniform int time;
@@ -96,7 +96,7 @@ int find_brick(in vec3 pos, inout vec4 box)
 	}
 	// find our brick id
 //	if(i == depth) return 0;
-//	if(BrickReqTime.i[node][child] != time)return 0;
+	if(BrickReqTime.i[node][child] < time)return 0;
 	return NodeBrick.i[node][child];
 }
 

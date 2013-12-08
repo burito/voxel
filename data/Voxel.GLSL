@@ -54,14 +54,14 @@ bool inside(in vec3 pos, in vec4 box)
 	return false;
 }
 
-bool slab_ray(in vec3 p, in vec3 n, in vec4 box)
+bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
 {
-	vec3 near = (box.xyz - p) / n;
-	vec3 far = ((box.xyz+box.w) - p) / n;
+	vec3 near = (box.xyz - p) * inv;
+	vec3 far = (box.xyz+box.w - p) * inv;
 	vec3 tmin = min(near, far), tmax = max(near, far);
 	float rmin = max(tmin.x, max(tmin.y, tmin.z));
 	float rmax = min(tmax.x, min(tmax.y, tmax.z));
-	return (rmax >= rmin) && (rmax >= 0.0);
+	return (rmax >= rmin) && (rmax >= 0);
 }
 
 
@@ -69,27 +69,27 @@ float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out vec3 axis)
 {
 	vec3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * inv;
-	nearfar[1] = ((box.xyz+box.w) - p) * inv;
+	nearfar[1] = (box.xyz+box.w - p) * inv;
 	ivec3 ind = ivec3(step(0.0, inv));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
+	ind = ind * 2 - 1;
 	float r;
-
 	if(ret.x < ret.y)
 	{
 		r = ret.x;
-		axis = vec3(sign(inv.x),0,0);	// x axis
+		axis = vec3(float(ind.x),0,0);	// x axis
 	}
 	else
 	{	
 		r = ret.y;
-		axis = vec3(0,sign(inv.y),0);	// y axis
+		axis = vec3(0,float(ind.y),0);	// y axis
 	}
 	if( ret.z < r)
 	{
 		r = ret.z;
-		axis = vec3(0,0,sign(inv.z));	// z axis
+		axis = vec3(0,0,float(ind.z));	// z axis
 	}
 	return r;
 }
@@ -112,7 +112,7 @@ float slab_enter(in vec3 p, in vec3 inv, in vec4 box)
 	vec3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * inv;
 	nearfar[1] = ((box.xyz+box.w) - p) * inv;
-	ivec3 ind = ivec3(step(inv, vec3(0.0)));
+	ivec3 ind = ivec3(step(0, -inv));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -164,15 +164,13 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 {
 	box = vec4(0,0,0,1);
 
-	int child = 0;
+	int child = oct_child(pos, box);
 	int parent = 0;
 	int tmp = 0;
-	float volume = 1.0/float(B_SIZE);
+	float volume = size * float(B_SIZE);
 
-	while(volume > size)
+	while(volume < box.w)
 	{
-		volume *= 0.5;
-		child = oct_child(pos, box);
 		NodeUseTime.i[parent] = time;
 		tmp = NodeNode.i[parent][child];
 		if(0==tmp)
@@ -180,15 +178,15 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 			NodeReqTime.i[parent][child] = time;
 			break;
 		}
-		if(-1 == tmp)return 0;
+		if(tmp < 0)return 0;
 		parent = tmp;
+		child = oct_child(pos, box);
 	}
 
 	tmp = NodeBrick.i[parent][child];
 	if(0==tmp)
 	{
 		BrickReqTime.i[parent][child] = time;
-		return 0;
 	}
 	else
 	{
@@ -211,7 +209,7 @@ void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour, in
 
 	if(len < 0.1)return;
 
-	float steps = 1.0/(len / iSize);
+	float steps = 0.5/(len / iSize);
 
 	float pos;
 	for(pos=steps*remainder; pos < 1.0; pos += steps)
@@ -265,13 +263,14 @@ void main(void)
 	float dist = 0;
 	float psize = 0;
 	vec3 far, near = p;
-	if(!inside(p, box))		// if we're not inside the block
+	if(!inside(near, box))		// if we're not inside the block
 	{
-//		if(!slab_ray(near, n, box))	// will we enter the block?
-//		{
+		if(!slab_ray(near, invnorm, box))	// will we enter the block?
+		{
 //			Colour = vec4(0,1,0,1);		// not today
-//			return;
-//		}
+			discard;
+			return;
+		}
 		dist = slab_enter(near, invnorm, box);	// find entry point
 		psize = dist * prat;	// increase pixel volume
 		near += n * dist;		// advance near point
@@ -281,50 +280,49 @@ void main(void)
 	float cy=0;
 	vec4 colour = vec4(0);
 	int brick_id = find_brick(near, box, psize);
-	int i;
-	for(i=0; i<50 && colour.w < 1.0; i++)
+	int i, ib=0;
+	for(i=0; i<50 && colour.w < 0.5; i++)
 	{
-		vec3 axis;
+		vec3 axis, atmp;
 		dist = slab_exitside(near, invnorm, box, axis);
-		far = near + n * dist;
-		psize = dist * prat;	// increase pixel volume
-
-		if(0 != brick_id)
+		far = near + dist * n;
+		psize += dist * prat;	// increase pixel volume
+		if(brick_id != 0)
 		{
 			vec3 brick_near = (near - box.xyz) / box.w;
 			vec3 brick_far = (far - box.xyz) / box.w;
 			brick_ray(brick_id, brick_near, brick_far, colour, rem);
-			cy += 1;
+			ib++;
 		}
 		else rem = 0;
 
+//		axis = axis * sign(invnorm);
 //		vec3 tmp = far + axis*(box.w);
 		vec3 tmp = far + axis*(box.w*0.1);
+//		vec3 tmp = box.xyz + box.w*0.5 + axis*box.w;
 		if(!inside(tmp, vec4(0,0,0,1)))break;
 		brick_id = find_brick(tmp, box, psize);
 		near = far;
 	}
-	if(colour.w < 0.01)discard;	
-//	float l = float(i*5) / 256.0;
-//	colour.w = 1;
-//	Colour = vec4(colour.w, cy, l, 1);
+//	if(colour.w < 0.01)discard;	
 
-//	n = normalize(colour.xyz*2-vec3(1));
 	vec3 nc = normalize(colour.xyz);
 	vec3 lamb = vec3(0.4);
 	vec3 lpwr = vec3(0.3);
 	vec3 ldir = vec3(0,-1,0);
 	// diffuse lighting
 	float ill  = dot(ldir, nc);
-	colour = vec4(lamb+ ill * lpwr, colour.w);
-//	// specular lighting
+	colour.rgb = vec3(lamb+ ill * lpwr);
+	// specular lighting
 	vec3 h = normalize( ldir + n );
 	ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
-	colour += vec4( ill * lpwr, 0);
+	colour.rgb += vec3( ill * lpwr);
+	// debug information
+	colour.b = float(i) / 50.0;
+	colour.r = float(ib) / 15.0;
+	colour.a = 1;
+
 	Colour = colour;
-	return;
-
-
 	return;
 }
 

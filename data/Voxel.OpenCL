@@ -52,37 +52,68 @@ bool inside(float3 pos, float4 box)
 bool slab_ray(float3 p, float3 in, float4 box)
 {
 	float3 near = (box.xyz - p) * in;
-	float3 far = ((box.xyz+box.w) - p) * in;
+	float3 far = (box.xyz+box.w - p) * in;
 	float3 tmin = min(near, far), tmax = max(near, far);
 	float rmin = max(tmin.x, max(tmin.y, tmin.z));
 	float rmax = min(tmax.x, min(tmax.y, tmax.z));
 	return (rmax >= rmin) && (rmax >= 0);
 }
 
+float slab_exitside(float3 p, float3 in, float4 box, float3 *axis)
+{
+	float3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * in;
+	nearfar[1] = (box.xyz+box.w - p) * in;
+	int3 ind = convert_int(step(0.0, in));
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
+	ind = ind * 2 - 1;
+	float r;
+	if(ret.x < ret.y)
+	{
+		r = ret.x;
+		*axis = (float3)((float)ind.x,0,0);
+	}
+	else
+	{	
+		r = ret.y;
+		*axis = (float3)(0,(float)ind.y,0);
+	}
+	if( ret.z < r)
+	{
+		r = ret.z;
+		*axis = (float3)(0,0,(float)ind.z);
+	}
+	return r;
+}
+
+
 // original slab_exit() from 
 // http://www.opengl.org/discussion_boards/showthread.php/176344-Ray-vs-AABB-exit-point-knowing-entry-point
 
 float slab_exit(float3 p, float3 in, float4 box)
 {
-	float3 near = (box.xyz - p) * in;
-	float3 far = ((box.xyz+box.w) - p) * in;
+	float3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * in;
+	nearfar[1] = (box.xyz+box.w - p) * in;
 	int3 ind = convert_int(step(0.0, in));
-	float3 ret;
-	ret.x = ind.x ? far.x : near.x;
-	ret.y = ind.y ? far.y : near.y;
-	ret.z = ind.z ? far.z : near.z;
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
 	return min(min(ret.x, ret.y), ret.z);
 }
 
+
 float slab_enter(float3 p, float3 in, float4 box)
 {
-	float3 near = (box.xyz - p) * in;
-	float3 far = ((box.xyz+box.w) - p) * in;
-	int3 ind = convert_int(step(0.0, in));
-	float3 ret;
-	ret.x = ind.x ? near.x : far.x;
-	ret.y = ind.y ? near.y : far.y;
-	ret.z = ind.z ? near.z : far.z;
+	float3 ret, nearfar[2];
+	nearfar[0] = (box.xyz - p) * in;
+	nearfar[1] = (box.xyz+box.w - p) * in;
+	int3 ind = convert_int(step(0.0, -in));
+	ret.x = nearfar[ind.x].x;
+	ret.y = nearfar[ind.y].y;
+	ret.z = nearfar[ind.z].z;
 	return max(max(ret.x, ret.y), ret.z);
 }
 
@@ -112,58 +143,65 @@ int oct_child(float3 pos, float4 *vol)
 	return child;
 }
 
-uint find_brick(
-			__global uint NodeNode[][8],
-			__global uint NodeBrick[][8],
-			__global float NodeUseTime[][8],
-			__global float NodeReqTime[][8],
-			__global float BrickReqTime[][8],
-			__global float BrickUseTime[],
+int find_brick(
+			__global int NodeNode[][8],
+			__global int NodeBrick[][8],
+			__global int NodeUseTime[],
+			__global int NodeReqTime[][8],
+			__global int BrickReqTime[][8],
+			__global int BrickUseTime[],
 			float3 pos,
 			float4 *box,
 			float size,
-			float time)
+			int time)
 {
-	uint child = 0;
-	uint index = 0;
-	uint tmp;
-	float volume = 1.0/(float)B_SIZE;
+	*box = (float4)(0,0,0,1);
+	int child = oct_child(pos, box);
+	int parent = 0;
+	int tmp;
+	float volume = size * (float)B_SIZE;
 
-	while(volume > size)
+	while(volume < box->w)
 	{
-		volume *= 0.5;
-		child = oct_child(pos, box);
-		NodeUseTime[index][child] = time;
-		tmp = NodeNode[index][child];
+		NodeUseTime[parent] = time;
+		tmp = NodeNode[parent][child];
 		if(tmp==0)
 		{
-			NodeReqTime[index][child] = time;
+			NodeReqTime[parent][child] = time;
 			break;
 		}
-		if(tmp & 0x8000000)break;
-		index = tmp;
+		if(tmp < 0)return 0;
+		parent = tmp;
+		child = oct_child(pos, box);
 	}
 
-	tmp = NodeBrick[index][child];
-	if(tmp)BrickUseTime[tmp] = time;
+	tmp = NodeBrick[parent][child];
+	if(0==tmp)
+	{
+		BrickReqTime[parent][child] = time;
+	}
+	else
+	{
+		BrickUseTime[tmp] = time;
+	}
 	return tmp;
 }
 
-float3 brick_origin(uint brick_id)
+float3 brick_origin(int brick_id)
 {
 	float3 brick_pos;
 	uint brick_tmp;
 	brick_pos.x = (float)(brick_id % B_EDGE);
-	brick_tmp = (brick_id - (uint)brick_pos.x)/B_EDGE;
+	brick_tmp = (brick_id - (int)brick_pos.x)/B_EDGE;
 	brick_pos.y = (float)(brick_tmp % B_EDGE);
-	brick_pos.z = (float)((brick_tmp - (uint)brick_pos.y)/B_EDGE);
+	brick_pos.z = (float)((brick_tmp - (int)brick_pos.y)/B_EDGE);
 	return brick_pos / (float)B_EDGE;
 }
 
-int3 brick_origini(uint brick_id)
+int3 brick_origini(int brick_id)
 {
 	int3 brick_pos;
-	uint brick_tmp;
+	int brick_tmp;
 	brick_pos.x = brick_id % B_EDGE;
 	brick_tmp = (brick_id - brick_pos.x)/B_EDGE;
 	brick_pos.y = (brick_tmp % B_EDGE);
@@ -172,9 +210,9 @@ int3 brick_origini(uint brick_id)
 }
 
 
-void brick_sample(
+void brick_ray(
 			__read_only image3d_t bricks,
-			uint brick_id,
+			int brick_id,
 			float3 near,
 			float3 far,
 			float4 *colour,
@@ -195,7 +233,7 @@ void brick_sample(
 
 	if(len < 0.1)return;
 
-	float steps = 1.0/(len / iSize);
+	float steps = 0.5/(len / iSize);
 
 	float pos;
 	for(pos= *steprem * steps; pos < 1.0; pos += steps)
@@ -237,12 +275,12 @@ __kernel void Render(
 			__write_only image2d_t out,
 			__read_only image3d_t bricks,
 			__global float4 *camera,
-			const float time,
+			const int time,
 			__global int NodeNode[][8],
 			__global int NodeBrick[][8],
-			__global int NodeUseTime[][8],
 			__global int NodeReqTime[][8],
 			__global int BrickReqTime[][8],
+			__global int NodeUseTime[],
 			__global int BrickUseTime[])
 {
 	int2 ipos = {get_global_id(0), get_global_id(1)};
@@ -252,7 +290,7 @@ __kernel void Render(
 	float3 p = camera[0].xyz;
 	float3 angle = camera[1].xyz;
 	float fov = camera[1].w;
-	float pfov = sin(fov / size.x);		// pixel fov
+	float prat = sin(fov / size.x);		// pixel ratio
 	// Translate OpenCL coordinates into per pixel normal
 	float2 srat = (float2)(0.5, (size.y / size.x) *0.5);
 	fpos = (fpos / size.x) - srat;
@@ -272,58 +310,75 @@ __kernel void Render(
 	n.x = t.x * c.y + t.z * s.y;	// around y
 	n.z = t.x * s.y - t.z * c.y;
 
+	n = normalize(n);
 	float3 invnorm = 1.0 / n;
-
+	float3 normsign = sign(n);
 
 	// Are we inside the Octtree?
 	float4 box = {0,0,0,1};
-	float4 colour = {0,0,0,0};
 	float dist = 0;
 	float psize = 0;
 	float3 far, near = p;
-
 	if(!inside(near, box))
 	{
 		if(!slab_ray(near, invnorm, box))	// will we enter the block?
 		{
-			colour = (float4)(0,1,0,1);
-			write_imagef(out, ipos, colour);
+			write_imagef(out, ipos, (float4)(0,0,0,0));
 			return;
 		}
-		float dist = slab_enter(near, invnorm, box);
+		dist = slab_enter(near, invnorm, box);
+		psize = dist * prat;
 		near += n * dist;
-		psize += pfov * dist;
 	}
 	// p is inside the volume, which brick?
-	uint brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
-		NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
+	int brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
+		NodeReqTime, BrickReqTime, BrickUseTime, near, &box, psize, time);
 	float steprem = 0;		// step remainder
 
 	// loop until we hit something solid/exit the volume
-	int i;
-	for(i=0; i<50 && colour.w < 1.0; i++)
+	float4 colour = {0.0,0.0,0.0,0.0};
+	int i, ib=0;
+	for(i=0; i<50 && colour.w < 0.5; i++)
 	{
-		dist = slab_exit(near, invnorm, box);
-		far = dist * n;
+		float3 axis;
+		dist = slab_exitside(near, invnorm, box, &axis);
+		far = near + dist * n;
+		psize += dist * prat;
 		if(brick_id != 0)
 		{
-			float boxinvw = 1.0 / box.w;
-			float3 bnear = (near - box.xyz) * boxinvw;
-			float3 bfar = (far - box.xyz) * boxinvw;
-			brick_sample(bricks, brick_id, bnear, bfar, &colour, &steprem);
+			float3 bnear = (near - box.xyz) / box.w;
+			float3 bfar = (far - box.xyz) / box.w;
+			brick_ray(bricks, brick_id, bnear, bfar, &colour, &steprem);
+			ib++;
 		}
 		else steprem = 0;
 
-		if(!inside(far, (float4)(0,0,0,1)))break;
+
+		float3 tmp = far + axis*(box.w * 0.1);
+		if(!inside(tmp, (float4)(0,0,0,1)))break;
 		brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
-			NodeReqTime, BrickReqTime, BrickUseTime, p, &box, psize, time);
+			NodeReqTime, BrickReqTime, BrickUseTime, tmp, &box, psize, time);
 		near = far;
 	}
-
-
-	
-
-	colour = (float4)(colour.w, 0, ((float)i*5)/250,  1);
+	if(colour.w > 0.01)
+	{
+		float3 nc = normalize(colour.xyz);
+		float3 lamb = {0.4,0.4,0.4};
+		float3 lpwr = {0.3,0.3,0.3};
+		float3 ldir = {0,-1,0};
+		// diffuse lighting
+		float ill  = dot(ldir, nc);
+		colour.xyz = (float3)(lamb + ill * lpwr);
+		// specular lighting
+		float3 h = normalize( ldir + n );
+		ill = clamp( pow( dot( nc, h ), 15.0 ), 0.0, 1.0);
+		colour.xyz += (float3)(lpwr * ill);
+	}
+	else colour.xyz = 0;
+	// debug information
+	colour.z = (float)i / 50.0;
+	colour.x = (float)ib / 15.0;
+	colour.w = 1.0;
 
 	write_imagef(out, ipos, colour);
 }

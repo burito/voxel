@@ -340,8 +340,9 @@ void voxel_Brick(int depth, int pass)
 	glUseProgram(s_Brick->prog);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, xNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xBRT); // nb
 	glUniform1i(s_Brick->unif[0], depth);
-	glUniform1i(s_Brick->unif[1], pass);
+	glUniform1i(s_Brick->unif[1], frame);
 	glEnable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, clVox->GLid[1]);
 	glBindImageTexture(0, clVox->GLid[1], 0, /*layered=*/GL_TRUE, 0,
@@ -584,7 +585,7 @@ void voxel_init(void)
 	
 	shader_uniform(s_Voxel, "time");
 	shader_uniform(s_Brick, "depth");
-	shader_uniform(s_Brick, "pass");
+	shader_uniform(s_Brick, "time");
 	shader_uniform(s_BrickDry, "time");
 	shader_uniform(s_BrickDry, "depth");
 	shader_uniform(s_NodeLRUReset, "time");
@@ -663,14 +664,16 @@ void voxel_loop(void)
 
 		ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);
 		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
-		ret = clSetKernelArg(k, 3, sizeof(float), &time);
+		ret = clSetKernelArg(k, 3, sizeof(GLint), &frame);
 		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
 		clSetKernelArg(k, 4, sizeof(cl_mem), &p->CLmem[3]);
 		clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
 		clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[5]);
 		clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[6]);
 		clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[7]);
-		clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[8]);
+		clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[10]);
+
+
 
 		ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size,
 				NULL, 0, NULL, NULL);
@@ -727,16 +730,16 @@ void voxel_loop(void)
 		glUseProgram(0);
 	}
 
-	int depth = 7;
+	int depth = 6;
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	float scale = 1024;
+	float scale = 512;
 	glScalef(scale, scale, scale);
 	
 	if(vobj && populate)
 	{
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+//		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	//	if(vobj)print_breq(frame);
 
 //		voxel_NodeTerminate();
@@ -757,8 +760,8 @@ void voxel_loop(void)
 	//	}
 		voxel_NodeAlloc(frame);
 		voxel_BrickAlloc(frame);
-	//	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		voxel_Brick(depth, 0);
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		voxel_Brick(depth, frame);
 		vobj->draw(vobj);
 	glTranslatef(0.5,0.5,0.5);
 	glRotatef(90, 1, 0.0, 0);
@@ -768,7 +771,6 @@ void voxel_loop(void)
 	glRotatef(90, -1, 0.0, 0);
 	glRotatef(90, 0, 1, 0);
 	glTranslatef(-0.5,-0.5,-0.5);
-		voxel_Brick(depth, 2);
 		vobj->draw(vobj);
 
 		if(frame >= depth*2) populate = 0;
