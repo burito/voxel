@@ -256,11 +256,14 @@ static void wf_bound(WF_OBJ *w)
 	float longest = F3MAX(size);
 	F3SSUB(mid, longest, size);
 	F3MULS(mid, mid, 0.5);
+//	longest = longest * (12.0 / 14.0);
 	for(int i=0; i<w->nv; i++)
 	{
 		F3SUB(v[i], v[i], min);
 		F3ADD(v[i], v[i], mid);
 		vect_sdivide(&v[i], &v[i], longest);
+		F3MULS(v[i], v[i], (12.0 / 14.0));
+		F3ADDS(v[i], v[i], (1.0 / 14.0));
 	}
 
 	printf("Volume = (%f, %f, %f)\n", size.x, size.y, size.z);
