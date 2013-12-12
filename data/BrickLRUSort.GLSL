@@ -45,7 +45,7 @@ void main(void)
 
 	int i = BrickLRU.i[off];
 	int brick_time = BrickUseTime.i[i];
-	if(time == brick_time)
+	if((time-20) < brick_time)
 	{
 		off = atomicCounterIncrement(atomFresh);
 		BrickLRUOut.i[off] = i;

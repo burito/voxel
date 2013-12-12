@@ -74,34 +74,34 @@ then Brick draw will be called.
 void brick_mark(in vec3 position, out vec4 box)
 {
 	box = vec4(0,0,0,1);
-	int node;
-	int child;
-	int target = 0;
+	int child = oct_child(position, box);
+	int parent = 0;
+	int tmp = 0;
 	// search the OctTree
 	int i;
 	for(i=0; i< depth; i++)
 	{
-		node = target;
-		child = oct_child(position, box);
-		target = NodeNode.i[node][child];
-		if(target <= 0)
+		tmp = NodeNode.i[parent][child];
+		if(0 == tmp)
 		{
-			if( time-1 == NodeReqTime.i[node][child])
+			if( time-1 == NodeReqTime.i[parent][child])
 			{
-				NodeNode.i[node][child] = 0;
-				if(i != depth-1)
-				NodeReqTime.i[node][child] = time;
+//				NodeNode.i[node][child] = 0;
+				if(i < depth-1)
+				NodeReqTime.i[parent][child] = time;
 			}
 			break;
 		}
+		parent = tmp;
+		child = oct_child(position, box);
 	}
 	// find our brick id
-	int brick = NodeBrick.i[node][child];
-	if(0==brick)
+	tmp = NodeBrick.i[parent][child];
+	if(0==tmp)
 	{
-		if(i == depth-1)
-		if(time-1 == BrickReqTime.i[node][child])
-			BrickReqTime.i[node][child] = time;
+		if(i < depth)
+		if(time-1 == BrickReqTime.i[parent][child])
+			BrickReqTime.i[parent][child] = time;
 	}
 }
 
