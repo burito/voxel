@@ -73,6 +73,10 @@ GLSLSHADER *s_NodeAlloc=NULL;
 GLSLSHADER *s_BrickAlloc=NULL;
 GLuint atomics;
 
+
+#define FBUFFER_SIZE	4196
+GLuint fbuffer;
+
 int frame = 0;
 int odd_frame = 0;
 
@@ -368,7 +372,6 @@ void voxel_Voxel(int frame)
 	if(!s_Voxel)return;
 	if(!s_Voxel->happy)return;
 	glUseProgram(s_Voxel->prog);
-	GLSLSHADER *s = s_Voxel;
 
 	extern float4 pos, angle;
 
@@ -542,10 +545,12 @@ void print_balloc(void)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
+int tree_depth = 6;
+
 void voxel_init(void)
 {
 	frame = 1;
-
+	tree_depth = 7;
 	clVox = ocl_build("./data/Voxel.OpenCL");
 	ocl_rm(clVox);
 	if(clVox->happy)voxel_FindKernels();
@@ -605,6 +610,23 @@ void voxel_init(void)
 	glBufferData(GL_ATOMIC_COUNTER_BUFFER,
 			sizeof(GLuint)*2, NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
+	glGenFramebuffers(1, &fbuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
+	glFramebufferParameteri(GL_FRAMEBUFFER, 
+			GL_FRAMEBUFFER_DEFAULT_WIDTH, FBUFFER_SIZE);
+	glFramebufferParameteri(GL_FRAMEBUFFER,
+			GL_FRAMEBUFFER_DEFAULT_HEIGHT, FBUFFER_SIZE);
+	glFramebufferParameteri(GL_FRAMEBUFFER,GL_FRAMEBUFFER_DEFAULT_SAMPLES, 0);
+	glFramebufferParameteri(GL_FRAMEBUFFER,GL_FRAMEBUFFER_DEFAULT_LAYERS, 0);
+	GLenum err;
+	err = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if(err != GL_FRAMEBUFFER_COMPLETE)
+	{
+		printf("Creating Empty Framebuffer failed %s\n", glError(err));
+
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
@@ -617,7 +639,18 @@ void voxel_loop(void)
 	if(!clVox)return;
 	frame++;
 
-
+	if(keys[KEY_V])
+	{
+		keys[KEY_V] = 0;
+		if(tree_depth > 1)tree_depth--;
+		printf("tree depth=%d\n", tree_depth);
+	}
+	if(keys[KEY_B])
+	{
+		keys[KEY_B] = 0;
+		if(tree_depth < 10)tree_depth++;
+		printf("tree depth=%d\n", tree_depth);
+	}
 
 	if(voxel_rebuildkernel_flag)
 	{
@@ -730,11 +763,14 @@ void voxel_loop(void)
 		glUseProgram(0);
 	}
 
-	int depth = 6;
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	float scale = 512;
+	float scale = FBUFFER_SIZE;
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, scale, 0, scale, -4000, 4000);
+	glMatrixMode(GL_MODELVIEW);
 	glScalef(scale, scale, scale);
 	
 	if(vobj && populate)
@@ -748,20 +784,21 @@ void voxel_loop(void)
 		voxel_BrickLRUSort(frame);
 		odd_frame = !odd_frame;
 		frame++;
-		voxel_BrickDry(frame, depth);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
+		glViewport(0,0,scale, scale);
+		voxel_BrickDry(frame, tree_depth);
 		// render
 		if(vobj)vobj->draw(vobj);
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-	//	if(vobj)
-	//	{
-	//		print_breq(frame);
-	//		print_balloc();
-	//	}
-		voxel_NodeAlloc(frame);
+//	if(vobj)
+//	{
+//			print_breq(frame);
+//			print_balloc();
+//		}
 		voxel_BrickAlloc(frame);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		voxel_Brick(depth, frame);
+		voxel_Brick(tree_depth, frame);
 		vobj->draw(vobj);
 	glTranslatef(0.5,0.5,0.5);
 	glRotatef(90, 1, 0.0, 0);
@@ -773,7 +810,10 @@ void voxel_loop(void)
 	glTranslatef(-0.5,-0.5,-0.5);
 		vobj->draw(vobj);
 
-		if(frame >= depth*2) populate = 0;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0,0,vid_width, vid_height);
+		if(frame >= tree_depth*2) populate = 0;
+		voxel_NodeAlloc(frame);
 	}
 	// all done
 	glUseProgram(0);

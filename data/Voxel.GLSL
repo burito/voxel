@@ -63,7 +63,7 @@ bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
 	vec3 tmin = min(near, far), tmax = max(near, far);
 	float rmin = max(tmin.x, max(tmin.y, tmin.z));
 	float rmax = min(tmax.x, min(tmax.y, tmax.z));
-	return (rmax >= rmin) && (rmax >= 0);
+	return (rmax > rmin) && (rmax >= 0);
 }
 
 
@@ -170,9 +170,11 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 	int parent = 0;
 	int tmp = 0;
 	float volume = size * float(B_SIZE);
+//	int last_brick = 0;
 
 	while(volume < box.w)
 	{
+//		last_brick = NodeBrick.i[parent][child];
 		NodeUseTime.i[parent] = time;
 		tmp = NodeNode.i[parent][child];
 		if(0==tmp)
@@ -284,9 +286,9 @@ void main(void)
 	vec4 colour = vec4(0);
 	int brick_id = find_brick(near, box, psize);
 	int i, ib=0;
-	for(i=0; i<50 && colour.w < 0.5; i++)
+	for(i=0; i<50 && colour.w < 1.0; i++)
 	{
-		vec3 axis, atmp;
+		vec3 axis;
 		dist = slab_exitside(near, invnorm, box, axis);
 		far = near + dist * n;
 		psize += dist * prat;	// increase pixel volume
@@ -307,23 +309,25 @@ void main(void)
 		brick_id = find_brick(tmp, box, psize);
 		near = far;
 	}
-//	if(colour.w < 0.01)discard;	
-
-	vec3 nc = normalize(colour.xyz);
-	vec3 lamb = vec3(0.4);
-	vec3 lpwr = vec3(0.3);
-	vec3 ldir = vec3(0,-1,0);
-	// diffuse lighting
-	float ill  = dot(ldir, nc);
-	colour.rgb = vec3(lamb+ ill * lpwr);
-	// specular lighting
-	vec3 h = normalize( ldir + n );
-	ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
-	colour.rgb += vec3( ill * lpwr);
+	if(colour.w > 0.01)
+	{
+		vec3 nc = normalize(colour.xyz);
+		vec3 lamb = vec3(0.4);
+		vec3 lpwr = vec3(0.3);
+		vec3 ldir = vec3(0,-1,0);
+		// diffuse lighting
+		float ill  = dot(ldir, nc);
+		colour.rgb = vec3(lamb+ ill * lpwr);
+		// specular lighting
+		vec3 h = normalize( ldir + n );
+		ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
+		colour.rgb += vec3( ill * lpwr);
+	}
+	else colour.rgb = vec3(0);
 	// debug information
-	colour.b = float(i) / 50.0;
-	colour.r = float(ib) / 15.0;
-	colour.a = 1;
+//	colour.b = float(i) / 50.0;
+//	colour.r = float(ib) / 15.0;
+//	colour.a = 1;
 
 	Colour = colour;
 	return;

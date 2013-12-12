@@ -338,7 +338,7 @@ __kernel void Render(
 	// loop until we hit something solid/exit the volume
 	float4 colour = {0.0,0.0,0.0,0.0};
 	int i, ib=0;
-	for(i=0; i<50 && colour.w < 0.5; i++)
+	for(i=0; i<50 && colour.w < 1.0; i++)
 	{
 		float3 axis;
 		dist = slab_exitside(near, invnorm, box, &axis);
@@ -376,9 +376,9 @@ __kernel void Render(
 	}
 	else colour.xyz = 0;
 	// debug information
-	colour.z = (float)i / 50.0;
-	colour.x = (float)ib / 15.0;
-	colour.w = 1.0;
+//	colour.z = (float)i / 50.0;
+//	colour.x = (float)ib / 15.0;
+//	colour.w = 1.0;
 
 	write_imagef(out, ipos, colour);
 }
