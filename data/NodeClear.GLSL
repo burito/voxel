@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2012 Daniel Burke
+Copyright (c) 2013 Daniel Burke
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -21,16 +21,22 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#version 430
 
-extern int killme;
-extern int vid_width;
-extern int vid_height;
-extern int mouse_x;
-extern int mouse_y;
-extern int mickey_x;
-extern int mickey_y;
-extern char mouse[3];
-extern char keys[];
+layout(local_size_x = 1, local_size_y = 1) in;
 
-#include "keyboard.h"
+layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
+layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
+
+void main(void)
+{
+	uint off = gl_GlobalInvocationID.x * 10;
+	off += gl_GlobalInvocationID.y;
+	
+	for(int i=0; i< 8; i++)
+	{
+		NodeNode.i[off][i] = 0;
+		NodeBrick.i[off][i] = 0;
+	}
+}
 

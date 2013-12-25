@@ -21,7 +21,38 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-void printProgramInfoLog(GLuint obj);
-GLuint shader_load(int type, char * filename);
-char* file_load(char *filename);
+
+extern int killme;		/* global killswitch */
+extern int sys_width;	/* dimensions of default screen */
+extern int sys_height;
+extern int vid_width;	/* dimensions of our part of the screen */
+extern int vid_height;
+extern int mouse_x;		/* position */
+extern int mouse_y;
+extern int mickey_x;	/* velocity */
+extern int mickey_y;
+extern char mouse[3];	/* button status 0=up 1=down */
+extern char keys[];
+
+
+int main_init(int argc, char *argv[]);
+void main_loop(void);
+void main_end(void);
+
+extern int fullscreen;
+extern int fullscreen_toggle;
+
+extern const int sys_ticksecond;	/* ticks in a second */
+long long sys_time(void);
+
+extern float time;
+
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+void shell_browser(char *url);
+
+#include "keyboard.h"
 

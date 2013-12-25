@@ -63,10 +63,18 @@ typedef struct byte4 {
 	unsigned char x,y,z,w;
 } byte4;
 
+#define F2COPY(D,S) D.x=S.x;D.y=S.y
+#define F2ADD(D,A,B) D.x=A.x+B.x;D.y=A.y+B.y
+
+#define F2MAG(X) X.x*X.x+X.y*X.y
+#define F3MAG(X) X.x*X.x+X.y*X.y+X.z*X.z
+
 #define F3COPY(D,S) D.x=S.x;D.y=S.y;D.z=S.z
 #define F3ADD(D,A,B) D.x=A.x+B.x;D.y=A.y+B.y;D.z=A.z+B.z
 #define F3ADDS(D,A,B) D.x=A.x+B;D.y=A.y+B;D.z=A.z+B
 #define F3SUB(D,A,B) D.x=A.x-B.x;D.y=A.y-B.y;D.z=A.z-B.z
+#define F3SUBS(D,A,B) D.x=A.x-B;D.y=A.y-B;D.z=A.z-B
+#define F3SSUB(D,B,A) D.x=B-A.x;D.y=B-A.y;D.z=B-A.z
 #define F3MUL(D,A,B) D.x=A.x*B.x;D.y=A.y*B.y;D.z=A.z*B.z
 #define F3MULS(D,A,B) D.x=A.x*B;D.y=A.y*B;D.z=A.z*B
 #define F3DIV(D,A,B) D.x=A.x/B.x;D.y=A.y/B.y;D.z=A.z/B.z
@@ -83,7 +91,7 @@ void vect_mul(float3 *result, const float3 *left, const float3 *right);
 void vect_add(float3 *result, const float3 *left, const float3 *right);
 void vect_sadd(float3 *result, const float3 *left, const float right);
 void vect_sub(float3 *result, const float3 *left, const float3 *right);
-float vect_length(const float3 *vect);
+float vect_magnitude(const float3 *vect);
 void vect_norm(float3 *result, const float3 *vect);
 float vect_dot(const float3 *left, const float3 *right);
 void vect_cross(float3 *result, const float3 *left, const float3 *right);

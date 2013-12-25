@@ -21,8 +21,11 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
+
+#include <sys/time.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,30 +34,52 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 #include <GL/glx.h>
 
+
+
 #include "keyboard.h"
 
 int killme = 0;
-int vid_width = 640;
-int vid_height = 480;
-int sys_width = 1920;
+int sys_width  = 1980;	/* dimensions of default screen */
 int sys_height = 1200;
-int win_width = 640;
-int win_height = 480;
+int vid_width  = 1280;	/* dimensions of our part of the screen */
+int vid_height = 720;
+int win_width  = 0;		/* used for switching from fullscreen back to window */
+int win_height = 0;
 int mouse_x;
 int mouse_y;
 int mickey_x;
 int mickey_y;
-char mouse[3];
+char mouse[] = {0,0,0};
 #define KEYMAX 128
 char keys[KEYMAX];
+
+int fullscreen=0;
+int fullscreen_toggle=0;
 
 int main_init(int argc, char *argv[]);
 void main_loop(void);
 void main_end(void);
 
+const int sys_ticksecond = 1000000;
+long long sys_time(void)
+{
+	struct timeval tv;
+	tv.tv_usec = 0;	// tv.tv_sec = 0;
+	gettimeofday(&tv, NULL);
+	return tv.tv_usec + tv.tv_sec * sys_ticksecond;
+}
+
+void shell_browser(char *url)
+{
+	int c=1000;
+	char buf[c];
+	memset(buf, 0, sizeof(char)*c);
+	snprintf(buf, c, "sensible-browser %s &", url);
+	system(buf);
+}
+
 
 Display *display;
-int screen;
 Window window;
 GLXContext glx_context;
 XSetWindowAttributes xwin_attr;
@@ -72,9 +97,9 @@ int xAttrList[] = {
 	None
 };
 
-int fullscreen=0;
-int fullscreen_toggle=0;
 int oldx=0, oldy=0;
+
+
 
 
 static void x11_down(void)
@@ -134,7 +159,7 @@ static void x11_window(void)
 //		XGrabPointer(display, window, True,
 //				PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
 //				GrabModeAsync, GrabModeAsync, window, None, CurrentTime);
-		XDefineCursor(display, window, cursor_none);
+//		XDefineCursor(display, window, cursor_none);
 
 	}
 	else
@@ -169,8 +194,12 @@ static void x11_init(void)
 	memset(mouse, 0, 3);
 
 	display = XOpenDisplay(0);
-	screen = DefaultScreen(display);
-	xvis = glXChooseVisual(display, screen, xAttrList);
+	Screen *screen = DefaultScreenOfDisplay(display);
+	sys_width = XWidthOfScreen(screen);
+	sys_height = XHeightOfScreen(screen);
+
+	int screen_id = DefaultScreen(display);
+	xvis = glXChooseVisual(display, screen_id, xAttrList);
 	if(!xvis)
 	{
 		printf("glXChooseVisual() failed.\n");
@@ -227,10 +256,9 @@ static void x11_init(void)
 	Window root = DefaultRootWindow(display);
 	XISelectEvents(display, root, &eventmask, 1);
 //	XSetDeviceMode(display, mouse, Relative);
-#endif
 }
 
-void print_rawmotion(XIRawEvent *event)
+static void print_rawmotion(XIRawEvent *event)
 {
     int i;
     double *raw_valuator = event->raw_values,
@@ -252,9 +280,10 @@ void print_rawmotion(XIRawEvent *event)
             raw_valuator++;
         }
     }
+#endif
 }
 
-void handle_events(void)
+static void handle_events(void)
 {
 	int deltax;
 	int deltay;
@@ -339,6 +368,10 @@ void handle_events(void)
 			case 2:	mouse[1]=1; break;
 			case 3:	mouse[2]=1; break;
 			}
+
+			int foo = sys_time() / 1000;
+
+			printf("mouse[] %d, @ %d\n", foo, (int)event.xbutton.time);
 			break;
 		case ButtonRelease:
 			switch(event.xbutton.button) {
@@ -370,6 +403,7 @@ void handle_events(void)
 
 /* keyboard */
 		case KeyPress:
+			printf("keyd[%d] @ %d\n", event.xkey.keycode, (int)event.xkey.time);
 			if(event.xkey.keycode < KEYMAX)
 				keys[event.xkey.keycode] = 1;
 			break;
@@ -431,19 +465,21 @@ static void x11_end(void)
 int main(int argc, char* argv[])
 {
 	x11_init();
-	glewInit();
+	glewInit();		// belongs after GL context creation
 	int init = main_init(argc, argv);
 	if(init)
 	{
 		x11_end();
 		return init;
 	}
+
 	while(!killme)
 	{
 		handle_events();
 		main_loop();
 		glXSwapBuffers(display, window);
 	}
+	
 	main_end();
 	x11_end();
 	return 0;

@@ -21,9 +21,26 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-void voxel_init(char *filename);
-void voxel_draw(void);
-void voxel_end(void);
+#ifndef __IMG_H__
+#define __IMG_H__
+
+#include <GL/glew.h>
+
+typedef struct IMG
+{
+	int x, y;
+	int bpp;
+	int channels;
+	unsigned char *buf;
+	GLuint id;
+	char *name;
+} IMG;
 
 
+void img_glinit(IMG*);
+void img_free(IMG*);
+
+IMG* img_load(const char * filename);
+
+#endif
 
