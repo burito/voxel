@@ -551,7 +551,7 @@ void voxel_init(void)
 {
 	frame = 1;
 	tree_depth = 7;
-	clVox = ocl_build("./data/Voxel.OpenCL");
+	clVox = ocl_build("./data/shaders/Voxel.OpenCL");
 	ocl_rm(clVox);
 	if(clVox->happy)voxel_FindKernels();
 	
@@ -575,17 +575,18 @@ void voxel_init(void)
 	if(!clVox->happy)printf("clVox is unhappy\n");
 
 
-	s_Voxel = shader_load("data/Vertex.GLSL", "data/Voxel.GLSL");
-	s_Brick = shader_load("data/Vertex.GLSL", "data/Brick.GLSL");
-	s_BrickDry = shader_load("data/Vertex.GLSL", "data/BrickDry.GLSL");
-	s_NodeClear = shader_load(0, "data/NodeClear.GLSL");
-	s_NodeTerminate = shader_load(0, "data/NodeTerminate.GLSL");
-	s_NodeLRUReset = shader_load(0, "data/NodeLRUReset.GLSL");
-	s_NodeLRUSort = shader_load(0, "data/NodeLRUSort.GLSL");
-	s_BrickLRUReset = shader_load(0, "data/BrickLRUReset.GLSL");
-	s_BrickLRUSort = shader_load(0, "data/BrickLRUSort.GLSL");
-	s_NodeAlloc = shader_load(0, "data/NodeAlloc.GLSL");
-	s_BrickAlloc = shader_load(0, "data/BrickAlloc.GLSL");
+	s_Voxel = shader_load("data/shaders/Vertex.GLSL","data/shaders/Voxel.GLSL");
+	s_Brick = shader_load("data/shaders/Vertex.GLSL","data/shaders/Brick.GLSL");
+	s_BrickDry = shader_load("data/shaders/Vertex.GLSL",
+							"data/shaders/BrickDry.GLSL");
+	s_NodeClear = shader_load(0, "data/shaders/NodeClear.GLSL");
+	s_NodeTerminate = shader_load(0, "data/shaders/NodeTerminate.GLSL");
+	s_NodeLRUReset = shader_load(0, "data/shaders/NodeLRUReset.GLSL");
+	s_NodeLRUSort = shader_load(0, "data/shaders/NodeLRUSort.GLSL");
+	s_BrickLRUReset = shader_load(0, "data/shaders/BrickLRUReset.GLSL");
+	s_BrickLRUSort = shader_load(0, "data/shaders/BrickLRUSort.GLSL");
+	s_NodeAlloc = shader_load(0, "data/shaders/NodeAlloc.GLSL");
+	s_BrickAlloc = shader_load(0, "data/shaders/BrickAlloc.GLSL");
 
 	
 	shader_uniform(s_Voxel, "time");
