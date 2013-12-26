@@ -58,11 +58,6 @@ OCLCONTEXT *ocl=NULL;
 
 int main_init(int argc, char *argv[])
 {
-	printf("gl_platform(\"%s\", \"%s\")\n",
-		glGetString(GL_VENDOR), glGetString(GL_RENDERER));
-	printf("gl_versions(\"%s\", \"%s\")\n",
-		glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
-
 	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
 	GLfloat light_position[] = { -100.0, -100.0, -100.0, 0.0 };

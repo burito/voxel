@@ -8,13 +8,13 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o ocl.o clvoxel.o shader.o
 # Build rules
 
 WDIR = build/win
-#WCC = i686-w64-mingw32-gcc
-#WINDRES = i686-w64-mingw32-windres
-WCC = x86_64-w64-mingw32-gcc
-WINDRES = x86_64-w64-mingw32-windres
+WCC = i686-w64-mingw32-gcc
+WINDRES = i686-w64-mingw32-windres
+#WCC = x86_64-w64-mingw32-gcc
+#WINDRES = x86_64-w64-mingw32-windres
 _WOBJS = $(OBJS) win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lOpenCL64
+WLIBS = $(LIBRARIES) -lOpenCL64 -lgdi32 -lopengl32 -lwinmm
 
 
 LDIR = build/lin

@@ -110,7 +110,7 @@ void ocl_gltex3d(OCLPROGRAM *p, int3 size, GLuint type, GLuint format)
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, size.x, size.y, size.z, 0,
 			type, format, NULL);
-	printf("Error = \"%s\"\n", glError(glGetError()));
+//	printf("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 
 	cl_int ret;
@@ -210,16 +210,16 @@ int ocl_init(void)
 		char b[1024];
 		size_t bs = 1024;
 		clGetPlatformInfo( c->pid[i], CL_PLATFORM_NAME, bs, b, &bs);
-		printf("cl->pid[%d]:\"%s\"\n", i, b);
+//		printf("cl->pid[%d]:\"%s\"\n", i, b);
 		for(int j=0; j < c->num_did[i]; j++)
 		{
 			bs = 1024;
 			clGetDeviceInfo(c->did[i][j], CL_DEVICE_EXTENSIONS, bs, b, &bs);
 			char *supported = strstr(b, "cl_khr_gl_sharing");
-			printf("cl->did[%d][%d]%s:", i, j, (supported?":GL":":-("));
+//			printf("cl->did[%d][%d]%s:", i, j, (supported?":GL":":-("));
 			bs = 1024;
 			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, b, &bs);
-			printf("\"%s\"\n", b);
+//			printf("\"%s\"\n", b);
 		}
 	}
 

@@ -31,6 +31,7 @@ freely, subject to the following restrictions:
 #include <dirent.h>
 
 #include <GL/glew.h>
+#include <CL/opencl.h>
 
 #include "3dmaths.h"
 #include "image.h"
@@ -1179,6 +1180,60 @@ widget* widget_url_new(int x, int y, char *label, char *url)
 	return w;
 }
 
+void spawn_gpuinfo(widget *x)
+{
+	widget *item, *w = widget_window_new(100, 100, "GPU Information");
+	item = widget_text_new(10, 65, "OpenGL");
+	item->fontsize = 30.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+	item = widget_text_new(20, 90, hcopy(
+		(const char*)glGetString(GL_VENDOR) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 110, hcopy(
+		(const char*)glGetString(GL_RENDERER) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 130, hcopy(
+		(const char*)glGetString(GL_VERSION) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 150, hcopy(
+		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
+	widget_child_add(w, item);
+
+	item = widget_text_new(10, 175, "OpenCL");
+	item->fontsize = 30.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+
+	int count = 0;
+	size_t bs=1000;
+	char buf[bs];
+	OCLCONTEXT *c = OpenCL;
+
+	for(int i=0; i<c->num_pid; i++)
+	{
+		bs = 1000;
+		clGetPlatformInfo( c->pid[i], CL_PLATFORM_NAME, bs, buf, &bs);
+		item = widget_text_new(10, 200+count*20, hcopy(buf));
+		widget_child_add(w, item);
+		count ++;
+
+		for(int j=0; j<c->num_did[i]; j++)
+		{
+			bs = 1000;
+			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, buf, &bs);
+			item = widget_text_new(20, 200+count*20, hcopy(buf));
+			widget_child_add(w, item);
+			count ++;
+		}
+	}
+
+	w->size.x = 330;
+	w->size.y = 190 + count * 20;
+	w->noResize = 1;
+	widget_add(w);
+}
+
 void spawn_about(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "ABOUT");
@@ -1396,6 +1451,7 @@ int gui_init(int argc, char *argv[])
 	extern int texdraw;
 	w->data2 = &texdraw;
 
+	widget_menu_item_add(item, "GPU Information", spawn_gpuinfo);
 	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
 	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
