@@ -30,10 +30,12 @@ freely, subject to the following restrictions:
  */
 float finvsqrt(float x)
 {
-    float xhalf = 0.5f*x;
-    int i = *(int*)&x;
-    i = 0x5f3759df - (i>>1);
-    x = *(float*)&i;
+	union finv { int i; float f; } u;
+	u.f = x;
+
+	float xhalf = 0.5f*x;
+    u.i = 0x5f3759df - (u.i>>1);
+    x = u.f;
     x = x*(1.5f - xhalf*x*x); /* repeat this line to improve accuracy */
     return x;
 }
