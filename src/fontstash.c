@@ -306,7 +306,7 @@ void sth_add_glyph(struct sth_stash* stash,
 	struct sth_texture* texture = NULL;
 	struct sth_font* fnt = NULL;
 	struct sth_glyph* glyph = NULL;
-	unsigned int codepoint;
+	unsigned int codepoint = 0;
 	unsigned int state = 0;
 
 	if (stash == NULL) return;
