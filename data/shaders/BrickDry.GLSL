@@ -23,8 +23,6 @@ freely, subject to the following restrictions:
 
 #version 430
 
-#define B_SIZE 8
-
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 layout(shared, binding=2) buffer node_reqtime { int i[][8]; } NodeReqTime;

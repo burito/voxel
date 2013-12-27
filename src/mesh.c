@@ -140,6 +140,7 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 		switch(buf[i]) {
 		case 'N':
 			switch(buf[i+1]) {
+			default:
 			case 's': targetf = &m->Ns; break;		// specular coefficient
 			case 'i': targetf = &m->Ni; break;		// ?
 			}
@@ -161,8 +162,9 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 			switch(buf[i+5]) {
 			case 'a': targeti = &m->map_Ka; break;		// ambient
 			case 'd': targeti = &m->map_Kd; break;		// diffuse
-			case ' ': targeti = &m->map_d;  break;		// alpha
 			case 'u': targeti = &m->map_bump; break;	// bump
+			default:
+			case ' ': targeti = &m->map_d;  break;		// alpha
 			}
 			while(!whitespace(buf[i]))i++;i++;
 			path = repath(hostpath, buf+i);
@@ -738,7 +740,7 @@ WF_OBJ* wf_parse(char *filename)
 		case 'v':
 
 			switch(buf[1]) {
-			case ' ':
+			default: //case ' ':
 				target = &w->v[vi++];
 				break;
 			case 'n':

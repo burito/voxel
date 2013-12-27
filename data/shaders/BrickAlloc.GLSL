@@ -23,8 +23,6 @@ freely, subject to the following restrictions:
 
 #version 430
 
-#define B_SIZE 8
-#define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
 

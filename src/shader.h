@@ -42,5 +42,7 @@ void shader_rebuild(GLSLSHADER *s);
 
 char* glError(int error);
 
+extern char *shader_header;
+int available_vram(void);
 
 

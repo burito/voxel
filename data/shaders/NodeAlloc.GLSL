@@ -22,7 +22,6 @@ freely, subject to the following restrictions:
 */
 
 #version 430
-#define NP_SIZE 100000
 
 layout(local_size_x = 1, local_size_y = 1) in;
 

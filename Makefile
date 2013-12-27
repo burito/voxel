@@ -1,4 +1,4 @@
-CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
+CFLAGS = -O2 -std=c99 -Wall -pedantic -Isrc
 PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
 LIBRARIES = -lm -lOpenCL
 SDIR = src
@@ -8,8 +8,10 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o ocl.o clvoxel.o shader.o
 # Build rules
 
 WDIR = build/win
-WCC = i686-w64-mingw32-gcc
-WINDRES = i686-w64-mingw32-windres
+#WCC = i686-w64-mingw32-gcc
+#WINDRES = i686-w64-mingw32-windres
+WCC = wine64 ~/mingw64/bin/gcc.exe
+WINDRES = wine64 ~/mingw64/bin/windres.exe
 #WCC = x86_64-w64-mingw32-gcc
 #WINDRES = x86_64-w64-mingw32-windres
 _WOBJS = $(OBJS) win32.o win32.res
@@ -51,6 +53,11 @@ gui.exe: $(WOBJS)
 	$(WCC) $^ $(WLIBS) -o $@
 
 
+voxel.zip: gui.exe
+	zip voxel.zip gui.exe README LICENSE data/shaders/* data/gui/*
+
+
+
 # Testing rules
 data: convertoct
 	./convertoct data/stanford-bunny.msh data/stanford-bunny.oct
@@ -62,5 +69,5 @@ test: octview convertoct
 
 # Housekeeping
 clean:
-	@rm -rf build gui gui.exe
+	@rm -rf build gui gui.exe voxel.zip
 	@mkdir build build/lin build/lin/GL build/win build/win/GL

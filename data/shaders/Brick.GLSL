@@ -23,13 +23,7 @@ freely, subject to the following restrictions:
 
 #version 430
 
-
-#define B_SIZE 8
-#define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
-#define NP_SIZE 100000
-
-
 
 layout(rgba16f, location=0) uniform image3D bricks;
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
@@ -119,7 +113,7 @@ float brick_write(in vec3 position, vec4 colour)
 		if(brick > 0)
 		{
 			ipos = brick_origin(brick);
-			ibpos.x = 7;
+			ibpos.x = B_SIZE-1;
 			imageStore(bricks, ipos+ibpos, colour);
 			ibpos.x = 0;
 		}
@@ -131,7 +125,7 @@ float brick_write(in vec3 position, vec4 colour)
 		if(brick > 0)
 		{
 			ipos = brick_origin(brick);
-			ibpos.y = 7;
+			ibpos.y = B_SIZE-1;
 			imageStore(bricks, ipos+ibpos, colour);
 			ibpos.y = 0;
 		}
@@ -143,7 +137,7 @@ float brick_write(in vec3 position, vec4 colour)
 		if(brick > 0)
 		{
 			ipos = brick_origin(brick);
-			ibpos.z = 7;
+			ibpos.z = B_SIZE-1;
 			imageStore(bricks, ipos+ibpos, colour);
 			ibpos.z = 0;
 		}

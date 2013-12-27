@@ -31,6 +31,7 @@ freely, subject to the following restrictions:
 #include "text.h"
 #include "shader.h"
 
+char *shader_header = NULL;
 
 
 static void printShaderInfoLog(GLuint obj)
@@ -73,13 +74,15 @@ static GLuint shader_fileload(int type, char * filename)
 {
 	GLuint x;
 	int param;
-	char *buf;
+	char *buf[2];
+	buf[0] = shader_header;
 
-	buf = loadTextFile(filename);
-	if(!buf)return 0;
+	buf[1] = loadTextFile(filename);
+	if(!buf[1])return 0;
+
 	x = glCreateShader(type);
-	glShaderSource(x, 1, (const GLchar**)&buf, NULL);
-	free(buf);
+	glShaderSource(x, 2, (const GLchar**)buf, NULL);
+	free(buf[1]);
 	glCompileShader(x);
 	glGetShaderiv(x, GL_COMPILE_STATUS, &param);
 	if(param == GL_FALSE)
@@ -227,6 +230,28 @@ void shader_buffer(GLSLSHADER *s, char *name)
 		glUniformBlockBinding(s->prog, s->buf[i], i);
 	}
 }
+
+int available_vram(void)
+{
+	int mem = 0;
+	if(strstr((const char*)glGetString(GL_VENDOR), "NVIDIA"))
+	{
+//		glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem);
+		glGetIntegerv(0x9049, &mem);
+		return mem;
+	}
+	else if(strstr((const char*)glGetString(GL_VENDOR), "ATI"))
+	{
+		glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
+		return mem;
+	}
+	else
+	{
+		printf("I don't know if there is VRAM available\n");
+	}
+	return 0;
+}
+
 
 
 

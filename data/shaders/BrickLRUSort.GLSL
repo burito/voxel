@@ -23,7 +23,6 @@ freely, subject to the following restrictions:
 
 #version 430
 
-#define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
 layout(local_size_x = 1, local_size_y = 1, local_size_x = 1) in;
@@ -39,13 +38,13 @@ uniform int time;
 
 void main(void)
 {
-	uint off = gl_GlobalInvocationID.x * 64;
-	off = (off+gl_GlobalInvocationID.y)* 64;
+	uint off = gl_GlobalInvocationID.x * B_EDGE;
+	off = (off+gl_GlobalInvocationID.y)* B_EDGE;
 	off += gl_GlobalInvocationID.z;
 
 	int i = BrickLRU.i[off];
 	int brick_time = BrickUseTime.i[i];
-	if((time-20) < brick_time)
+	if(time == brick_time)
 	{
 		off = atomicCounterIncrement(atomFresh);
 		BrickLRUOut.i[off] = i;

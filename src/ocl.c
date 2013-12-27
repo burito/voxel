@@ -97,7 +97,7 @@ void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format)
 	p->CLmem[i] = mem;
 }
 
-void ocl_gltex3d(OCLPROGRAM *p, int3 size, GLuint type, GLuint format)
+void ocl_gltex3d(OCLPROGRAM *p, int3 size)
 {
 	GLuint id;
 	glGenTextures(1, &id);
@@ -109,7 +109,7 @@ void ocl_gltex3d(OCLPROGRAM *p, int3 size, GLuint type, GLuint format)
 	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, size.x, size.y, size.z, 0,
-			type, format, NULL);
+			GL_RGBA, GL_FLOAT, NULL);
 //	printf("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 
@@ -214,8 +214,8 @@ int ocl_init(void)
 		for(int j=0; j < c->num_did[i]; j++)
 		{
 			bs = 1024;
-			clGetDeviceInfo(c->did[i][j], CL_DEVICE_EXTENSIONS, bs, b, &bs);
-			char *supported = strstr(b, "cl_khr_gl_sharing");
+//			clGetDeviceInfo(c->did[i][j], CL_DEVICE_EXTENSIONS, bs, b, &bs);
+//			char *supported = strstr(b, "cl_khr_gl_sharing");
 //			printf("cl->did[%d][%d]%s:", i, j, (supported?":GL":":-("));
 			bs = 1024;
 			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, b, &bs);

@@ -26,8 +26,6 @@ freely, subject to the following restrictions:
 precision highp float;
 precision highp int;
 
-#define B_SIZE 8
-#define B_EDGE 64
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
 
