@@ -1,9 +1,9 @@
 CFLAGS = -O2 -std=c99 -Wall -pedantic -Isrc
 PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
-LIBRARIES = -lm -lOpenCL
+LIBRARIES = -lm
 SDIR = src
 
-OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o ocl.o clvoxel.o shader.o
+OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o
 
 # Build rules
 
@@ -16,7 +16,7 @@ WINDRES = wine64 ~/mingw64/bin/windres.exe
 #WINDRES = x86_64-w64-mingw32-windres
 _WOBJS = $(OBJS) win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lOpenCL64 -lgdi32 -lopengl32 -lwinmm
+WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm
 
 
 LDIR = build/lin

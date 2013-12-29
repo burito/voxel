@@ -179,6 +179,24 @@ GLSLSHADER* shader_load(char *vertfile, char *fragfile)
 	return s;
 }
 
+void shader_free(GLSLSHADER* s)
+{
+	if(!s)return;
+
+	if(s->vertfile)free(s->vertfile);
+	if(s->fragfile)free(s->fragfile);
+
+	if(s->vert)glDeleteShader(s->vert);
+	if(s->frag)glDeleteShader(s->frag);
+	if(s->prog)glDeleteProgram(s->prog);
+
+	if(s->unif_name)free(s->unif_name);
+	if(s->unif)free(s->unif);
+	if(s->buf_name)free(s->buf_name);
+	if(s->buf)free(s->buf);
+
+	free(s);
+}
 
 void shader_uniform(GLSLSHADER *s, char *name)
 {

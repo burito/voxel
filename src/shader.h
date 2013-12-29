@@ -39,6 +39,7 @@ GLSLSHADER* shader_load(char *vertfile, char * fragfile);
 void shader_uniform(GLSLSHADER *s, char *name);
 void shader_buffer(GLSLSHADER *s, char *name);
 void shader_rebuild(GLSLSHADER *s);
+void shader_free(GLSLSHADER *s);
 
 char* glError(int error);
 

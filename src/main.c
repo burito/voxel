@@ -29,7 +29,6 @@ freely, subject to the following restrictions:
 #include "main.h"
 #include "mesh.h"
 #include "gui.h"
-#include "ocl.h"
 #include "clvoxel.h"
 
 
@@ -54,7 +53,6 @@ void open_target(char * filename)
 long long time_start = 0;
 float time = 0;
 
-OCLCONTEXT *ocl=NULL;
 
 int main_init(int argc, char *argv[])
 {
@@ -66,9 +64,6 @@ int main_init(int argc, char *argv[])
 	glEnable(GL_LIGHT0);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 //	glEnable(GL_LIGHTING);
-
-	if(ocl_init())
-		printf("Initialising OpenCL failed.\n");
 
 	time_start = sys_time();
 	voxel_init();
@@ -158,7 +153,6 @@ void main_loop(void)
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	gui_input();
-	ocl_loop();
 	voxel_loop();
 	gui_draw();
 }
@@ -168,7 +162,6 @@ void main_loop(void)
 void main_end(void)
 {
 	voxel_end();
-	ocl_end();
 	gui_end();
 
 }
