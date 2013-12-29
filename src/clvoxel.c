@@ -72,7 +72,6 @@ GLSLSHADER *s_BrickLRUSort=NULL;
 GLSLSHADER *s_NodeAlloc=NULL;
 GLSLSHADER *s_BrickAlloc=NULL;
 GLuint atomics;
-GLuint atomic_read;
 
 
 #define FBUFFER_SIZE	4196
@@ -201,10 +200,10 @@ static void clvox_ResetTime(void)
 /* set the atomic vars used in compute shaders */
 void voxel_atom(int x, int y)
 {
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomics);
 	GLuint b[] = {x, y};
-	glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, 8, b);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 8, b);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 
@@ -254,7 +253,7 @@ void voxel_NodeLRUSort(int frame)
 {
 	glUseProgram(s_NodeLRUSort->prog);
 	voxel_atom(0, 0);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNUT); // nut
 	if(!odd_frame)
 	{
@@ -276,7 +275,7 @@ void voxel_BrickLRUSort(int frame)
 {
 	glUseProgram(s_BrickLRUSort->prog);
 	voxel_atom(0, 0);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xBUT); // but
 	if(!odd_frame)
 	{
@@ -298,7 +297,7 @@ void voxel_NodeAlloc(int frame)
 {
 	glUseProgram(s_NodeAlloc->prog);
 	voxel_atom(0, 0);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xNRT); // nrt
 	if(!odd_frame)
@@ -320,7 +319,7 @@ void voxel_BrickAlloc(int frame)
 {
 	glUseProgram(s_BrickAlloc->prog);
 	voxel_atom(0, 0);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, xNB); // nb
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, xBRT); // brt
 	if(!odd_frame)
@@ -629,15 +628,9 @@ void voxel_init(void)
 	voxel_BrickLRUReset(frame);
 
 	glGenBuffers(1, &atomics);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
-	glBufferData(GL_ATOMIC_COUNTER_BUFFER,
-			sizeof(GLuint)*2, NULL, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-
-	glGenBuffers(1, &atomic_read);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomic_read);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomics);
 	glBufferData(GL_SHADER_STORAGE_BUFFER,
-			sizeof(GLuint)*2, NULL, GL_STREAM_COPY);
+			sizeof(GLuint)*2, NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glGenFramebuffers(1, &fbuffer);
@@ -660,17 +653,10 @@ void voxel_init(void)
 
 void print_atoms(void)
 {
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomic_read);
-
-	glCopyBufferSubData(GL_ATOMIC_COUNTER_BUFFER,
-			GL_SHADER_STORAGE_BUFFER, 0, 0, 8);
-	GLuint atm[2];
-	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 8, atm);
-
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomics);
+	GLuint *atm = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 	printf("Atomics %d, %d\n", atm[0], atm[1]);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
 

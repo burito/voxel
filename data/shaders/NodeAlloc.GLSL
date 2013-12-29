@@ -26,8 +26,7 @@ freely, subject to the following restrictions:
 layout(local_size_x = 1, local_size_y = 1) in;
 
 
-layout(binding=0, offset=0) uniform atomic_uint atomFresh;
-layout(binding=0, offset=4) uniform atomic_uint atomStale;
+layout(shared, binding=0) buffer atoms { uint fresh, stale; } atom;
 
 layout(shared, binding=1) buffer node_node { int i[]; } NodeNode;
 layout(shared, binding=2) buffer node_reqtime { int i[]; } NodeReqTime;
@@ -42,7 +41,7 @@ void main(void)
 
 	int node_time = NodeReqTime.i[off];
 	if(time != node_time)return;
-	int dest = NodeLRU.i[ (NP_SIZE-1) - atomicCounterIncrement(atomStale)];
+	int dest = NodeLRU.i[ (NP_SIZE-1) - atomicAdd(atom.stale,1)];
 	NodeNode.i[off] = dest;
 
 	for(int j=0; j<8; j++)
