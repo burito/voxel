@@ -28,7 +28,9 @@ freely, subject to the following restrictions:
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
-layout(shared, binding=0) buffer atoms { uint fresh, stale; } atom;
+layout(binding=0, offset=0) uniform atomic_uint atomFresh;
+layout(binding=0, offset=4) uniform atomic_uint atomStale;
+
 layout(rgba16f, location=0) uniform writeonly image3D bricks;
 layout(shared, binding=1) buffer node_brick { int i[]; } NodeBrick;
 layout(shared, binding=2) buffer brick_reqtime { int i[]; } BrickReqTime;
@@ -58,7 +60,7 @@ void main(void)
 
 	int req_time = BrickReqTime.i[off];
 	if(time != req_time)return;
-	int dest = BrickLRU.i[(B_COUNT-1)-atomicAdd(atom.stale, 1)];
+	int dest = BrickLRU.i[(B_COUNT-1)-atomicCounterIncrement(atomStale)];
 	NodeBrick.i[off] = dest;
 
 	ivec3 ipos = brick_origin(dest);
