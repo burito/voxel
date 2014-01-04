@@ -2,21 +2,24 @@
 Setting up the build environment for Windows and Debian is detailed at...
 http://danpburke.blogspot.com.au/2013/11/shadertoy-like-opencl-kernel-tester.html
 
+There is no Mac support, none is planned, as OSX does not support OpenGL 4.3.
+https://developer.apple.com/graphicsimaging/opengl/capabilities/
+
 ESC quits.
 WASD keys move around.
 CTRL goes down, SPACE goes up.
 Holding Right Mouse aims the camera.
 F11 toggles Fullscreen.
 
-Needs OpenGL 4.4 and OpenCL 1.1
+Needs OpenGL 4.3
 Wants 64bit, but it's not needed. Yet.
 You'll need up to date drivers. As of now that means Nvidia 331.20.
 
-1Gb VRAM minimum
+1Gb VRAM minimum, 2Gb wanted.
 
 It's a tech demo, don't expect it to work fast or at all.
 
-Having said that, this is/will be a real-time OpenCL/GLSL Sparse Voxel Oct-tree
+Having said that, this is/will be a real-time OpenGL Sparse Voxel Oct-tree
 Raycaster. I test it on my Nvidia GTX680. At the moment there's no reason it
 shouldn't work on AMD GPU's, although I'm fairly deliberately playing fast and
 loose with the OpenGL standard, and AMD's drivers tend to be stricter than
