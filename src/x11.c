@@ -34,6 +34,7 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 #include <GL/glx.h>
 
+#include <dlfcn.h>
 
 
 #include "keyboard.h"
@@ -78,6 +79,42 @@ void shell_browser(char *url)
 	system(buf);
 }
 
+void* nvml = NULL;
+
+struct nvmlDevice_st;
+typedef struct nvmlDevice_st* nvmlDevice_t;
+
+typedef int (*NVI)(void);
+NVI nvmlInit = NULL;
+typedef int (*NVS)(void);
+NVS nvmlShutdown = NULL;
+typedef int (*NVDGC)(int*);
+NVDGC nvmlDeviceGetCount = NULL;
+typedef int (*NVDGHBI)(unsigned int, nvmlDevice_t*);
+NVDGHBI nvmlDeviceGetHandleByIndex = NULL;
+typedef int (*NVDGT)(nvmlDevice_t, int, unsigned int*);
+NVDGT nvmlDeviceGetTemperature = NULL;
+
+int nvml_device_count = 0;
+nvmlDevice_t *nvml_devices;
+
+
+int sys_gputemp(void)
+{
+
+	if(nvml)
+	{
+		unsigned int temp=0;
+		for(int i=0; i < nvml_device_count; i++)
+		{
+			int ret = nvmlDeviceGetTemperature(nvml_devices[i], 0, &temp);
+			if(ret)printf("nvmlDeviceGetTemperature(%d) = %d\n", i, ret);
+			printf("Temperature[%d] is %d\n", i, temp);
+		}
+
+	}
+	return 0;
+}
 
 Display *display;
 Window window;
@@ -256,6 +293,51 @@ static void x11_init(void)
 	Window root = DefaultRootWindow(display);
 	XISelectEvents(display, root, &eventmask, 1);
 //	XSetDeviceMode(display, mouse, Relative);
+#endif
+
+	
+	// Initialise Nvidia NVML if available
+
+	nvml = dlopen("libnvidia-ml.so", RTLD_LAZY);
+
+	if(nvml)
+	{
+		*(void **)(&nvmlInit) = dlsym(nvml, "nvmlInit");
+		if(!nvmlInit)printf("dlsym(\"nvmlInit\") failed\n");
+
+		*(void **)(&nvmlShutdown) = dlsym(nvml, "nvmlShutdown");
+		if(!nvmlShutdown)printf("dlsym(\"nvmlShutdown\") failed\n");
+
+		*(void **)(&nvmlDeviceGetCount) = dlsym(nvml, "nvmlDeviceGetCount");
+		if(!nvmlDeviceGetCount)
+			printf("dlsym(\"nvmlDeviceGetCount\") failed\n");
+
+		*(void **)(&nvmlDeviceGetHandleByIndex) =
+			dlsym(nvml, "nvmlDeviceGetHandleByIndex");
+		if(!nvmlDeviceGetHandleByIndex)
+			printf("dlsym(\"nvmlDeviceGetHandleByIndex\") failed\n");
+
+		*(void **)(&nvmlDeviceGetTemperature) =
+			dlsym(nvml, "nvmlDeviceGetTemperature");
+		if(!nvmlDeviceGetTemperature)
+			printf("dlsym(\"nvmlDeviceGetTemperature\") failed\n");
+
+		int ret = nvmlInit();
+		if(ret)printf("nvmlInit = %d\n", ret);
+
+		ret = nvmlDeviceGetCount(&nvml_device_count);
+		if(ret)printf("nvmlDeviceGetCount = %d\n", ret);
+		
+		nvml_devices = malloc(sizeof(nvmlDevice_t)*nvml_device_count);
+		for(int i=0; i < nvml_device_count; i++)
+		{
+			ret = nvmlDeviceGetHandleByIndex(i, &nvml_devices[i]);
+			if(ret)printf("nvmlDeviceGetHandleByIndex(%d) = %d\n", i, ret);
+		}
+
+	}
+	else printf("no nvml\n");
+
 }
 
 static void print_rawmotion(XIRawEvent *event)
@@ -280,7 +362,6 @@ static void print_rawmotion(XIRawEvent *event)
             raw_valuator++;
         }
     }
-#endif
 }
 
 static void handle_events(void)
@@ -452,6 +533,13 @@ static void handle_events(void)
 
 static void x11_end(void)
 {
+	if(nvml)	// for Nvidia GPU temperature
+	{
+		free(nvml_devices);
+		nvmlShutdown();
+		dlclose(nvml);
+	}
+
 	x11_down();
 	if(glx_context)
 	{
@@ -478,6 +566,7 @@ int main(int argc, char* argv[])
 		handle_events();
 		main_loop();
 		glXSwapBuffers(display, window);
+		sys_gputemp();
 	}
 	
 	main_end();

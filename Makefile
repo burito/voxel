@@ -23,12 +23,12 @@ LDIR = build/lin
 LCC = gcc
 _LOBJS = $(OBJS) x11.o
 LOBJS = $(patsubst %,$(LDIR)/%,$(_LOBJS))
-LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi
+LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
 
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
-default: gui
+default: gui gui.exe
 
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
