@@ -66,44 +66,6 @@ void shell_browser(char *url)
 }
 
 
-HMODULE nvml=NULL;
-
-struct nvmlDevice_st;
-typedef struct nvmlDevice_st* nvmlDevice_t;
-
-typedef int (*NVI)(void);
-NVI nvmlInit = NULL;
-typedef int (*NVS)(void);
-NVS nvmlShutdown = NULL;
-typedef int (*NVDGC)(int*);
-NVDGC nvmlDeviceGetCount = NULL;
-typedef int (*NVDGHBI)(unsigned int, nvmlDevice_t*);
-NVDGHBI nvmlDeviceGetHandleByIndex = NULL;
-typedef int (*NVDGT)(nvmlDevice_t, int, unsigned int*);
-NVDGT nvmlDeviceGetTemperature = NULL;
-
-int nvml_device_count = 0;
-nvmlDevice_t *nvml_devices;
-
-
-int sys_gputemp(void)
-{
-
-	if(nvml)
-	{
-		unsigned int temp=0;
-		for(int i=0; i < nvml_device_count; i++)
-		{
-			int ret = nvmlDeviceGetTemperature(nvml_devices[i], 0, &temp);
-			if(ret)printf("nvmlDeviceGetTemperature(%d) = %d\n", i, ret);
-			printf("Temperature[%d] is %d\n", i, temp);
-		}
-
-	}
-	return 0;
-}
-
-
 HINSTANCE hInst;
 HWND hWnd;
 int CmdShow;
@@ -450,56 +412,10 @@ static void win_init(void)
 	}
 
 	ReleaseDC(hWnd, hDC);
-
-	nvml = LoadLibrary("%ProgramFiles%/NVIDIA Corporation/NVSMI/nvml.dll");
-
-	if(nvml)
-	{
-		nvmlInit= (NVI)GetProcAddress(nvml, "nvmlInit");
-		if(!nvmlInit)printf("GetProcAddress(\"nvmlInit\") failed\n");
-
-		nvmlShutdown = (NVS)GetProcAddress(nvml, "nvmlShutdown");
-		if(!nvmlShutdown)printf("GetProcAddress(\"nvmlShutdown\") failed\n");
-
-		nvmlDeviceGetCount = (NVDGC)GetProcAddress(nvml, "nvmlDeviceGetCount");
-		if(!nvmlDeviceGetCount)
-			printf("GetProcAddress(\"nvmlDeviceGetCount\") failed\n");
-
-		nvmlDeviceGetHandleByIndex = (NVDGHBI)GetProcAddress(nvml, "nvmlDeviceGetHandleByIndex");
-		if(!nvmlDeviceGetHandleByIndex)
-			printf("GetProcAddress(\"nvmlDeviceGetHandleByIndex\") failed\n");
-
-		nvmlDeviceGetTemperature = (NVDGT)GetProcAddress(nvml, "nvmlDeviceGetTemperature");
-		if(!nvmlDeviceGetTemperature)
-			printf("GetProcAddress(\"nvmlDeviceGetTemperature\") failed\n");
-
-		int ret = nvmlInit();
-		if(ret)printf("nvmlInit = %d\n", ret);
-
-		ret = nvmlDeviceGetCount(&nvml_device_count);
-		if(ret)printf("nvmlDeviceGetCount = %d\n", ret);
-		
-		nvml_devices = malloc(sizeof(nvmlDevice_t)*nvml_device_count);
-		for(int i=0; i < nvml_device_count; i++)
-		{
-			ret = nvmlDeviceGetHandleByIndex(i, &nvml_devices[i]);
-			if(ret)printf("nvmlDeviceGetHandleByIndex(%d) = %d\n", i, ret);
-		}
-
-	}
-	else printf("no nvml\n");
-
 }
 
 static void win_end(void)
 {
-	if(nvml)	// for Nvidia GPU temperature
-	{
-		free(nvml_devices);
-		nvmlShutdown();
-		FreeLibrary(nvml);
-	}
-
 	if(fullscreen)ShowCursor(TRUE);
 	wglMakeCurrent(NULL, NULL);
 	wglDeleteContext(hGLRC);

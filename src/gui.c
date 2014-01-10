@@ -40,6 +40,7 @@ freely, subject to the following restrictions:
 #include "gui.h"
 #include "fontstash.h"
 #include "clvoxel.h"
+#include "gpuinfo.h"
 
 struct sth_stash* stash = 0;
 
@@ -1290,6 +1291,7 @@ widget* widget_menu_separator_add(widget *item)
 }
 
 
+long long last_time;
 int gui_init(int argc, char *argv[])
 {
 	stash = sth_create(512,512);
@@ -1334,6 +1336,7 @@ int gui_init(int argc, char *argv[])
 
 	widget_add(menu);
 
+	last_time = sys_time();
 	return 0;
 }
 
@@ -1365,9 +1368,30 @@ void gui_input(void)
 	}
 }
 
+
 void gui_draw(void)
 {
 	widget_draw(widget_root);
+
+	long long delta_time, this_time = sys_time();
+	delta_time = this_time - last_time;
+	last_time = this_time;
+	double DeltaTime = (double)delta_time / (double)sys_ticksecond;
+	double fps = 1.0 / DeltaTime;
+
+	glColor4f(1,1,1,1);
+	sth_begin_draw(stash);
+	char tempstr[50];
+	sprintf(tempstr, "%4.1fHz", fps);
+	sth_draw_text(stash, 3, 30, vid_width-90, -26, tempstr, 0);
+	for(int i=0; i< nvml_device_count; i++)
+	{
+		sprintf(tempstr, "%d°C", nvml_gputemp[i]);
+		sth_draw_text(stash, 3, 30, vid_width-70, -(50+i*50), tempstr, 0);
+		
+	}
+
+	sth_end_draw(stash);
 }
 
 void gui_end(void)

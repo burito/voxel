@@ -30,6 +30,7 @@ freely, subject to the following restrictions:
 #include "mesh.h"
 #include "gui.h"
 #include "clvoxel.h"
+#include "gpuinfo.h"
 
 
 typedef struct LOADING
@@ -67,7 +68,7 @@ int main_init(int argc, char *argv[])
 
 	time_start = sys_time();
 	voxel_init();
-
+	gpuinfo_init();
 	return gui_init(argc, argv);
 }
 
@@ -80,6 +81,7 @@ float4 angle = {0.000000, 0.0000, 0.000000, M_PI*0.5};
 
 void main_loop(void)
 {
+	gpuinfo_tick();
 	pos.w = 0.5 / (float)vid_width;
 
 	float3 req = {0,0,0};
@@ -163,7 +165,7 @@ void main_end(void)
 {
 	voxel_end();
 	gui_end();
-
+	gpuinfo_end();
 }
 
 

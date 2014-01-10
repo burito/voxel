@@ -1,5 +1,5 @@
 CFLAGS = -O2 -std=c99 -Wall -pedantic -Isrc
-PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o
+PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o gpuinfo.o
 LIBRARIES = -lm
 SDIR = src
 
