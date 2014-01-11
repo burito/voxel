@@ -1141,7 +1141,7 @@ void spawn_about(widget *x)
 void spawn_credits(widget *x)
 {
 	widget *item, *w = widget_window_new(100, 100, "CREDITS");
-	item = widget_text_new(20, 80, "3RD PARTY BYTESMITHS");
+	item = widget_text_new(20, 80, "3RD PARTY");
 	item->fontsize = 40.0f;
 	item->fontface = 1;
 	widget_child_add(w, item);
