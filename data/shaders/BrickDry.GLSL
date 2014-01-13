@@ -102,13 +102,23 @@ void brick_mark(in vec3 position, out vec4 box)
 	find_brick(position, box);
 	ivec3 ibpos = ivec3(((position - box.xyz) / box.w)*(B_SIZE-1));
 	float boxw = box.w;
-	if(ibpos.x == 0)
+	if(0 == ibpos.x)
 	{
 		find_brick(position-vec3(boxw,0,0), box);
+		if(0 == ibpos.y)
+		{
+			find_brick(position-vec3(boxw,boxw,0), box);
+			if(0 == ibpos.z)
+				find_brick(position-vec3(boxw,boxw,boxw), box);
+		}
+		else if(0 ==ibpos.z)
+				find_brick(position-vec3(boxw,0,boxw), box);
 	}
 	if(ibpos.y == 0)
 	{
 		find_brick(position-vec3(0,boxw,0), box);
+		if(ibpos.z == 0)
+			find_brick(position-vec3(0,boxw,boxw), box);
 	}
 	if(ibpos.z == 0)
 	{

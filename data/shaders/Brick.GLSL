@@ -119,6 +119,52 @@ void brick_write(in vec3 position, vec4 colour)
 			imageStore(bricks, ipos+ibpos, colour);
 			ibpos.x = 0;
 		}
+		if(ibpos.y == 0)
+		{
+			vec3 tpos = position - vec3(boxw, boxw, 0);
+			brick = find_brick(tpos, box);
+			if(brick > 0)
+			{
+				ipos = brick_origin(brick);
+				ibpos.y = B_SIZE-1;
+				ibpos.x = B_SIZE-1;
+				imageStore(bricks, ipos+ibpos, colour);
+				ibpos.y = 0;
+				ibpos.x = 0;
+			}
+			if(ibpos.z == 0)
+			{
+				vec3 tpos = position - vec3(boxw, boxw, boxw);
+				brick = find_brick(tpos, box);
+				if(brick > 0)
+				{
+					ipos = brick_origin(brick);
+					ibpos.z = B_SIZE-1;
+					ibpos.y = B_SIZE-1;
+					ibpos.x = B_SIZE-1;
+					imageStore(bricks, ipos+ibpos, colour);
+					ibpos.z = 0;
+					ibpos.y = 0;
+					ibpos.x = 0;
+				}
+			}
+
+		}
+		if(ibpos.z == 0)
+		{
+			vec3 tpos = position - vec3(boxw, 0, boxw);
+			brick = find_brick(tpos, box);
+			if(brick > 0)
+			{
+				ipos = brick_origin(brick);
+				ibpos.z = B_SIZE-1;
+				ibpos.x = B_SIZE-1;
+				imageStore(bricks, ipos+ibpos, colour);
+				ibpos.z = 0;
+				ibpos.x = 0;
+			}
+		}
+
 	}
 	if(ibpos.y == 0)
 	{
@@ -130,6 +176,20 @@ void brick_write(in vec3 position, vec4 colour)
 			ibpos.y = B_SIZE-1;
 			imageStore(bricks, ipos+ibpos, colour);
 			ibpos.y = 0;
+		}
+		if(ibpos.z == 0)
+		{
+			vec3 tpos = position - vec3(0, boxw, boxw);
+			brick = find_brick(tpos, box);
+			if(brick > 0)
+			{
+				ipos = brick_origin(brick);
+				ibpos.z = B_SIZE-1;
+				ibpos.y = B_SIZE-1;
+				imageStore(bricks, ipos+ibpos, colour);
+				ibpos.z = 0;
+				ibpos.y = 0;
+			}
 		}
 	}
 	if(ibpos.z == 0)
