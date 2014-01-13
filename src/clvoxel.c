@@ -506,6 +506,7 @@ void print_balloc(void)
 }
 
 int tree_depth = 6;
+int vdepth = 0;
 int total_vram = 0;
 
 
@@ -657,7 +658,7 @@ void voxel_loop(void)
 	if(keys[KEY_B])
 	{
 		keys[KEY_B] = 0;
-		if(tree_depth < 10)tree_depth++;
+		if(tree_depth < 20)tree_depth++;
 		printf("tree depth=%d\n", tree_depth);
 	}
 
@@ -714,14 +715,6 @@ void voxel_loop(void)
 	glUseProgram(0);
 
 
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	float scale = FBUFFER_SIZE;
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, scale, 0, scale, -4000, 4000);
-	glMatrixMode(GL_MODELVIEW);
-	glScalef(scale, scale, scale);
 	
 //		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	//	if(vobj)print_breq(frame);
@@ -744,11 +737,34 @@ void voxel_loop(void)
 
 	if(vobj && populate)
 	{
+		int vwidth = b_size-1;
+		for(int i = 0; i < vdepth; i++)
+			vwidth = vwidth * 2;
+
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		float scale = FBUFFER_SIZE;
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0, vwidth, 0, vwidth, -4000, 4000);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glScalef(vwidth, vwidth, vwidth);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
-		glViewport(0,0,scale, scale);
-		voxel_BrickDry(frame, tree_depth);
+		glViewport(0,0,vwidth, vwidth);
+		voxel_BrickDry(frame, vdepth);
 		// render
-		if(vobj)vobj->draw(vobj);
+		vobj->draw(vobj);
+		glTranslatef(0.5,0.5,0.5);
+		glRotatef(90, 0, 1.0, 0);
+		glTranslatef(-0.5,-0.5,-0.5);
+		vobj->draw(vobj);
+		glTranslatef(0.5,0.5,0.5);
+		glRotatef(90, 0, 0.0, 1.0);
+//		glRotatef(90, 0, 1, 0);
+		glTranslatef(-0.5,-0.5,-0.5);
+		vobj->draw(vobj);
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //	if(vobj)
@@ -756,25 +772,36 @@ void voxel_loop(void)
 //			print_breq(frame);
 //			print_balloc();
 //		}
-		voxel_BrickAlloc(frame);
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		voxel_Brick(tree_depth, frame);
-		vobj->draw(vobj);
-	glTranslatef(0.5,0.5,0.5);
-	glRotatef(90, 1, 0.0, 0);
-	glTranslatef(-0.5,-0.5,-0.5);
-		vobj->draw(vobj);
-	glTranslatef(0.5,0.5,0.5);
-	glRotatef(90, -1, 0.0, 0);
-	glRotatef(90, 0, 1, 0);
-	glTranslatef(-0.5,-0.5,-0.5);
-		vobj->draw(vobj);
 
+		if(!odd_frame)
+		{
+			voxel_NodeAlloc(frame);
+		}
+		else
+		{
+			voxel_BrickAlloc(frame);
+			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			glScalef(vwidth, vwidth, vwidth);
+			voxel_Brick(vdepth, frame);
+			vobj->draw(vobj);
+			glTranslatef(0.5,0.5,0.5);
+			glRotatef(90, 1, 0.0, 0);
+			glTranslatef(-0.5,-0.5,-0.5);
+			vobj->draw(vobj);
+			glTranslatef(0.5,0.5,0.5);
+			glRotatef(90, -1, 0.0, 0);
+			glRotatef(90, 0, 1, 0);
+			glTranslatef(-0.5,-0.5,-0.5);
+			vobj->draw(vobj);
+			vdepth++;
+		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0,0,vid_width, vid_height);
-		if(frame >= (tree_depth)*2) populate = 0;
-		voxel_NodeAlloc(frame);
-	}
+		if(frame >= (tree_depth)*4) populate = 0;
+
+		}
 	// all done
 	glUseProgram(0);
 	glDisable(GL_TEXTURE_3D);
@@ -819,6 +846,7 @@ void voxel_open(void)
 	populate = 1;
 	frame = 0;
 	odd_frame = 0;
+	vdepth = 1;
 	voxel_NodeClear();
 	voxel_NodeLRUReset(frame);
 	voxel_BrickLRUReset(frame);

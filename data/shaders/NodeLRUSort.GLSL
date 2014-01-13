@@ -42,7 +42,7 @@ void main(void)
 
 	int i = NodeLRU.i[off];
 	int node_time = NodeUseTime.i[i];
-	if(time == node_time)
+	if(0 < node_time)
 	{
 		off = atomicCounterIncrement(atomFresh);
 		NodeLRUOut.i[off] = i;

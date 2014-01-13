@@ -284,7 +284,7 @@ void main(void)
 	vec4 colour = vec4(0);
 	int brick_id = find_brick(near, box, psize);
 	int i, ib=0;
-	for(i=0; i<50 && colour.w < 1.0; i++)
+	for(i=0; i<80 && colour.w < 1.0; i++)
 	{
 		vec3 axis;
 		dist = slab_exitside(near, invnorm, box, axis);
@@ -323,7 +323,7 @@ void main(void)
 	}
 	else colour.rgb = vec3(0);
 	// debug information
-//	colour.b = float(i) / 50.0;
+//	colour.b += float(i) / 50.0;
 //	colour.r = float(ib) / 15.0;
 //	colour.a = 1;
 
