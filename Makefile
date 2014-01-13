@@ -54,7 +54,7 @@ gui.exe: $(WOBJS)
 
 
 voxel.zip: gui.exe
-	zip voxel.zip gui.exe README LICENSE data/shaders/* data/gui/*
+	zip voxel.zip gui.exe README LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
 
 
 

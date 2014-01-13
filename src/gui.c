@@ -1384,11 +1384,16 @@ void gui_draw(void)
 	char tempstr[50];
 	sprintf(tempstr, "%4.1fHz", fps);
 	sth_draw_text(stash, 3, 30, vid_width-90, -26, tempstr, 0);
-	for(int i=0; i< nvml_device_count; i++)
+	int i;
+	for(i=0; i< nvml_device_count; i++)
 	{
 		sprintf(tempstr, "%d°C", nvml_gputemp[i]);
 		sth_draw_text(stash, 3, 30, vid_width-70, -(50+i*50), tempstr, 0);
-		
+	}
+	for(int j=0; j< adl_device_count; j++)
+	{
+		sprintf(tempstr, "%d°C", adl_gputemp[j]);
+		sth_draw_text(stash, 3, 30, vid_width-70, -(50+(i+j)*50), tempstr, 0);
 	}
 
 	sth_end_draw(stash);

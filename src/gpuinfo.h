@@ -24,6 +24,9 @@ freely, subject to the following restrictions:
 extern int nvml_device_count;
 extern int *nvml_gputemp;
 
+extern int adl_device_count;
+extern int *adl_gputemp;
+
 void gpuinfo_init(void);
 void gpuinfo_tick(void);
 void gpuinfo_end(void);

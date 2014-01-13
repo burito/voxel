@@ -22,6 +22,8 @@ freely, subject to the following restrictions:
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -30,8 +32,13 @@ freely, subject to the following restrictions:
 #define HMODULE void*
 #endif
 
+//#include "gpu/adl_sdk.h"
+
+
+/*
+	NVML related stuff.
+*/
 HMODULE nvml=NULL;
-HMODULE adl=NULL;
 
 struct nvmlDevice_st;
 typedef struct nvmlDevice_st* nvmlDevice_t;
@@ -52,6 +59,88 @@ int *nvml_gputemp=NULL;
 
 nvmlDevice_t *nvml_devices;
 
+/*
+	ADL specific stuff
+*/
+HMODULE adl=NULL;
+#define ADL_MAX_PATH 256
+
+#define ADL_DL_THERMAL_DOMAIN_GPU        1
+
+typedef struct AdapterInfo
+{
+    int iSize;
+    int iAdapterIndex;
+    char strUDID[ADL_MAX_PATH];	
+    int iBusNumber;
+    int iDeviceNumber;
+    int iFunctionNumber;
+    int iVendorID;
+    char strAdapterName[ADL_MAX_PATH];
+    char strDisplayName[ADL_MAX_PATH];
+	int iPresent;				
+#if defined (_WIN32) || defined (_WIN64)
+    int iExist;
+    char strDriverPath[ADL_MAX_PATH];
+    char strDriverPathExt[ADL_MAX_PATH];
+    char strPNPString[ADL_MAX_PATH];
+    int iOSDisplayIndex;	
+#endif /* (_WIN32) || (_WIN64) */
+#if defined (LINUX)
+    int iXScreenNum;
+    int iDrvIndex;
+    char strXScreenConfigName[ADL_MAX_PATH];
+#endif /* (LINUX) */
+} AdapterInfo, *LPAdapterInfo;
+
+typedef struct ADLTemperature
+{
+  int iSize;	
+  int iTemperature;  
+} ADLTemperature;
+
+typedef struct ADLThermalControllerInfo
+{
+  int iSize;	
+  int iThermalDomain;
+  int iDomainIndex;
+  int iFlags;						
+} ADLThermalControllerInfo;
+
+
+
+typedef void* ( *ADL_MAIN_MALLOC_CALLBACK )( int );
+// Memory allocation function
+static void* ADL_Main_Memory_Alloc ( int iSize )
+{
+    void* lpBuffer = malloc ( iSize );
+    return lpBuffer;
+}
+
+typedef int ( *ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int );
+typedef int ( *ADL_MAIN_CONTROL_DESTROY )();
+typedef int ( *ADL_ADAPTER_NUMBEROFADAPTERS_GET ) ( int* );
+typedef int ( *ADL_ADAPTER_ADAPTERINFO_GET ) ( LPAdapterInfo, int );
+typedef int ( *ADL_OVERDRIVE_CAPS ) (int iAdapterIndex, int *iSupported, int *iEnabled, int *iVersion);
+ADL_MAIN_CONTROL_CREATE					ADL_Main_Control_Create;
+ADL_MAIN_CONTROL_DESTROY				ADL_Main_Control_Destroy;
+ADL_ADAPTER_NUMBEROFADAPTERS_GET		ADL_Adapter_NumberOfAdapters_Get;
+ADL_ADAPTER_ADAPTERINFO_GET				ADL_Adapter_AdapterInfo_Get;
+ADL_OVERDRIVE_CAPS						ADL_Overdrive_Caps;
+
+typedef int ( *ADL_OVERDRIVE5_THERMALDEVICES_ENUM ) (int iAdapterIndex, int iThermalControllerIndex, ADLThermalControllerInfo *lpThermalControllerInfo);
+typedef int ( *ADL_OVERDRIVE5_TEMPERATURE_GET ) (int iAdapterIndex, int iThermalControllerIndex, ADLTemperature *lpTemperature);
+ADL_OVERDRIVE5_TEMPERATURE_GET			ADL_Overdrive5_Temperature_Get;
+ADL_OVERDRIVE5_THERMALDEVICES_ENUM		ADL_Overdrive5_ThermalDevices_Enum;
+
+typedef int ( *ADL_OVERDRIVE6_TEMPERATURE_GET )(int iAdapterIndex, int *lpTemperature);
+ADL_OVERDRIVE6_TEMPERATURE_GET ADL_Overdrive6_Temperature_Get;
+
+int adl_device_count=0;
+int *adl_gputemp=NULL;
+int *adl_devid=NULL;
+int *adl_odver=NULL;
+int *adl_domain_id=NULL;
 
 void gpuinfo_tick(void)
 {
@@ -67,19 +156,45 @@ void gpuinfo_tick(void)
 		}
 
 	}
+
+	if(adl)
+	{
+		int ret;
+		ADLTemperature adlTmp = {sizeof(ADLTemperature), 0};
+		for(int i=0; i < adl_device_count; i++)
+		switch(adl_odver[i]) {
+		case 6:
+			ret = ADL_Overdrive6_Temperature_Get(
+					adl_devid[i], &adl_gputemp[i]);
+			adl_gputemp[i] /= 1000;
+			if(ret)printf("ADL_Overdrive6_Temperature_Get(%d) = %d\n", i, ret);
+			break;
+		case 5:
+			adlTmp.iSize = sizeof(ADLTemperature);
+			adlTmp.iTemperature = 0;
+			ret = ADL_Overdrive5_Temperature_Get(
+					adl_devid[i], adl_domain_id[i], &adlTmp);
+			adl_gputemp[i] = adlTmp.iTemperature / 1000;
+			if(ret)printf("ADL_Overdrive5_Temperature_Get(%d) = %d\n", i, ret);
+			
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 
 #ifdef WIN32
 
-#define EvilMacro(T, N, NS) \
-	N = (T)GetProcAddress(nvml, NS); \
+#define EvilMacro(L, T, N, NS) \
+	N = (T)GetProcAddress(L, NS); \
 	if(!N)printf("GetProcAddress(\"N\") failed\n")
 
 #else
 
-#define EvilMacro(T, N, NS) \
-	*(void **)(&N) = dlsym(nvml, NS); \
+#define EvilMacro(L, T, N, NS) \
+	*(void **)(&N) = dlsym(L, NS); \
 	if(!N)printf("dlsym(\"N\") failed\n")
 
 #endif
@@ -88,6 +203,7 @@ void gpuinfo_init(void)
 {
 #ifdef WIN32
 	nvml = LoadLibrary("%ProgramFiles%/NVIDIA Corporation/NVSMI/nvml.dll");
+//	nvml = LoadLibrary("nvml.dll");
 	adl = LoadLibrary("atiadlxx.dll");
 	if(!adl) adl = LoadLibrary("atiadlxy.dll");	// for 32bit systems
 #else
@@ -97,12 +213,12 @@ void gpuinfo_init(void)
 
 	if(nvml)
 	{
-		EvilMacro(NVI, nvmlInit, "nvmlInit");
-		EvilMacro(NVS, nvmlShutdown, "nvmlShutdown");
-		EvilMacro(NVDGC, nvmlDeviceGetCount, "nvmlDeviceGetCount");
-		EvilMacro(NVDGHBI, nvmlDeviceGetHandleByIndex,
+		EvilMacro(nvml, NVI, nvmlInit, "nvmlInit");
+		EvilMacro(nvml, NVS, nvmlShutdown, "nvmlShutdown");
+		EvilMacro(nvml, NVDGC, nvmlDeviceGetCount, "nvmlDeviceGetCount");
+		EvilMacro(nvml, NVDGHBI, nvmlDeviceGetHandleByIndex,
 			"nvmlDeviceGetHandleByIndex");
-		EvilMacro(NVDGT, nvmlDeviceGetTemperature,
+		EvilMacro(nvml, NVDGT, nvmlDeviceGetTemperature,
 			"nvmlDeviceGetTemperature");
 
 		int ret = nvmlInit();
@@ -115,6 +231,7 @@ void gpuinfo_init(void)
 		nvml_gputemp = malloc(sizeof(int)*nvml_device_count);
 		for(int i=0; i < nvml_device_count; i++)
 		{
+			nvml_gputemp[i]=0;
 			ret = nvmlDeviceGetHandleByIndex(i, &nvml_devices[i]);
 			if(ret)printf("nvmlDeviceGetHandleByIndex(%d) = %d\n", i, ret);
 		}
@@ -123,7 +240,64 @@ void gpuinfo_init(void)
 	else printf("no nvml\n");
 	if(adl)
 	{
+		EvilMacro(adl, ADL_MAIN_CONTROL_CREATE,
+			ADL_Main_Control_Create, "ADL_Main_Control_Create");
+		EvilMacro(adl, ADL_MAIN_CONTROL_DESTROY,
+			ADL_Main_Control_Destroy, "ADL_Main_Control_Destroy");
+		EvilMacro(adl, ADL_ADAPTER_NUMBEROFADAPTERS_GET,
+			ADL_Adapter_NumberOfAdapters_Get,
+			"ADL_Adapter_NumberOfAdapters_Get");
+		EvilMacro(adl, ADL_ADAPTER_ADAPTERINFO_GET,
+			ADL_Adapter_AdapterInfo_Get, "ADL_Adapter_AdapterInfo_Get");
+		EvilMacro(adl, ADL_OVERDRIVE_CAPS,
+			ADL_Overdrive_Caps, "ADL_Overdrive_Caps");
+		EvilMacro(adl, ADL_OVERDRIVE5_TEMPERATURE_GET,
+			ADL_Overdrive5_Temperature_Get, "ADL_Overdrive5_Temperature_Get");
+		EvilMacro(adl, ADL_OVERDRIVE6_TEMPERATURE_GET,
+			ADL_Overdrive6_Temperature_Get, "ADL_Overdrive6_Temperature_Get");
 
+		int ret = ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 1);
+		if(ret)printf("ADL_Main_Control_Create = %d\n", ret);
+		ret = ADL_Adapter_NumberOfAdapters_Get(&adl_device_count);
+		if(ret)printf("ADL_Adapter_NumberOfAdapters_Get = %d\n", ret);
+
+		adl_odver = malloc(sizeof(int)*adl_device_count);
+		adl_domain_id = malloc(sizeof(int)*adl_device_count);
+		adl_devid = malloc(sizeof(int)*adl_device_count);
+		adl_gputemp = malloc(sizeof(int)*adl_device_count);
+
+
+		AdapterInfo *adl_inf;
+		adl_inf = malloc(sizeof(AdapterInfo)*adl_device_count);
+		memset(adl_inf, 0, sizeof(AdapterInfo)*adl_device_count);
+		ADL_Adapter_AdapterInfo_Get(adl_inf,
+			sizeof(AdapterInfo)*adl_device_count);
+		for(int i=0; i < adl_device_count; i++)
+		{
+			adl_gputemp[i] = 0;
+			adl_devid[i] = adl_inf[i].iAdapterIndex;
+			adl_odver[i] = 0;
+			int odsup=0, oden=0;
+			ret = ADL_Overdrive_Caps(adl_devid[i],&odsup,&oden,&adl_odver[i]);
+			if(ret)printf("ADL_Overdrive_Caps(%d) = %d\n", i, ret);
+			if(5 == adl_odver[i])
+			{
+				int j;
+				for(j=0; j<10; j++)
+				{
+					ADLThermalControllerInfo tci = {0};
+					tci.iSize = sizeof(ADLThermalControllerInfo);
+					ADL_Overdrive5_ThermalDevices_Enum(adl_devid[i], j, &tci);
+					if(tci.iThermalDomain == ADL_DL_THERMAL_DOMAIN_GPU)
+					{
+						adl_domain_id[i] = j;
+						break;
+					}
+				}
+
+			}
+		}
+		free(adl_inf);
 
 	}
 	else printf("no adl\n");
@@ -147,6 +321,13 @@ void gpuinfo_end(void)
 
 	if(adl)	// for AMD GPU temperature
 	{
+		free(adl_odver);
+		free(adl_domain_id);
+		free(adl_devid);
+		free(adl_gputemp);
+		int ret = ADL_Main_Control_Destroy();
+		if(ret)printf("ADL_Main_Control_Destroy = %d\n", ret);
+
 		dlclose(adl);
 	}
 }
