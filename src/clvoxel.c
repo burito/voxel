@@ -56,6 +56,8 @@ GLSLSHADER *s_BrickAlloc=NULL;
 GLuint atomics;
 GLuint atomic_read;
 
+int used_nodes, used_bricks;
+
 GLuint t3DBrick;
 GLuint bCamera;
 GLuint bNN;		// Node Pool
@@ -68,6 +70,8 @@ GLuint bNLO;	// Node LRU Output
 GLuint bBUT;	// Brick Use Time
 GLuint bBLU;	// Brick LRU
 GLuint bBLO;	// Brick LRU Output
+GLuint bNL;		// Node Locality
+GLuint bBL;		// Brick Locality
 
 
 #define FBUFFER_SIZE	4196
@@ -164,6 +168,7 @@ void voxel_NodeClear(void)
 	glUseProgram(s_NodeClear->prog);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNB); // nb
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bNL); // nl
 	glDispatchCompute(np_size / 10, 10, 1);
 	glUseProgram(0);
 }
@@ -195,6 +200,7 @@ void voxel_BrickLRUReset(int frame)
 	glUseProgram(s_BrickLRUReset->prog);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bBUT); // but
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bBLU); // bLRU
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bBL); // bL
 	glUniform1i(s_BrickLRUReset->unif[0], frame);
 	glDispatchCompute(b_edge, b_edge, b_edge);
 	glUseProgram(0);
@@ -261,6 +267,7 @@ void voxel_NodeAlloc(int frame)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bNLO); // nLRUo
 
 	}
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bNL); // nl
 	glUniform1i(s_NodeAlloc->unif[0], frame);
 	glDispatchCompute(np_size/10, 10, 8);
 	glUseProgram(0);
@@ -282,6 +289,7 @@ void voxel_BrickAlloc(int frame)
 	{
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bBLO); // bLRUo
 	}
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bBL); // bl
 	glUniform1i(s_BrickAlloc->unif[0], frame);
 	glBindImageTexture(0, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA16F);
@@ -506,6 +514,7 @@ void voxel_init(void)
 	frame = 1;
 	tree_depth = 7;
 	total_vram = available_vram();
+	used_nodes = used_bricks = 0;
 	
 	size_t size = np_size*8*4;
 	int b_edge = 64;
@@ -513,12 +522,12 @@ void voxel_init(void)
 
 	printf("Total vram = %dk\n", total_vram);
 
-//	if(total_vram > 1200000) // 1.2gb of vram?
-//	{
-//		shader_header =
-//		"#define B_SIZE 8\n#define B_EDGE 64\n#define NP_SIZE 100000\n";
-//	}
-//	else
+	if(total_vram > 1200000) // 1.2gb of vram?
+	{
+		shader_header =
+		"#define B_SIZE 8\n#define B_EDGE 64\n#define NP_SIZE 100000\n";
+	}
+	else
 	{
 		shader_header =
 		"#define B_SIZE 8\n#define B_EDGE 48\n#define NP_SIZE 100000\n";
@@ -527,18 +536,20 @@ void voxel_init(void)
 
 	int cs = b_size * b_edge;
 	int3 cube = {cs, cs, cs};
-	t3DBrick = vox_3Dtex(cube); //	1
-	bCamera = vox_glbuf(sizeof(float)*8, NULL);	// camera	2
-	bNN = vox_glbuf(size, NULL);	// NodeNode				3
-	bNB = vox_glbuf(size, NULL);	// NodeBrick			4
-	bNRT = vox_glbuf(size, NULL);	// NodeReqTime			5
-	bBRT = vox_glbuf(size, NULL);	// BrickReqTime			6
-	bNUT = vox_glbuf(np_size*4, NULL);	// NodeUseTime		7
-	bNLU = vox_glbuf(np_size*4, NULL);	// NodeLRU			8
-	bNLO = vox_glbuf(np_size*4, NULL);	// NodeLRUOut		9
-	bBUT = vox_glbuf(B_COUNT*4, NULL);	// BrickUseTime		10
-	bBLU = vox_glbuf(B_COUNT*4, NULL);	// BrickLRU			11
-	bBLO = vox_glbuf(B_COUNT*4, NULL);	// BrickLRUOut		12
+	t3DBrick = vox_3Dtex(cube);
+	bCamera = vox_glbuf(sizeof(float)*8, NULL);	// camera
+	bNN = vox_glbuf(size, NULL);	// NodeNode
+	bNL = vox_glbuf(size, NULL);	// NodeLocality
+	bNB = vox_glbuf(size, NULL);	// NodeBrick
+	bNRT = vox_glbuf(size, NULL);	// NodeReqTime
+	bBRT = vox_glbuf(size, NULL);	// BrickReqTime
+	bNUT = vox_glbuf(np_size*4, NULL);	// NodeUseTime
+	bNLU = vox_glbuf(np_size*4, NULL);	// NodeLRU
+	bNLO = vox_glbuf(np_size*4, NULL);	// NodeLRUOut
+	bBUT = vox_glbuf(B_COUNT*4, NULL);	// BrickUseTime
+	bBLU = vox_glbuf(B_COUNT*4, NULL);	// BrickLRU
+	bBLO = vox_glbuf(B_COUNT*4, NULL);	// BrickLRUOut
+	bBL = vox_glbuf(B_COUNT*4, NULL);	// BrickLocality
 
 
 	s_Voxel = shader_load("data/shaders/Vertex.GLSL","data/shaders/Voxel.GLSL");
@@ -611,6 +622,21 @@ void print_atoms(void)
 	printf("Atomics %d, %d\n", atm[0], atm[1]);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+}
+
+int2 get_atoms(void)
+{
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomic_read);
+
+	glCopyBufferSubData(GL_ATOMIC_COUNTER_BUFFER,
+			GL_SHADER_STORAGE_BUFFER, 0, 0, 8);
+	int2 atm;
+	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 8, (GLuint*)&atm);
+
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+	return atm;
 }
 
 
@@ -705,9 +731,11 @@ void voxel_loop(void)
 	{
 //		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		voxel_NodeLRUSort(frame);
+		used_nodes = get_atoms().x;
 //		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //		print_atoms();
 		voxel_BrickLRUSort(frame);
+		used_bricks = get_atoms().x;
 //		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //		print_atoms();
 		odd_frame = !odd_frame;
@@ -751,6 +779,8 @@ void voxel_loop(void)
 	glUseProgram(0);
 	glDisable(GL_TEXTURE_3D);
 	glBindTexture(GL_TEXTURE_3D, 0);
+
+//	printf("Nodes = %d, Bricks = %d\n", used_nodes, used_bricks);
 
 	if(texdraw)voxel_3dtexdraw();
 }

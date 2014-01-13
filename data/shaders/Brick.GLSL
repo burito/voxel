@@ -80,35 +80,37 @@ int oct_child(in vec3 pos, inout vec4 vol)
 int find_brick(in vec3 pos, inout vec4 box)
 {
 	box = vec4(0,0,0,1);
-	int node, child, target = 0;
-	for(int i=0; i< depth; i++)
+	int child = oct_child(pos, box);
+	int parent = 0;
+	int tmp;
+	int i;
+	for(i=0; i< depth; i++)
 	{
-		node = target;
+		tmp = NodeNode.i[parent][child];
+		if(0==tmp)break;
+		parent = tmp;
 		child = oct_child(pos, box);
-		target = NodeNode.i[node][child];
-		if(0==target)break;
 	}
 	// find our brick id
-//	if(i == depth) return 0;
-	if(BrickReqTime.i[node][child] < time)return 0;
-	return NodeBrick.i[node][child];
+	if(i != depth-1) return 0;
+	if(BrickReqTime.i[parent][child] < time)return 0;
+	return NodeBrick.i[parent][child];
 }
 
-float brick_write(in vec3 position, vec4 colour)
+void brick_write(in vec3 position, vec4 colour)
 {
 	vec4 box;
 	int brick = find_brick(position, box);
-	float delta = box.w;
-	// find our brick relative coords
-	vec3 pos = (position - box.xyz) / box.w;
-	pos *= (B_SIZE-1);
-	ivec3 ibpos = ivec3(pos);
+	if(0 == brick)return;
+	ivec3 ibpos = ivec3(((position - box.xyz) / box.w)*(B_SIZE-1));
+	float boxw = box.w;
+	
 	ivec3 ipos = brick_origin(brick);
 
 	imageStore(bricks, ipos+ibpos, colour);
 	if(ibpos.x == 0)
 	{
-		vec3 tpos = position - vec3(delta,0,0);
+		vec3 tpos = position - vec3(boxw,0,0);
 		brick = find_brick(tpos, box);
 		if(brick > 0)
 		{
@@ -120,7 +122,7 @@ float brick_write(in vec3 position, vec4 colour)
 	}
 	if(ibpos.y == 0)
 	{
-		vec3 tpos = position - vec3(0, delta, 0);
+		vec3 tpos = position - vec3(0, boxw, 0);
 		brick = find_brick(tpos, box);
 		if(brick > 0)
 		{
@@ -132,7 +134,7 @@ float brick_write(in vec3 position, vec4 colour)
 	}
 	if(ibpos.z == 0)
 	{
-		vec3 tpos = position - vec3(0, 0, delta);
+		vec3 tpos = position - vec3(0, 0, boxw);
 		brick = find_brick(tpos, box);
 		if(brick > 0)
 		{
@@ -142,15 +144,14 @@ float brick_write(in vec3 position, vec4 colour)
 			ibpos.z = 0;
 		}
 	}
-	return delta;
 }
 
 void main(void)
 {
 	
 	vec4 colour = vec4(Normal, 1.0);
-	float delta = brick_write(Position, colour) / B_SIZE;
-	vec3 absNorm = abs(Normal);
+	brick_write(Position, colour);
+/*	vec3 absNorm = abs(Normal);
 	if(absNorm.x > absNorm.y)
 	{
 		if(absNorm.x > absNorm.z)
@@ -181,7 +182,7 @@ void main(void)
 		}
 
 	}
-
+*/
 	discard;
 }
 

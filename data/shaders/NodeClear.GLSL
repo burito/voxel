@@ -27,6 +27,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
+layout(shared, binding=2) buffer node_loc { int i[][8]; } NodeLoc;
 
 void main(void)
 {
@@ -37,6 +38,7 @@ void main(void)
 	{
 		NodeNode.i[off][i] = 0;
 		NodeBrick.i[off][i] = 0;
+		NodeLoc.i[off][i] = 0;
 	}
 }
 

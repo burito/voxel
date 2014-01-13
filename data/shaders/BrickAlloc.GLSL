@@ -35,6 +35,7 @@ layout(rgba16f, location=0) uniform writeonly image3D bricks;
 layout(shared, binding=1) buffer node_brick { int i[]; } NodeBrick;
 layout(shared, binding=2) buffer brick_reqtime { int i[]; } BrickReqTime;
 layout(shared, binding=3) buffer brick_lru { int i[]; } BrickLRU;
+layout(shared, binding=4) buffer brick_loc { uint i[]; } BrickLoc;
 uniform int time;
 
 
@@ -62,6 +63,8 @@ void main(void)
 	if(time != req_time)return;
 	int dest = BrickLRU.i[(B_COUNT-1)-atomicCounterIncrement(atomStale)];
 	NodeBrick.i[off] = dest;
+	NodeBrick.i[BrickLoc.i[dest]] = 0;
+	BrickLoc.i[dest] = off;
 
 	ivec3 ipos = brick_origin(dest);
 	for(int x=0; x<B_SIZE; x++)

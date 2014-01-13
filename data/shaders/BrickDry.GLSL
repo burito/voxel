@@ -68,39 +68,53 @@ Mark only bricks
 Then NodeAlloc and BrickAlloc will be called.
 then Brick draw will be called.
 */
-
-void brick_mark(in vec3 position, out vec4 box)
+void find_brick(in vec3 pos, inout vec4 box)
 {
 	box = vec4(0,0,0,1);
-	int child = oct_child(position, box);
+	int child = oct_child(pos, box);
 	int parent = 0;
-	int tmp = 0;
-	// search the OctTree
+	int tmp;
 	int i;
 	for(i=0; i< depth; i++)
 	{
 		tmp = NodeNode.i[parent][child];
-		if(0 == tmp)
+		if(0==tmp)
 		{
 			if( time-1 == NodeReqTime.i[parent][child])
-			{
-//				NodeNode.i[node][child] = 0;
 				if(i < depth-1)
-				NodeReqTime.i[parent][child] = time;
-			}
+					NodeReqTime.i[parent][child] = time;
+			
+		
 			break;
 		}
 		parent = tmp;
-		child = oct_child(position, box);
+		child = oct_child(pos, box);
 	}
 	// find our brick id
-	tmp = NodeBrick.i[parent][child];
-	if(0==tmp)
-	{
-		if(i < depth)
-		if(time-1 == BrickReqTime.i[parent][child])
+	if(i != depth-1) return;
+	if( time-1 == BrickReqTime.i[parent][child])
 			BrickReqTime.i[parent][child] = time;
+}
+
+
+void brick_mark(in vec3 position, out vec4 box)
+{
+	find_brick(position, box);
+	ivec3 ibpos = ivec3(((position - box.xyz) / box.w)*(B_SIZE-1));
+	float boxw = box.w;
+	if(ibpos.x == 0)
+	{
+		find_brick(position-vec3(boxw,0,0), box);
 	}
+	if(ibpos.y == 0)
+	{
+		find_brick(position-vec3(0,boxw,0), box);
+	}
+	if(ibpos.z == 0)
+	{
+		find_brick(position-vec3(0,0,boxw), box);
+	}
+
 }
 
 
@@ -108,23 +122,6 @@ void main(void)
 {
 	vec4 box;
 	brick_mark(Position, box);
-
-
-
-	ivec3 ibpos = ivec3(((Position - box.xyz) / box.w)*(B_SIZE-1));
-	float boxw = box.w;
-	if(ibpos.x == 0)
-	{
-		brick_mark(Position-vec3(boxw,0,0), box);
-	}
-	if(ibpos.y == 0)
-	{
-		brick_mark(Position-vec3(0,boxw,0), box);
-	}
-	if(ibpos.z == 0)
-	{
-		brick_mark(Position-vec3(0,0,boxw), box);
-	}
 
 	discard;
 }

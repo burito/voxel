@@ -27,6 +27,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(shared, binding=0) buffer brick_usetime { int i[]; } BrickUseTime;
 layout(shared, binding=1) buffer brick_lru { int i[]; } BrickLRU;
+layout(shared, binding=2) buffer brick_loc { int i[]; } BrickLoc;
 uniform int time;
 
 void main(void)
@@ -37,5 +38,6 @@ void main(void)
 
 	BrickUseTime.i[off] = time;
 	BrickLRU.i[off] = int(off);
+	BrickLoc.i[off] = 0;
 }
 
