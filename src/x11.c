@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 
 
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <X11/extensions/XInput2.h>
 
 #include <sys/time.h>
@@ -131,7 +132,7 @@ static void x11_down(void)
 
 static void x11_window(void)
 {
-	if(fullscreen)
+/*	if(fullscreen)
 	{
 		XWindowAttributes attr;
 		Window root = DefaultRootWindow(display);
@@ -162,7 +163,7 @@ static void x11_window(void)
 
 	}
 	else
-	{
+*/	{
 		xwin_attr.override_redirect = False;
 		window = XCreateWindow(display, RootWindow(display, xvis->screen),
 				oldx, oldy, vid_width, vid_height, 0, xvis->depth, InputOutput,
@@ -177,6 +178,18 @@ static void x11_window(void)
 				NULL, 0, NULL);
 		XMapRaised(display, window);
 	}
+
+	if(fullscreen)
+	{
+		Atom atoms[2] = {
+			XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False),
+			None };
+		XChangeProperty(display, window,
+			XInternAtom(display, "_NET_WM_STATE", False), XA_ATOM, 32,
+			PropModeReplace, (unsigned char*)atoms, 1);
+	
+	}
+
 
 	glXMakeCurrent(display, window, glx_context);
 	glViewport(0, 0, vid_width, vid_height);
