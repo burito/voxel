@@ -25,7 +25,10 @@ freely, subject to the following restrictions:
 
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
-layout(rgba16f, location=0) uniform image3D bricks;
+uniform sampler2D tex;
+
+layout(rgba16f, location=4) uniform image3D bricks ;
+layout(rgba8, location=5) uniform image3D brick_col;
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
 layout(shared, binding=2) buffer brick_reqtime { int i[][8]; } BrickReqTime;
@@ -97,7 +100,7 @@ int find_brick(in vec3 pos, inout vec4 box)
 	return NodeBrick.i[parent][child];
 }
 
-void brick_write(in vec3 position, vec4 colour)
+void brick_write(in vec3 position, vec4 colour, vec4 normal)
 {
 	vec4 box;
 	int brick = find_brick(position, box);
@@ -107,7 +110,8 @@ void brick_write(in vec3 position, vec4 colour)
 	
 	ivec3 ipos = brick_origin(brick);
 
-	imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 	if(ibpos.x == 0)
 	{
 		vec3 tpos = position - vec3(boxw,0,0);
@@ -116,7 +120,8 @@ void brick_write(in vec3 position, vec4 colour)
 		{
 			ipos = brick_origin(brick);
 			ibpos.x = B_SIZE-1;
-			imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 			ibpos.x = 0;
 		}
 		if(ibpos.y == 0)
@@ -128,7 +133,8 @@ void brick_write(in vec3 position, vec4 colour)
 				ipos = brick_origin(brick);
 				ibpos.y = B_SIZE-1;
 				ibpos.x = B_SIZE-1;
-				imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 				ibpos.y = 0;
 				ibpos.x = 0;
 			}
@@ -142,7 +148,8 @@ void brick_write(in vec3 position, vec4 colour)
 					ibpos.z = B_SIZE-1;
 					ibpos.y = B_SIZE-1;
 					ibpos.x = B_SIZE-1;
-					imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 					ibpos.z = 0;
 					ibpos.y = 0;
 					ibpos.x = 0;
@@ -159,7 +166,8 @@ void brick_write(in vec3 position, vec4 colour)
 				ipos = brick_origin(brick);
 				ibpos.z = B_SIZE-1;
 				ibpos.x = B_SIZE-1;
-				imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 				ibpos.z = 0;
 				ibpos.x = 0;
 			}
@@ -174,7 +182,8 @@ void brick_write(in vec3 position, vec4 colour)
 		{
 			ipos = brick_origin(brick);
 			ibpos.y = B_SIZE-1;
-			imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 			ibpos.y = 0;
 		}
 		if(ibpos.z == 0)
@@ -186,7 +195,8 @@ void brick_write(in vec3 position, vec4 colour)
 				ipos = brick_origin(brick);
 				ibpos.z = B_SIZE-1;
 				ibpos.y = B_SIZE-1;
-				imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 				ibpos.z = 0;
 				ibpos.y = 0;
 			}
@@ -200,7 +210,8 @@ void brick_write(in vec3 position, vec4 colour)
 		{
 			ipos = brick_origin(brick);
 			ibpos.z = B_SIZE-1;
-			imageStore(bricks, ipos+ibpos, colour);
+	imageStore(bricks, ipos+ibpos, normal);
+	imageStore(brick_col, ipos+ibpos, colour);
 			ibpos.z = 0;
 		}
 	}
@@ -209,8 +220,9 @@ void brick_write(in vec3 position, vec4 colour)
 void main(void)
 {
 	
-	vec4 colour = vec4(Normal, 1.0);
-	brick_write(Position, colour);
+	vec4 normal = vec4(Normal, 1.0);
+	vec4 colour = texture(tex, TexCoord);
+	brick_write(Position, colour, normal);
 /*	vec3 absNorm = abs(Normal);
 	if(absNorm.x > absNorm.y)
 	{

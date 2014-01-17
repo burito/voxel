@@ -30,6 +30,7 @@ precision highp int;
 
 
 uniform sampler3D bricks;
+uniform sampler3D brick_col;
 layout(shared, binding=0) buffer camera { vec4 f[]; } cam;
 layout(shared, binding=1) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=2) buffer node_brick { int i[][8]; } NodeBrick;
@@ -197,7 +198,8 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 	return tmp;
 }
 
-void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour, inout float remainder)
+void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour,
+inout vec4 normal, inout float remainder)
 {
 //	vec3 delta = far - near;
 	float iSize = 1.0 / float(B_SIZE);
@@ -207,7 +209,9 @@ void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour, in
 	far = far * (iSize * (B_SIZE-1)) + vec3(hs);
 	float len = length(far - near);
 	vec3 brick_pos = brick_origin(brick_id);
-	vec4 result = colour;
+	vec4 retnorm = normal;
+	vec4 retcol = colour;
+	
 
 	if(len < 0.1)return;
 
@@ -217,15 +221,19 @@ void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour, in
 	for(pos=steps*remainder; pos < 1.0; pos += steps)
 	{	
 		vec3 sample_loc = mix(near, far, pos)*iCount;
-		vec4 voxel = texture(bricks, sample_loc+brick_pos);
-		result.xyz += ((1.0-result.w)*(1.0-result.w) * voxel.xyz)/(1.0 - result.xyz * voxel.xyz);
-		result.w = result.w + (1.0-result.w) * voxel.w;
+		vec4 voxeln = texture(bricks, sample_loc+brick_pos);
+		vec4 voxelc = texture(brick_col, sample_loc+brick_pos);
+		retnorm.xyz += ((1.0-retnorm.w)*(1.0-retnorm.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
+		retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
+		retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
+		retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
 //		result.xyz = result.xyz + (1.0-result.w) * voxel.xyz;
 //		result.w = result.w + (1.0-result.w) * voxel.w;
-		if(result.w > 1.0)break;
+		if(retnorm.w > 1.0)break;
 	}
 	remainder = (pos - 1.0) /steps;
-	colour = result;
+	normal = retnorm;
+	colour = retcol;
 	// TODO: interpolate between different resolutions
 }
 
@@ -282,6 +290,7 @@ void main(void)
 
 	float cy=0;
 	vec4 colour = vec4(0);
+	vec4 normal = vec4(0);
 	int brick_id = find_brick(near, box, psize);
 	int i, ib=0;
 	for(i=0; i<80 && colour.w < 1.0; i++)
@@ -294,7 +303,7 @@ void main(void)
 		{
 			vec3 brick_near = (near - box.xyz) / box.w;
 			vec3 brick_far = (far - box.xyz) / box.w;
-			brick_ray(brick_id, brick_near, brick_far, colour, rem);
+			brick_ray(brick_id, brick_near, brick_far, colour, normal, rem);
 			ib++;
 		}
 		else rem = 0;
@@ -309,13 +318,15 @@ void main(void)
 	}
 	if(colour.w > 0.01)
 	{
-		vec3 nc = normalize(colour.xyz);
-		vec3 lamb = vec3(0.4);
+		vec3 nc = normalize(normal.xyz);
+		float ratio = 1.0 / length(normal.zyx);
+		colour = colour *ratio;
+		vec3 lamb = vec3(0.7);
 		vec3 lpwr = vec3(0.3);
 		vec3 ldir = vec3(0,-1,0);
 		// diffuse lighting
 		float ill  = dot(ldir, nc);
-		colour.rgb = vec3(lamb+ ill * lpwr);
+		colour.rgb *= vec3(lamb+ ill * lpwr);
 		// specular lighting
 		vec3 h = normalize( ldir + n );
 		ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
@@ -327,7 +338,7 @@ void main(void)
 //	colour.r = float(ib) / 15.0;
 //	colour.a = 1;
 
-	Colour = colour;
+	Colour = colour; //abs(normal);
 	return;
 }
 

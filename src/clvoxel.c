@@ -59,6 +59,7 @@ GLuint atomic_read;
 int used_nodes, used_bricks;
 
 GLuint t3DBrick;
+GLuint t3DBrickColour;
 GLuint bCamera;
 GLuint bNN;		// Node Pool
 GLuint bNB;		// Node Brick
@@ -91,7 +92,7 @@ void voxel_rebuildshader(widget* foo)
 	voxel_rebuildshader_flag = 1;
 }
 
-GLuint vox_3Dtex(int3 size)
+GLuint vox_3Dtex(int3 size, int format, int type)
 {
 	GLuint id;
 	glGenTextures(1, &id);
@@ -102,8 +103,8 @@ GLuint vox_3Dtex(int3 size)
 	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, size.x, size.y, size.z, 0,
-			GL_RGBA, GL_FLOAT, NULL);
+	glTexImage3D(GL_TEXTURE_3D, 0, format, size.x, size.y, size.z, 0,
+			GL_RGBA, type, NULL);
 //	printf("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 	return id;
@@ -291,8 +292,18 @@ void voxel_BrickAlloc(int frame)
 	}
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bBL); // bl
 	glUniform1i(s_BrickAlloc->unif[0], frame);
-	glBindImageTexture(0, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
+	
+	glActiveTexture(GL_TEXTURE0 + 4);
+	glBindTexture(GL_TEXTURE_3D, t3DBrick);
+	glBindImageTexture(4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA16F);
+	glUniform1i(s_BrickAlloc->unif[1], 4);
+
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
+	glBindImageTexture(5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
+	GL_WRITE_ONLY, GL_RGBA8);
+	glUniform1i(s_BrickAlloc->unif[2], 5);
 
 	glDispatchCompute(np_size/10, 10, 8);
 	glUseProgram(0);
@@ -307,10 +318,17 @@ void voxel_Brick(int depth, int pass)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bBRT); // nb
 	glUniform1i(s_Brick->unif[0], depth);
 	glUniform1i(s_Brick->unif[1], frame);
-	glEnable(GL_TEXTURE_3D);
+	glActiveTexture(GL_TEXTURE0 + 4);
 	glBindTexture(GL_TEXTURE_3D, t3DBrick);
-	glBindImageTexture(0, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
+	glBindImageTexture(4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA16F);
+	glUniform1i(s_Brick->unif[2], 4);
+
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
+	glBindImageTexture(5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
+	GL_WRITE_ONLY, GL_RGBA8);
+	glUniform1i(s_Brick->unif[3], 5);
 
 }
 
@@ -350,13 +368,19 @@ void voxel_Voxel(int frame)
 	glBindBufferBase(ssb, 5, bBRT); // brt
 	glBindBufferBase(ssb, 6, bBUT); // but
 
-
 	glUniform1i(s_Voxel->unif[0], frame);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_3D, t3DBrick);
 
-	glBindImageTexture(0, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
+	glActiveTexture(GL_TEXTURE0 + 4);
+	glBindTexture(GL_TEXTURE_3D, t3DBrick);
+	glBindImageTexture(GL_TEXTURE4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_READ_ONLY, GL_RGBA16F);
+	glUniform1i(s_Voxel->unif[1], 4);
+
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
+	glBindImageTexture(GL_TEXTURE5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
+	GL_READ_ONLY, GL_RGBA8);
+	glUniform1i(s_Voxel->unif[2], 5);
 
 }
 
@@ -505,7 +529,7 @@ void print_balloc(void)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-int tree_depth = 6;
+int tree_depth = 5;
 int vdepth = 0;
 int total_vram = 0;
 
@@ -513,7 +537,6 @@ int total_vram = 0;
 void voxel_init(void)
 {
 	frame = 1;
-	tree_depth = 7;
 	total_vram = available_vram();
 	used_nodes = used_bricks = 0;
 	
@@ -537,7 +560,8 @@ void voxel_init(void)
 
 	int cs = b_size * b_edge;
 	int3 cube = {cs, cs, cs};
-	t3DBrick = vox_3Dtex(cube);
+	t3DBrick = vox_3Dtex(cube, GL_RGBA16F, GL_FLOAT);
+	t3DBrickColour = vox_3Dtex(cube, GL_RGBA8, GL_BYTE);
 	bCamera = vox_glbuf(sizeof(float)*8, NULL);	// camera
 	bNN = vox_glbuf(size, NULL);	// NodeNode
 	bNL = vox_glbuf(size, NULL);	// NodeLocality
@@ -568,8 +592,12 @@ void voxel_init(void)
 
 	
 	shader_uniform(s_Voxel, "time");
+	shader_uniform(s_Voxel, "bricks");
+	shader_uniform(s_Voxel, "brick_col");
 	shader_uniform(s_Brick, "depth");
 	shader_uniform(s_Brick, "time");
+	shader_uniform(s_Brick, "bricks");
+	shader_uniform(s_Brick, "brick_col");
 	shader_uniform(s_BrickDry, "time");
 	shader_uniform(s_BrickDry, "depth");
 	shader_uniform(s_NodeLRUReset, "time");
@@ -578,6 +606,8 @@ void voxel_init(void)
 	shader_uniform(s_BrickLRUSort, "time");
 	shader_uniform(s_NodeAlloc, "time");
 	shader_uniform(s_BrickAlloc, "time");
+	shader_uniform(s_BrickAlloc, "bricks");
+	shader_uniform(s_BrickAlloc, "brick_col");
 
 	odd_frame = 0;
 	voxel_NodeClear();
@@ -805,8 +835,10 @@ void voxel_loop(void)
 	// all done
 	glUseProgram(0);
 	glDisable(GL_TEXTURE_3D);
-	glBindTexture(GL_TEXTURE_3D, 0);
+//	glActiveTexture(GL_TEXTURE4);
+//	glBindTexture(GL_TEXTURE_3D, 0);
 
+	glActiveTexture(GL_TEXTURE0);
 //	printf("Nodes = %d, Bricks = %d\n", used_nodes, used_bricks);
 
 	if(texdraw)voxel_3dtexdraw();

@@ -75,8 +75,8 @@ int main_init(int argc, char *argv[])
 int p_swim = 0;
 
 // last digit of angle is x-fov, in radians
-float4 pos = {0.274290, 0.518000, -0.023637, 0.0};
-float4 angle = {0.000000, 0.0000, 0.000000, M_PI*0.5};
+float4 pos = {0.619069, 0.644001, 1.457747, 0.0};
+float4 angle = {-0.126000, -3.261001, 0.000000, M_PI*0.5};
 
 
 void main_loop(void)
