@@ -223,13 +223,13 @@ inout vec4 normal, inout float remainder)
 		vec3 sample_loc = mix(near, far, pos)*iCount;
 		vec4 voxeln = texture(bricks, sample_loc+brick_pos);
 		vec4 voxelc = texture(brick_col, sample_loc+brick_pos);
-		retnorm.xyz += ((1.0-retnorm.w)*(1.0-retnorm.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
+		retnorm.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
 		retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
 		retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
 		retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
 //		result.xyz = result.xyz + (1.0-result.w) * voxel.xyz;
 //		result.w = result.w + (1.0-result.w) * voxel.w;
-		if(retnorm.w > 1.0)break;
+		if(retcol.w > 1.0)break;
 	}
 	remainder = (pos - 1.0) /steps;
 	normal = retnorm;
@@ -319,8 +319,8 @@ void main(void)
 	if(colour.w > 0.01)
 	{
 		vec3 nc = normalize(normal.xyz);
-		float ratio = 1.0 / length(normal.zyx);
-		colour = colour *ratio;
+//		float ratio = 1.0 / length(normal.zyx);
+//		colour = colour *ratio;
 		vec3 lamb = vec3(0.7);
 		vec3 lpwr = vec3(0.3);
 		vec3 ldir = vec3(0,-1,0);

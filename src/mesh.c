@@ -41,35 +41,31 @@ void mtl_begin(WF_MTL *m)
 	GLfloat amb[] = {m->Ka.x, m->Ka.y, m->Ka.z, 1.0f};
 	GLfloat diff[] = {m->Kd.x, m->Kd.y, m->Kd.z, 1.0f};
 	GLfloat emit[] = {m->Ke.x, m->Ke.y, m->Ke.z, 1.0f};
-	glMateriali(GL_FRONT, GL_SHININESS, m->Ns);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, spec);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, amb);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diff);
-	glMaterialfv(GL_FRONT, GL_EMISSION, emit);
-	glColor4f(m->colour.x, m->colour.y, m->colour.z, m->colour.w);
-	if(m->map_Ka)
-	{
-		glActiveTexture(GL_TEXTURE0);
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, m->map_Ka->id);
-	}
+//	glMateriali(GL_FRONT, GL_SHININESS, m->Ns);
+//	glMaterialfv(GL_FRONT, GL_SPECULAR, spec);
+//	glMaterialfv(GL_FRONT, GL_AMBIENT, amb);
+//	glMaterialfv(GL_FRONT, GL_DIFFUSE, diff);
+//	glMaterialfv(GL_FRONT, GL_EMISSION, emit);
+	glColor4fv(diff);
+//	glColor4f(m->colour.x, m->colour.y, m->colour.z, m->colour.w);
+	
+	glActiveTexture(GL_TEXTURE0);
 	if(m->map_Kd)
-	{
-		glActiveTexture(GL_TEXTURE1);
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, m->map_Kd->id);
-	}
+	{	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, m->map_Kd->id); }
+	else
+	{	glDisable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, 0); }
+
 	if(m->map_d)
 	{
-		glActiveTexture(GL_TEXTURE2);
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, m->map_d->id);
+//		glActiveTexture(GL_TEXTURE2);
+//		glEnable(GL_TEXTURE_2D);
+//		glBindTexture(GL_TEXTURE_2D, m->map_d->id);
 	}
 	if(m->map_bump)
 	{
-		glActiveTexture(GL_TEXTURE3);
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, m->map_bump->id);
+//		glActiveTexture(GL_TEXTURE3);
+//		glEnable(GL_TEXTURE_2D);
+//		glBindTexture(GL_TEXTURE_2D, m->map_bump->id);
 
 	}
 	glActiveTexture(GL_TEXTURE0);
@@ -160,12 +156,12 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 			break;
 		case 'm':
 			switch(buf[i+5]) {
-			case 'a': targeti = &m->map_Ka; break;		// ambient
+			case 'a': targeti = NULL; break; //targeti = &m->map_Ka; break;		// ambient
 			case 'd': targeti = &m->map_Kd; break;		// diffuse
 			case 'u': targeti = &m->map_bump; break;	// bump
-			default:
-			case ' ': targeti = &m->map_d;  break;		// alpha
+			default:  targeti = NULL; break;
 			}
+			if(!targeti)break;
 			while(!whitespace(buf[i]))i++;i++;
 			path = repath(hostpath, buf+i);
 			*targeti = img_load(path);
@@ -628,6 +624,7 @@ void wf_drawelements(WF_OBJ *w)
 	intptr_t i=0;
 	while(m)
 	{
+		mtl_end();
 		if(!m->nf)continue;
 		mtl_begin(m);
 		

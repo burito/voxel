@@ -40,6 +40,7 @@ uniform int time;
 in vec3 Position;
 in vec3 Normal;
 in vec2 TexCoord;
+in vec4 vColour;
 out vec4 Colour;
 
 ivec3 brick_origin(in int brick_id)
@@ -221,7 +222,16 @@ void main(void)
 {
 	
 	vec4 normal = vec4(Normal, 1.0);
-	vec4 colour = texture(tex, TexCoord);
+	vec4 colour;
+	ivec2 s = textureSize(tex,0);
+	if(s.x > 10)
+	{
+		colour = texture(tex, TexCoord) * vColour;
+	}
+	else
+	{
+		colour = vColour;
+	}
 	brick_write(Position, colour, normal);
 /*	vec3 absNorm = abs(Normal);
 	if(absNorm.x > absNorm.y)
@@ -229,12 +239,12 @@ void main(void)
 		if(absNorm.x > absNorm.z)
 		{
 			delta *= sign(Normal.x);
-			brick_write(Position+vec3(delta,0,0), colour);
+			brick_write(Position+vec3(delta,0,0), colour, normal);
 		}
 		else
 		{
 			delta *= sign(Normal.z);
-			brick_write(Position+vec3(0,0,delta), colour);
+			brick_write(Position+vec3(0,0,delta), colour, normal);
 		}
 
 	}
@@ -243,14 +253,14 @@ void main(void)
 		if(absNorm.y > absNorm.z)
 		{
 			delta *= sign(Normal.y);
-			brick_write(Position+vec3(0,delta,0), colour);
+			brick_write(Position+vec3(0,delta,0), colour, normal);
 
 
 		}
 		else
 		{
 			delta *= sign(Normal.z);
-			brick_write(Position+vec3(0,0,delta), colour);
+			brick_write(Position+vec3(0,0,delta), colour, normal);
 		}
 
 	}

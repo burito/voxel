@@ -24,6 +24,7 @@ freely, subject to the following restrictions:
 varying out vec3 Position;
 varying out vec3 Normal;
 varying out vec2 TexCoord;
+varying out vec4 vColour;
 
 void main(void)
 {
@@ -31,5 +32,6 @@ void main(void)
 	TexCoord = gl_MultiTexCoord0.xy;
 	Normal = gl_Normal;
 	Position = gl_Vertex.xyz;
+	vColour = gl_Color;
 }
 
