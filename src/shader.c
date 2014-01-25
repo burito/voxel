@@ -270,6 +270,164 @@ int available_vram(void)
 	return 0;
 }
 
+GLint glBaseFormat(GLint SizedInternalFormat)
+{ // taken from https://www.opengl.org/sdk/docs/man4/xhtml/glTexImage3D.xml 
+	switch(SizedInternalFormat) {
+
+	case GL_R8:
+	case GL_R8_SNORM:
+	case GL_R16:
+	case GL_R16_SNORM:
+	case GL_R16F:
+	case GL_R32F:
+	case GL_R8I:
+	case GL_R8UI:
+	case GL_R16I:
+	case GL_R16UI:
+	case GL_R32I:
+	case GL_R32UI:
+		return GL_RED;
+
+	case GL_RG8:
+	case GL_RG8_SNORM:
+	case GL_RG16:
+	case GL_RG16_SNORM:
+	case GL_RG16F:
+	case GL_RG32F:
+	case GL_RG8I:
+	case GL_RG8UI:
+	case GL_RG16I:
+	case GL_RG16UI:
+	case GL_RG32I:
+	case GL_RG32UI:
+		return GL_RG;
+
+	case GL_R3_G3_B2:
+	case GL_RGB4:
+	case GL_RGB5:
+	case GL_RGB8:
+	case GL_RGB8_SNORM:
+	case GL_RGB10:
+	case GL_RGB12:
+	case GL_RGB16_SNORM:
+	case GL_SRGB8:
+	case GL_RGB16F:
+	case GL_RGB32F:
+	case GL_RGB8I:
+	case GL_RGB8UI:
+	case GL_RGB16I:
+	case GL_RGB16UI:
+	case GL_RGB32I:
+	case GL_RGB32UI:
+		return GL_RGB;
+
+	case GL_RGBA2:
+	case GL_RGBA4:
+	case GL_RGB5_A1:
+	case GL_RGBA8:
+	case GL_RGBA8_SNORM:
+	case GL_RGB10_A2:
+	case GL_RGB10_A2UI:
+	case GL_RGBA12:
+	case GL_RGBA16:
+	case GL_SRGB8_ALPHA8:
+	case GL_RGBA16F:
+	case GL_RGBA32F:
+	case GL_RGBA8I:
+	case GL_RGBA8UI:
+	case GL_RGBA16I:
+	case GL_RGBA16UI:
+	case GL_RGBA32I:
+	case GL_RGBA32UI:
+		return GL_RGBA;
+
+	default:
+		return 0;
+	}
+}
+
+GLint glBaseType(GLint SizedInternalFormat)
+{ // taken from https://www.opengl.org/sdk/docs/man4/xhtml/glTexImage3D.xml 
+	switch(SizedInternalFormat) {
+
+	case GL_R16F:
+	case GL_R32F:
+	case GL_RG16F:
+	case GL_RG32F:
+	case GL_RGB16F:
+	case GL_RGB32F:
+	case GL_RGBA16F:
+	case GL_RGBA32F:
+		return GL_FLOAT;
+
+	case GL_R8:
+	case GL_R8_SNORM:
+	case GL_R8I:
+	case GL_RG8:
+	case GL_RG8_SNORM:
+	case GL_RG8I:
+	case GL_R3_G3_B2:
+	case GL_RGB4:
+	case GL_RGB5:
+	case GL_RGB8:
+	case GL_RGB8_SNORM:
+	case GL_RGBA8:
+	case GL_SRGB8:
+	case GL_RGB8I:
+	case GL_SRGB8_ALPHA8:
+	case GL_RGBA8_SNORM:
+	case GL_RGBA8I:
+		return GL_BYTE;
+
+	case GL_R8UI:
+	case GL_RG8UI:
+	case GL_RGB8UI:
+	case GL_RGBA8UI:
+		return GL_UNSIGNED_BYTE;
+
+	case GL_R16:
+	case GL_R16_SNORM:
+	case GL_RG16:
+	case GL_RG16_SNORM:
+	case GL_R16I:
+	case GL_RG16I:
+	case GL_RGB16I:
+	case GL_RGB16_SNORM:
+	case GL_RGBA16:
+	case GL_RGBA16I:
+		return GL_SHORT;
+
+	case GL_R16UI:
+	case GL_RG16UI:
+	case GL_RGB16UI:
+	case GL_RGBA16UI:
+		return GL_UNSIGNED_SHORT;
+
+	case GL_R32I:
+	case GL_RG32I:
+	case GL_RGB32I:
+	case GL_RGBA32I:
+		return GL_INT;
+
+	case GL_R32UI:
+	case GL_RG32UI:
+	case GL_RGB32UI:
+	case GL_RGBA32UI:
+		return GL_UNSIGNED_INT;
+
+	case GL_RGB10:
+	case GL_RGB12:
+	case GL_RGBA2:
+	case GL_RGBA4:
+	case GL_RGB5_A1:
+	case GL_RGB10_A2:
+	case GL_RGB10_A2UI:
+	case GL_RGBA12:
+	default:
+		return 0;
+	}
+}
+
 
 
 
