@@ -27,7 +27,7 @@ freely, subject to the following restrictions:
 
 uniform sampler2D tex;
 
-layout(rgba16f, location=4) uniform image3D bricks ;
+layout(rgba8, location=4) uniform image3D bricks ;
 layout(rgba8, location=5) uniform image3D brick_col;
 layout(shared, binding=0) buffer node_node { int i[][8]; } NodeNode;
 layout(shared, binding=1) buffer node_brick { int i[][8]; } NodeBrick;
@@ -35,6 +35,7 @@ layout(shared, binding=2) buffer brick_reqtime { int i[][8]; } BrickReqTime;
 
 uniform int depth;
 uniform int time;
+uniform int pass;
 
 //in bool gl_FrontFacing;
 in vec3 Position;
@@ -106,116 +107,42 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 	vec4 box;
 	int brick = find_brick(position, box);
 	if(0 == brick)return;
-	ivec3 ibpos = ivec3(((position - box.xyz) / box.w)*(B_SIZE-1));
+	ivec3 ibpos = ivec3(((position - box.xyz) / box.w)*float(B_SIZE-1));
 	float boxw = box.w;
+	ivec3 orig_ibpos = ibpos;
+	vec3 posoff;
 	
-	ivec3 ipos = brick_origin(brick);
 
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-	if(ibpos.x == 0)
+	for(int count=0; count<8; count++)
 	{
-		vec3 tpos = position - vec3(boxw,0,0);
-		brick = find_brick(tpos, box);
-		if(brick > 0)
+		posoff = vec3(0);
+		ibpos = orig_ibpos;
+		if(bool(count & 1))
 		{
-			ipos = brick_origin(brick);
+			if(ibpos.x != 0)continue;
 			ibpos.x = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-			ibpos.x = 0;
+			posoff.x = boxw;
 		}
-		if(ibpos.y == 0)
+		if(bool(count & 2))
 		{
-			vec3 tpos = position - vec3(boxw, boxw, 0);
-			brick = find_brick(tpos, box);
-			if(brick > 0)
-			{
-				ipos = brick_origin(brick);
-				ibpos.y = B_SIZE-1;
-				ibpos.x = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-				ibpos.y = 0;
-				ibpos.x = 0;
-			}
-			if(ibpos.z == 0)
-			{
-				vec3 tpos = position - vec3(boxw, boxw, boxw);
-				brick = find_brick(tpos, box);
-				if(brick > 0)
-				{
-					ipos = brick_origin(brick);
-					ibpos.z = B_SIZE-1;
-					ibpos.y = B_SIZE-1;
-					ibpos.x = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-					ibpos.z = 0;
-					ibpos.y = 0;
-					ibpos.x = 0;
-				}
-			}
-
-		}
-		if(ibpos.z == 0)
-		{
-			vec3 tpos = position - vec3(boxw, 0, boxw);
-			brick = find_brick(tpos, box);
-			if(brick > 0)
-			{
-				ipos = brick_origin(brick);
-				ibpos.z = B_SIZE-1;
-				ibpos.x = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-				ibpos.z = 0;
-				ibpos.x = 0;
-			}
-		}
-
-	}
-	if(ibpos.y == 0)
-	{
-		vec3 tpos = position - vec3(0, boxw, 0);
-		brick = find_brick(tpos, box);
-		if(brick > 0)
-		{
-			ipos = brick_origin(brick);
+			if(ibpos.y != 0)continue;
 			ibpos.y = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-			ibpos.y = 0;
+			posoff.y = boxw;
 		}
-		if(ibpos.z == 0)
+		if(bool(count & 4))
 		{
-			vec3 tpos = position - vec3(0, boxw, boxw);
-			brick = find_brick(tpos, box);
-			if(brick > 0)
-			{
-				ipos = brick_origin(brick);
-				ibpos.z = B_SIZE-1;
-				ibpos.y = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-				ibpos.z = 0;
-				ibpos.y = 0;
-			}
-		}
-	}
-	if(ibpos.z == 0)
-	{
-		vec3 tpos = position - vec3(0, 0, boxw);
-		brick = find_brick(tpos, box);
-		if(brick > 0)
-		{
-			ipos = brick_origin(brick);
+			if(ibpos.z != 0)continue;
 			ibpos.z = B_SIZE-1;
-	imageStore(bricks, ipos+ibpos, normal);
-	imageStore(brick_col, ipos+ibpos, colour);
-			ibpos.z = 0;
+			posoff.z = boxw;
 		}
+
+		brick = find_brick(position - posoff, box);
+		if(0 == brick)continue;
+		ivec3 ipos = brick_origin(brick);
+		imageStore(bricks, ipos+ibpos, normal);
+		imageStore(brick_col, ipos+ibpos, colour);
 	}
+
 }
 
 void main(void)
@@ -232,7 +159,42 @@ void main(void)
 	{
 		colour = vColour;
 	}
-	brick_write(Position, colour, normal);
+//	brick_write(Position, colour, normal);
+	vec4 box;
+	int brick = find_brick(Position, box);
+	if(0 == brick)return;
+	float delta = (box.w / float(B_SIZE-1));
+	vec3 bpos = ((Position - box.xyz) / box.w)*float(B_SIZE-1);
+	ivec3 ibpos = ivec3(bpos);
+	vec3 palpha = bpos - vec3(ibpos);	
+
+	switch(pass) {
+	case 0:
+		normal.w = palpha.x;
+		brick_write(Position, colour, normal);
+		normal.w = 1;
+		delta = delta * sign(Normal.x);
+		brick_write(Position+vec3(delta,0,0), colour, normal);
+		brick_write(Position+vec3(delta*2.0,0,0), colour, normal);
+		return;		
+	case 1:
+		normal.w = palpha.y;
+		brick_write(Position, colour, normal);
+		normal.w = 1;
+		delta = delta * sign(Normal.y);
+		brick_write(Position+vec3(0, delta, 0), colour, normal);
+		brick_write(Position+vec3(0, delta*2.0, 0), colour, normal);
+		return;		
+	case 2:
+		normal.w = palpha.z;
+		brick_write(Position, colour, normal);
+		normal.w = 1;
+		delta = delta * sign(Normal.z);
+		brick_write(Position+vec3(0, 0, delta), colour, normal);
+		brick_write(Position+vec3(0, 0, delta*2.0), colour, normal);
+		return;		
+	}
+
 /*	vec3 absNorm = abs(Normal);
 	if(absNorm.x > absNorm.y)
 	{
