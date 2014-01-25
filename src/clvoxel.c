@@ -100,8 +100,8 @@ GLuint vox_3Dtex(int3 size, int format, int interp)
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, interp);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, interp);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, interp);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, interp);
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage3D(GL_TEXTURE_3D, 0, format, size.x, size.y, size.z, 0,
 			glBaseFormat(format), glBaseType(format), NULL);
@@ -598,6 +598,7 @@ void voxel_init(void)
 	shader_uniform(s_Brick, "time");
 	shader_uniform(s_Brick, "bricks");
 	shader_uniform(s_Brick, "brick_col");
+	shader_uniform(s_Brick, "pass");
 	shader_uniform(s_BrickDry, "time");
 	shader_uniform(s_BrickDry, "depth");
 	shader_uniform(s_NodeLRUReset, "time");
@@ -815,15 +816,18 @@ void voxel_loop(void)
 			glLoadIdentity();
 			glScalef(vwidth, vwidth, vwidth);
 			voxel_Brick(vdepth, frame);
+			glUniform1i(s_Brick->unif[4], 2);
 			vobj->draw(vobj);
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, 1, 0.0, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
+			glUniform1i(s_Brick->unif[4], 1);
 			vobj->draw(vobj);
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, -1, 0.0, 0);
 			glRotatef(90, 0, 1, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
+			glUniform1i(s_Brick->unif[4], 0);
 			vobj->draw(vobj);
 			vdepth++;
 		}
