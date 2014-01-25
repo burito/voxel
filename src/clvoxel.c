@@ -92,7 +92,7 @@ void voxel_rebuildshader(widget* foo)
 	voxel_rebuildshader_flag = 1;
 }
 
-GLuint vox_3Dtex(int3 size, int format, int type)
+GLuint vox_3Dtex(int3 size, int format, int interp)
 {
 	GLuint id;
 	glGenTextures(1, &id);
@@ -100,11 +100,11 @@ GLuint vox_3Dtex(int3 size, int format, int type)
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, interp);
+	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, interp);
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage3D(GL_TEXTURE_3D, 0, format, size.x, size.y, size.z, 0,
-			GL_RGBA, type, NULL);
+			glBaseFormat(format), glBaseType(format), NULL);
 //	printf("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 	return id;
@@ -560,8 +560,8 @@ void voxel_init(void)
 
 	int cs = b_size * b_edge;
 	int3 cube = {cs, cs, cs};
-	t3DBrick = vox_3Dtex(cube, GL_RGBA16F, GL_FLOAT);
-	t3DBrickColour = vox_3Dtex(cube, GL_RGBA8, GL_BYTE);
+	t3DBrick = vox_3Dtex(cube, GL_RGBA16F, GL_LINEAR);
+	t3DBrickColour = vox_3Dtex(cube, GL_RGBA8, GL_LINEAR);
 	bCamera = vox_glbuf(sizeof(float)*8, NULL);	// camera
 	bNN = vox_glbuf(size, NULL);	// NodeNode
 	bNL = vox_glbuf(size, NULL);	// NodeLocality
