@@ -110,12 +110,10 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 	ivec3 ibpos = ivec3(((position - box.xyz) / box.w)*float(B_SIZE-1));
 	float boxw = box.w;
 	ivec3 orig_ibpos = ibpos;
-	vec3 posoff;
-	
 
 	for(int count=0; count<8; count++)
 	{
-		posoff = vec3(0);
+		vec3 posoff = vec3(0);
 		ibpos = orig_ibpos;
 		if(bool(count & 1))
 		{
@@ -168,32 +166,28 @@ void main(void)
 	ivec3 ibpos = ivec3(bpos);
 	vec3 palpha = bpos - vec3(ibpos);	
 
+	vec3 vsize = sign(Normal) * delta;
+	vec3 vstep = vec3(0);
+
 	switch(pass) {
 	case 0:
 		normal.w = palpha.x;
-		brick_write(Position, colour, normal);
-		normal.w = 1;
-		delta = delta * sign(Normal.x);
-		brick_write(Position+vec3(delta,0,0), colour, normal);
-		brick_write(Position+vec3(delta*2.0,0,0), colour, normal);
-		return;		
+		vstep.x = vsize.x;
+		break;
 	case 1:
 		normal.w = palpha.y;
-		brick_write(Position, colour, normal);
-		normal.w = 1;
-		delta = delta * sign(Normal.y);
-		brick_write(Position+vec3(0, delta, 0), colour, normal);
-		brick_write(Position+vec3(0, delta*2.0, 0), colour, normal);
-		return;		
+		vstep.y = vsize.y;
+		break;
 	case 2:
 		normal.w = palpha.z;
-		brick_write(Position, colour, normal);
-		normal.w = 1;
-		delta = delta * sign(Normal.z);
-		brick_write(Position+vec3(0, 0, delta), colour, normal);
-		brick_write(Position+vec3(0, 0, delta*2.0), colour, normal);
-		return;		
+		vstep.z = vsize.z;
+		break;
 	}
+
+	brick_write(Position, colour, normal);
+	normal.w = 1;
+	brick_write(Position+vstep, colour, normal);
+	brick_write(Position+vstep*2.0, colour, normal);
 
 /*	vec3 absNorm = abs(Normal);
 	if(absNorm.x > absNorm.y)
