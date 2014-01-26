@@ -119,19 +119,19 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 		ibpos = orig_ibpos;
 		if(bool(count & 1))
 		{
-			if(ibpos.x != 0)continue;
+			if(0 != ibpos.x)continue;
 			ibpos.x = B_SIZE-1;
 			posoff.x = boxw;
 		}
 		if(bool(count & 2))
 		{
-			if(ibpos.y != 0)continue;
+			if(0 != ibpos.y)continue;
 			ibpos.y = B_SIZE-1;
 			posoff.y = boxw;
 		}
 		if(bool(count & 4))
 		{
-			if(ibpos.z != 0)continue;
+			if(0 != ibpos.z)continue;
 			ibpos.z = B_SIZE-1;
 			posoff.z = boxw;
 		}
