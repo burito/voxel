@@ -44,7 +44,13 @@ uniform int time;
 in vec2 TexCoord;
 out vec4 Colour;
 
-
+/**
+ * inside - determines if a point is inside a box
+ * @pos: the point in question
+ * @box: the box in question
+ *
+ * WIGGLE is there to bais it towards the current box
+ */
 #define WIGGLE 0.0000001
 bool inside(in vec3 pos, in vec4 box)
 {
@@ -54,7 +60,16 @@ bool inside(in vec3 pos, in vec4 box)
 		return true;
 	return false;
 }
+#undef WIGGLE
 
+/**
+ * slab_ray - determine if a ray intersects a box
+ * @p: origin of the ray
+ * @inv: inverse of the ray normal
+ * @box: the box in question
+ *
+ * Returns True on hit, and False on miss
+ */
 bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
 {
 	vec3 near = (box.xyz - p) * inv;
@@ -65,7 +80,14 @@ bool slab_ray(in vec3 p, in vec3 inv, in vec4 box)
 	return (rmax > rmin) && (rmax >= 0);
 }
 
-
+/**
+ * slab_exitside - determine which face a ray exits a cube
+ * @p: origin of the ray
+ * @inv: inverse of the ray normal
+ * @box: the box in question
+ *
+ * Assumes the ray origin is inside the box.
+ */
 float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out vec3 axis)
 {
 	vec3 ret, nearfar[2];
@@ -83,7 +105,7 @@ float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out vec3 axis)
 		axis = vec3(float(ind.x),0,0);	// x axis
 	}
 	else
-	{	
+	{
 		r = ret.y;
 		axis = vec3(0,float(ind.y),0);	// y axis
 	}
@@ -95,7 +117,14 @@ float slab_exitside(in vec3 p, in vec3 inv, in vec4 box, out vec3 axis)
 	return r;
 }
 
-
+/**
+ * slab_exit - find the point a ray leaves a box
+ * @p: origin of the ray
+ * @inv: inverse of the ray normal
+ * @box: the box in question
+ *
+ * Assumes the ray *will* intersect the box.
+ */
 float slab_exit(in vec3 p, in vec3 inv, in vec4 box)
 {
 	vec3 ret, nearfar[2];
@@ -108,12 +137,20 @@ float slab_exit(in vec3 p, in vec3 inv, in vec4 box)
 	return min(min(ret.x, ret.y), ret.z);
 }
 
+/**
+ * slab_enter - find the point a ray enters a box
+ * @p: origin of the ray
+ * @inv: inverse of the ray normal
+ * @box: the box in question
+ *
+ * Assumes the ray *will* intersect the box.
+ */
 float slab_enter(in vec3 p, in vec3 inv, in vec4 box)
 {
 	vec3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * inv;
 	nearfar[1] = ((box.xyz+box.w) - p) * inv;
-	ivec3 ind = ivec3(step(0, -inv));
+	ivec3 ind = ivec3(step(0.0, -inv));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -121,32 +158,29 @@ float slab_enter(in vec3 p, in vec3 inv, in vec4 box)
 }
 
 
-
+/**
+ * oct_child - find which octant of a cube a point is in
+ * @pos: origin of the ray
+ * @vol: the box in question
+ *
+ * Returns the binary representation of the octant a point is in.
+ * Modifies the volume to cover that octant.
+ */
 int oct_child(in vec3 pos, inout vec4 vol)
 {
-	int child=0;
 	vol.w *= 0.5;
-	vec3 mid = vol.xyz + vol.w;
-	if(pos.x >= mid.x)
-	{
-		vol.x +=vol.w;
-		child += 1;
-	}
-
-	if(pos.y >= mid.y)
-	{
-		vol.y += vol.w;
-		child += 2;
-	}
-
-	if(pos.z >= mid.z)
-	{
-		vol.z += vol.w;
-		child += 4;
-	}
-	return child;
+	vec3 s = step(vol.xyz + vol.w, pos);
+	vol.xyz += s * vol.w;
+	s *= vec3(1,2,4);
+	return int(s.x + s.y + s.z);
 }
 
+/**
+ * brick_origin - get the UVW coord
+ * @brick_id: the id number of a brick
+ *
+ * Returns the UVW coords of a brick.
+ */
 vec3 brick_origin(in int brick_id)
 {
 	vec3 brick_pos;
@@ -211,7 +245,6 @@ inout vec4 normal, inout float remainder)
 	vec3 brick_pos = brick_origin(brick_id);
 	vec4 retnorm = normal;
 	vec4 retcol = colour;
-	
 
 	if(len < 0.1)return;
 
@@ -219,7 +252,7 @@ inout vec4 normal, inout float remainder)
 
 	float pos;
 	for(pos=steps*remainder; pos < 1.0; pos += steps)
-	{	
+	{
 		vec3 sample_loc = mix(near, far, pos)*iCount;
 		vec4 voxeln = texture(bricks, sample_loc+brick_pos);
 		vec4 voxelc = texture(brick_col, sample_loc+brick_pos);
@@ -264,7 +297,7 @@ void main(void)
 
 	n.x = t.x * c.y + t.z * s.y;	// around y
 	n.z = t.x * s.y - t.z * c.y;
-	
+
 	n = normalize(n);
 	vec3 invnorm = 1.0 / n;
 	vec3 normsign = sign(n);
