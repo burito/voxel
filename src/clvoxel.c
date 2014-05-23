@@ -693,6 +693,12 @@ void voxel_loop(void)
 		printf("tree depth=%d\n", tree_depth);
 	}
 
+	if(keys[KEY_Z])
+	{
+		keys[KEY_Z] = 0;
+		voxel_rebuildshader_flag = 1;
+	}
+
 	if(voxel_rebuildshader_flag)
 	{
 		voxel_rebuildshader_flag = 0;

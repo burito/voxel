@@ -1,9 +1,10 @@
-CFLAGS = -O2 -std=c99 -Wall -pedantic -Isrc
+CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
 PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o gpuinfo.o
 LIBRARIES = -lm
 SDIR = src
 
-OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o
+OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o \
+	http.o
 
 # Build rules
 
@@ -16,7 +17,7 @@ WINDRES = wine64 ~/mingw64/bin/windres.exe
 #WINDRES = x86_64-w64-mingw32-windres
 _WOBJS = $(OBJS) win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm
+WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32
 
 
 LDIR = build/lin
@@ -28,7 +29,7 @@ LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
-default: gui gui.exe
+default: gui
 
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
@@ -44,6 +45,8 @@ $(WDIR)/%.o: $(SDIR)/%.c
 $(LDIR)/%.o: $(SDIR)/%.c
 	$(LCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
 
+
+all: default    # for QtCreator
 
 
 gui: $(LOBJS)

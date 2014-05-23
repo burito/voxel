@@ -31,6 +31,7 @@ freely, subject to the following restrictions:
 #include "gui.h"
 #include "clvoxel.h"
 #include "gpuinfo.h"
+#include "http.h"
 
 
 typedef struct LOADING
@@ -69,6 +70,7 @@ int main_init(int argc, char *argv[])
 	time_start = sys_time();
 	voxel_init();
 	gpuinfo_init();
+	http_init();
 	return gui_init(argc, argv);
 }
 
@@ -157,6 +159,7 @@ void main_loop(void)
 	gui_input();
 	voxel_loop();
 	gui_draw();
+	http_loop();
 }
 
 
@@ -166,6 +169,7 @@ void main_end(void)
 	voxel_end();
 	gui_end();
 	gpuinfo_end();
+	http_end();
 }
 
 

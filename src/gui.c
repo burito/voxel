@@ -41,6 +41,7 @@ freely, subject to the following restrictions:
 #include "fontstash.h"
 #include "clvoxel.h"
 #include "gpuinfo.h"
+#include "http.h"
 
 struct sth_stash* stash = 0;
 
@@ -149,7 +150,7 @@ void widget_remove(widget *w)
 /* this is only a problem if called on a root widget,
  * which this func should not, it's designed to make menu's disappear */
 	}
-		
+
 	if(w->next)
 	{
 		w->next->prev = w->prev;
@@ -341,7 +342,7 @@ void widget_window_draw(widget *w)
 		glTranslatef(-w->size.x, w->size.y, 0);
 		break;
 
-	case 7:		// resize left 
+	case 7:		// resize left
 		draw_rect(10, w->size.y);
 		break;
 
@@ -403,7 +404,7 @@ void widget_window_click(widget *w)
 
 void widget_window_onclick(widget *w)
 {
-	widget_remove(w);		
+	widget_remove(w);
 	widget_add(w);		// send to foreground
 	w->delta.x = mouse_x - w->pos.x;
 	w->delta.y = mouse_y - w->pos.y;
@@ -595,7 +596,7 @@ void widget_list_draw(widget *w)
 		float smooth = (float)w->count * (w->percent * totalheight);
 		double mtmp = 0;
 		int ysmooth = modf(smooth, &mtmp) * height;
-	
+
 		int i = smooth;
 		for(; i<w->count; i++)
 		{
@@ -617,7 +618,7 @@ void widget_list_draw(widget *w)
 		glTranslatef(w->size.x - 20, 0, 0);
 		draw_rect(20, w->size.y);
 		glColor4f(1,1,1,0.9);
-		
+
 		float scrollfactor = w->size.y / fullheight;
 		float barheight = scrollfactor * w->size.y;
 
@@ -666,7 +667,7 @@ void widget_list_click(widget *w)
 		if(offset > w->count)return;
 		w->selected = offset;
 //		char **file = w->data;
-//		printf("this one %s\n", file[offset]); 
+//		printf("this one %s\n", file[offset]);
 
 	}
 }
@@ -875,7 +876,7 @@ void open_test(widget *w)
 			widget_destroy(p);
 			break;
 		}
-	
+
 	default:
 		break;
 	}
@@ -906,7 +907,7 @@ void open_voxel(widget *w)
 			break;
 		}
 		break;
-	
+
 	default:
 		break;
 	}
@@ -939,11 +940,11 @@ void spawn_open(widget *x)
 	while((ent = readdir(dir)))
 	{
 		if(ent->d_name[0] == '.')continue;
-		
+
 		struct stat s;
 		memset(&s, 0, sizeof(struct stat));
 		memset(tmp, 0, 1000);
-		sprintf(tmp, "%s/%s", path, ent->d_name); 
+		sprintf(tmp, "%s/%s", path, ent->d_name);
 		stat(tmp, &s);
 		if( S_ISDIR(s.st_mode) )
 		{
@@ -976,7 +977,7 @@ void spawn_open(widget *x)
 		}
 		else printf("Unexpected Filetype= %d \"%s\"\n", s.st_mode, ent->d_name);
 
-		
+
 	}
 	closedir(dir);
 
@@ -1058,7 +1059,7 @@ widget* widget_menu_item_add(widget *w, char* label, void (*action)(widget*))
 	}
 	ret->next = wdata->child;
 	wdata->child = ret;
-	
+
 	float x1, x2, y1, y2;
 	sth_dim_text(stash, ret->fontface, ret->fontsize,
 			label, &x1, &y1, &x2, &y2);
@@ -1111,6 +1112,57 @@ void spawn_gpuinfo(widget *x)
 	widget_add(w);
 }
 
+void spawn_http_auth(widget *x)
+{
+	widget *item, *w = widget_window_new(100, 100, "Authorised Devices");
+	item = widget_text_new(10, 65, "OpenGL");
+	item->fontsize = 30.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+	item = widget_text_new(20, 90, hcopy(
+		(const char*)glGetString(GL_VENDOR) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 110, hcopy(
+		(const char*)glGetString(GL_RENDERER) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 130, hcopy(
+		(const char*)glGetString(GL_VERSION) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 150, hcopy(
+		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
+	widget_child_add(w, item);
+
+	w->size.x = 330;
+	w->size.y = 155;
+	w->noResize = 1;
+	widget_add(w);
+}
+
+void spawn_http_pend(widget *x)
+{
+	widget *item, *w = widget_window_new(100, 100, "Pending Devices");
+	item = widget_text_new(10, 65, "OpenGL");
+	item->fontsize = 30.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+	item = widget_text_new(20, 90, hcopy(
+		(const char*)glGetString(GL_VENDOR) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 110, hcopy(
+		(const char*)glGetString(GL_RENDERER) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 130, hcopy(
+		(const char*)glGetString(GL_VERSION) ));
+	widget_child_add(w, item);
+	item = widget_text_new(20, 150, hcopy(
+		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
+	widget_child_add(w, item);
+
+	w->size.x = 330;
+	w->size.y = 155;
+	w->noResize = 1;
+	widget_add(w);
+}
 void spawn_about(widget *x)
 {
 	widget *w = widget_window_new(100, 100, "ABOUT");
@@ -1213,21 +1265,21 @@ void spawn_license(widget *x)
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 185, "freely, subject to the following restrictions:");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 210, "   1. The origin of this software must not be misrepresented; you must not");
+	item = widget_text_new(20, 210, "	1. The origin of this software must not be misrepresented; you must not");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 225, "   claim that you wrote the original software. If you use this software");
+	item = widget_text_new(20, 225, "	claim that you wrote the original software. If you use this software");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 240, "   in a product, an acknowledgment in the product documentation would be");
+	item = widget_text_new(20, 240, "	in a product, an acknowledgment in the product documentation would be");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 255, "   appreciated but is not required.");
+	item = widget_text_new(20, 255, "	appreciated but is not required.");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 280, "   2. Altered source versions must be plainly marked as such, and must not be");
+	item = widget_text_new(20, 280, "	2. Altered source versions must be plainly marked as such, and must not be");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 295, "   misrepresented as being the original software.");
+	item = widget_text_new(20, 295, "	misrepresented as being the original software.");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 320, "   3. This notice may not be removed or altered from any source");
+	item = widget_text_new(20, 320, "	3. This notice may not be removed or altered from any source");
 	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
-	item = widget_text_new(20, 335, "   distribution.");
+	item = widget_text_new(20, 335, "	distribution.");
 	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
 	w->size.x = 570;
 	w->size.y = 360;
@@ -1290,10 +1342,18 @@ widget* widget_menu_separator_add(widget *item)
 	return w;
 }
 
+void menu_http_toggle(widget *w)
+{
+	http_accepting_new_clients = !http_accepting_new_clients;
+}
 
+int frame_number = 0;
+#define MAX_FRAMES 60
+long frame_time[MAX_FRAMES];
 long long last_time;
 int gui_init(int argc, char *argv[])
 {
+	memset(frame_time, 0, sizeof(long)*MAX_FRAMES);
 	stash = sth_create(512,512);
 	if (!stash)
 	{
@@ -1312,19 +1372,27 @@ int gui_init(int argc, char *argv[])
 	widget_menu_item_add(item, "Voxel Open", spawn_voxopen);
 	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "Exit", menu_killme);
+
 	item = widget_menu_add(menu, "Display");
-	w = widget_menu_item_add(item, "     Fullscreen - F11", &menu_fullscreen);
+	w = widget_menu_item_add(item, "	 Fullscreen - F11", menu_fullscreen);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &fullscreen;
-	w = widget_menu_item_add(item, "     Draw 3D Texture", &menu_texdraw);
+	w = widget_menu_item_add(item, "	 Draw 3D Texture", menu_texdraw);
 	w->draw = widget_menu_bool_draw;
 	extern int texdraw;
 	w->data2 = &texdraw;
-
 	widget_menu_item_add(item, "GPU Information", spawn_gpuinfo);
 	widget_menu_separator_add(item);
 	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
-	
+
+	item = widget_menu_add(menu, "Input");
+	w = widget_menu_item_add(item, "	 Accepting Tablets",
+		menu_http_toggle);
+	w->draw = widget_menu_bool_draw;
+	w->data2 = &http_accepting_new_clients;
+	w = widget_menu_item_add(item, "Authorised Devices", spawn_http_auth );
+	w = widget_menu_item_add(item, "Pending Authorisation", spawn_http_pend);
+
 	item = widget_menu_add(menu, "Help");
 	widget_menu_item_add(item, "Overview \u2560", 0);
 	widget_menu_item_add(item, "Wiki \u26a0", 0);
@@ -1339,6 +1407,75 @@ int gui_init(int argc, char *argv[])
 	last_time = sys_time();
 	return 0;
 }
+
+
+void gui_http_draw(void)
+{
+	if(!http_accepting_new_clients)return;
+
+	float shade = 0.1;
+
+	glColor4f(shade,shade,shade,0.5);
+	int x = 20;
+	int y = vid_height - 200;
+
+	int min_w = 10;
+
+	char stop[] = "Stop accepting connections";
+
+	float x1, x2, y1, y2;
+	sth_dim_text(stash, 3, 20.0f, stop, &x1, &y1, &x2, &y2);
+
+	min_w = x2 - x1;
+
+
+	for(int i=0; i< http_num_pending; i++)
+	{
+		sth_dim_text(stash, 3, 20.0f,
+			http_get_name_pending(i), &x1, &y1, &x2, &y2);
+
+		int tmp_w = x2 - x1;
+
+		if(min_w < tmp_w)min_w = tmp_w;
+
+
+
+	}
+
+	min_w += 20;
+
+	glLoadIdentity();
+	glTranslatef(x, y, 0);
+
+	draw_rect( min_w+20, 40 * (http_num_pending+1) + 20);
+	glTranslatef(10, -10, 0);
+
+
+
+	for(int i=0; i<= http_num_pending; i++)
+	{
+		draw_rect( min_w, 30);
+		glTranslatef(0, -40, 0);
+	}
+
+	glLoadIdentity();
+	glTranslatef(x, y, 0);
+
+
+	sth_begin_draw(stash);
+	glColor4f(1,1,1,1);
+	sth_draw_text(stash, 3, 20, 20, -30, stop, 0);
+	for(int i=0; i< http_num_pending; i++)
+	{
+		sth_draw_text(stash, 3, 20, 20, -i*40-70, http_get_name_pending(i), 0);
+	}
+
+	sth_end_draw(stash);
+
+	glLoadIdentity();
+
+}
+
 
 
 
@@ -1377,7 +1514,15 @@ void gui_draw(void)
 	delta_time = this_time - last_time;
 	last_time = this_time;
 	double DeltaTime = (double)delta_time / (double)sys_ticksecond;
-	double fps = 1.0 / DeltaTime;
+
+	frame_number++;
+	if(frame_number>=MAX_FRAMES) frame_number=0;
+	frame_time[frame_number] = (long)delta_time;
+	long fps_sum = 0;
+	for(int i=0; i<MAX_FRAMES; i++)
+		fps_sum += frame_time[i];
+
+	double fps = (double)MAX_FRAMES / ((double)fps_sum / (double)sys_ticksecond);
 
 	glColor4f(1,1,1,1);
 	sth_begin_draw(stash);
@@ -1397,7 +1542,14 @@ void gui_draw(void)
 	}
 
 	sth_end_draw(stash);
+
+	gui_http_draw();
+
+
 }
+
+
+
 
 void gui_end(void)
 {
