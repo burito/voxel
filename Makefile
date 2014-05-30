@@ -8,6 +8,7 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o \
 
 # Build rules
 
+
 WDIR = build/win
 #WCC = i686-w64-mingw32-gcc
 #WINDRES = i686-w64-mingw32-windres
@@ -29,12 +30,12 @@ LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
-default: gui
+default: prep gui
 
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
 WINDRES = windres
-default: gui.exe
+default: prep gui.exe
 endif
 
 $(WDIR)/win32.res: $(SDIR)/win32.rc
@@ -47,7 +48,6 @@ $(LDIR)/%.o: $(SDIR)/%.c
 
 
 all: default    # for QtCreator
-
 
 gui: $(LOBJS)
 	$(LCC) $^ $(LLIBS) -o $@
@@ -73,4 +73,7 @@ test: octview convertoct
 # Housekeeping
 clean:
 	@rm -rf build gui gui.exe voxel.zip
+
+prep:
 	@mkdir build build/lin build/lin/GL build/win build/win/GL
+
