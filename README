@@ -2,6 +2,11 @@
 Setting up the build environment for Windows and Debian is detailed at...
 http://danpburke.blogspot.com.au/2013/11/shadertoy-like-opencl-kernel-tester.html
 
+Building is a case of...
+
+make clean		# to create the build directories
+make -j8		# if you have 8 threads, alter to taste
+
 There is no Mac support, none is planned, as OSX does not support OpenGL 4.3.
 https://developer.apple.com/graphicsimaging/opengl/capabilities/
 

@@ -30,12 +30,12 @@ LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
 # Evil platform detection magic
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
-default: prep gui
+default: gui
 
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
 WINDRES = windres
-default: prep gui.exe
+default: gui.exe
 endif
 
 $(WDIR)/win32.res: $(SDIR)/win32.rc
@@ -73,7 +73,5 @@ test: octview convertoct
 # Housekeeping
 clean:
 	@rm -rf build gui gui.exe voxel.zip
-
-prep:
-	@mkdir build build/lin build/lin/GL build/win build/win/GL
+	@mkdir -p build/lin/GL build/win/GL
 
