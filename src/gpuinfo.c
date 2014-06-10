@@ -65,46 +65,46 @@ nvmlDevice_t *nvml_devices;
 HMODULE adl=NULL;
 #define ADL_MAX_PATH 256
 
-#define ADL_DL_THERMAL_DOMAIN_GPU        1
+#define ADL_DL_THERMAL_DOMAIN_GPU		 1
 
 typedef struct AdapterInfo
 {
-    int iSize;
-    int iAdapterIndex;
-    char strUDID[ADL_MAX_PATH];	
-    int iBusNumber;
-    int iDeviceNumber;
-    int iFunctionNumber;
-    int iVendorID;
-    char strAdapterName[ADL_MAX_PATH];
-    char strDisplayName[ADL_MAX_PATH];
-	int iPresent;				
+	int iSize;
+	int iAdapterIndex;
+	char strUDID[ADL_MAX_PATH];
+	int iBusNumber;
+	int iDeviceNumber;
+	int iFunctionNumber;
+	int iVendorID;
+	char strAdapterName[ADL_MAX_PATH];
+	char strDisplayName[ADL_MAX_PATH];
+	int iPresent;
 #if defined (_WIN32) || defined (_WIN64)
-    int iExist;
-    char strDriverPath[ADL_MAX_PATH];
-    char strDriverPathExt[ADL_MAX_PATH];
-    char strPNPString[ADL_MAX_PATH];
-    int iOSDisplayIndex;	
+	int iExist;
+	char strDriverPath[ADL_MAX_PATH];
+	char strDriverPathExt[ADL_MAX_PATH];
+	char strPNPString[ADL_MAX_PATH];
+	int iOSDisplayIndex;
 #endif /* (_WIN32) || (_WIN64) */
 #if defined (LINUX)
-    int iXScreenNum;
-    int iDrvIndex;
-    char strXScreenConfigName[ADL_MAX_PATH];
+	int iXScreenNum;
+	int iDrvIndex;
+	char strXScreenConfigName[ADL_MAX_PATH];
 #endif /* (LINUX) */
 } AdapterInfo, *LPAdapterInfo;
 
 typedef struct ADLTemperature
 {
-  int iSize;	
-  int iTemperature;  
+	int iSize;
+	int iTemperature;
 } ADLTemperature;
 
 typedef struct ADLThermalControllerInfo
 {
-  int iSize;	
-  int iThermalDomain;
-  int iDomainIndex;
-  int iFlags;						
+	int iSize;
+	int iThermalDomain;
+	int iDomainIndex;
+	int iFlags;
 } ADLThermalControllerInfo;
 
 
@@ -113,8 +113,8 @@ typedef void* ( *ADL_MAIN_MALLOC_CALLBACK )( int );
 // Memory allocation function
 static void* ADL_Main_Memory_Alloc ( int iSize )
 {
-    void* lpBuffer = malloc ( iSize );
-    return lpBuffer;
+	void* lpBuffer = malloc ( iSize );
+	return lpBuffer;
 }
 
 typedef int ( *ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int );
@@ -149,7 +149,7 @@ void gpuinfo_tick(void)
 	{
 		for(int i=0; i < nvml_device_count; i++)
 		{
-			int ret = nvmlDeviceGetTemperature(nvml_devices[i], 0, 
+			int ret = nvmlDeviceGetTemperature(nvml_devices[i], 0,
 				&nvml_gputemp[i]);
 			if(ret)printf("nvmlDeviceGetTemperature(%d) = %d\n", i, ret);
 //			printf("Temperature[%d] is %d\n", i, temp);
@@ -176,7 +176,7 @@ void gpuinfo_tick(void)
 					adl_devid[i], adl_domain_id[i], &adlTmp);
 			adl_gputemp[i] = adlTmp.iTemperature / 1000;
 			if(ret)printf("ADL_Overdrive5_Temperature_Get(%d) = %d\n", i, ret);
-			
+
 			break;
 		default:
 			break;
@@ -226,7 +226,7 @@ void gpuinfo_init(void)
 
 		ret = nvmlDeviceGetCount(&nvml_device_count);
 		if(ret)printf("nvmlDeviceGetCount = %d\n", ret);
-		
+
 		nvml_devices = malloc(sizeof(nvmlDevice_t)*nvml_device_count);
 		nvml_gputemp = malloc(sizeof(int)*nvml_device_count);
 		for(int i=0; i < nvml_device_count; i++)
@@ -253,6 +253,8 @@ void gpuinfo_init(void)
 			ADL_Overdrive_Caps, "ADL_Overdrive_Caps");
 		EvilMacro(adl, ADL_OVERDRIVE5_TEMPERATURE_GET,
 			ADL_Overdrive5_Temperature_Get, "ADL_Overdrive5_Temperature_Get");
+		EvilMacro(adl, ADL_OVERDRIVE5_THERMALDEVICES_ENUM,
+			ADL_Overdrive5_ThermalDevices_Enum, "ADL_Overdrive5_ThermalDevices_Enum");
 		EvilMacro(adl, ADL_OVERDRIVE6_TEMPERATURE_GET,
 			ADL_Overdrive6_Temperature_Get, "ADL_Overdrive6_Temperature_Get");
 
@@ -294,11 +296,9 @@ void gpuinfo_init(void)
 						break;
 					}
 				}
-
 			}
 		}
 		free(adl_inf);
-
 	}
 	else printf("no adl\n");
 
