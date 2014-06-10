@@ -427,6 +427,7 @@ void handle_events(void)
 {
     MSG mesg;
     mickey_x = mickey_y = 0;
+    int ret;
     switch(WaitForInputIdle(GetCurrentProcess() , 10))
     {
         case 0:

@@ -72,9 +72,13 @@ test: octview convertoct
 
 # Housekeeping
 clean:
-	@rm -rf build gui gui.exe voxel.zip
+	@rm -rf build gui gui.exe voxel.zip src/version.h
 
 
 # Create build directories
 $(shell	mkdir -p build/lin/GL build/win/GL)
+
+# create the version info
+$(shell echo "#define GIT_REV \"`git rev-parse --short HEAD`\"" > src/version.h)
+$(shell echo "#define GIT_TAG \"`git name-rev --tags --name-only \`git rev-parse HEAD\``\"" >> src/version.h)
 
