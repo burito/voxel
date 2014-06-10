@@ -73,5 +73,8 @@ test: octview convertoct
 # Housekeeping
 clean:
 	@rm -rf build gui gui.exe voxel.zip
-	@mkdir -p build/lin/GL build/win/GL
+
+
+# Create build directories
+$(shell	mkdir -p build/lin/GL build/win/GL)
 
