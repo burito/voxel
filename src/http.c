@@ -91,10 +91,17 @@ int http_init(void)
 	int ret;
 #ifdef WIN32
 	WSADATA wsaData;
-	if(!WSAStartup(MAKEWORD(2,2),&wsaData))return 1;
+	if(WSAStartup(MAKEWORD(2,2),&wsaData))
+	{
+		return 1;
+	}
 #endif
 	s = socket(PF_INET, SOCK_STREAM, 0);
-	if(-1 == s)return 2;
+	if(-1 == s)
+	{
+		printf("socket() failed %d\n", s);
+		return 2;
+	}
 
 	int yes = 1;
 
@@ -106,6 +113,7 @@ int http_init(void)
 	}
 
 	struct sockaddr_in sin;
+//	memset(&sin, 0, sizeof(sin));
 
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = INADDR_ANY;
@@ -157,6 +165,10 @@ void http_loop(void)
 		ret = select(s+1, &set, NULL, NULL, &timeout);
 		if(-1 == ret)
 		{
+#ifdef WIN32
+			printf("WSAGetLastError() = %d\n", WSAGetLastError());
+
+#endif
 			printf("select error\n");
 			return;
 		}
