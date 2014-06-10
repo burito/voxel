@@ -14,21 +14,21 @@ Build Instructions
 
 Usage
 -----
-ESC quits.
-WASD keys move around.
-CTRL goes down, SPACE goes up.
-Holding Right Mouse aims the camera.
-F11 toggles Fullscreen.
+* ESC quits.
+* WASD keys move around.
+* CTRL goes down, SPACE goes up.
+* Holding Right Mouse aims the camera.
+* F11 toggles Fullscreen.
 
 System Requirements
 -------------------
-Needs OpenGL 4.3
-Wants 64bit, but it's not needed. Yet.
-You'll need up to date drivers. As of now that means Nvidia 337.25.
-1Gb VRAM minimum, 2Gb wanted.
+* Needs OpenGL 4.3
+* Wants 64bit, but it's not needed. Yet.
+* You'll need up to date drivers. As of now that means Nvidia 337.25.
+* 1Gb VRAM minimum, 2Gb wanted.
 
-There is no Mac support, OSX does not support OpenGL 4.3.
-https://developer.apple.com/graphicsimaging/opengl/capabilities/
+There is no Mac support, [OSX does not support OpenGL
+4.3.](https://developer.apple.com/graphicsimaging/opengl/capabilities/)
 
 
 Afterword
@@ -42,7 +42,9 @@ Nvidias.
 -Dan
 
 Please refer to the articles at...
+
 http://danpburke.blogspot.com.au
+
 ...for the complete set of ramblings.
 
 
