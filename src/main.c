@@ -38,9 +38,9 @@ freely, subject to the following restrictions:
 
 typedef struct LOADING
 {
-    char * filename;
-    int passes;
-    float *pass;
+	char * filename;
+	int passes;
+	float *pass;
 } LOADING;
 
 const int max_loading = 6;
@@ -61,25 +61,25 @@ float time = 0;
 int main_init(int argc, char *argv[])
 {
 	printf("Version: %s-%s\n", GIT_TAG, GIT_REV);
-    printf("GL Vendor  : %s\n", glGetString(GL_VENDOR) );
-    printf("GL Renderer: %s\n", glGetString(GL_RENDERER) );
-    printf("GL Version : %s\n", glGetString(GL_VERSION) );
-    printf("SL Version : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION) );
+	printf("GL Vendor  : %s\n", glGetString(GL_VENDOR) );
+	printf("GL Renderer: %s\n", glGetString(GL_RENDERER) );
+	printf("GL Version : %s\n", glGetString(GL_VERSION) );
+	printf("SL Version : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION) );
 
-    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-    GLfloat mat_shininess[] = { 50.0 };
-    GLfloat light_position[] = { -100.0, -100.0, -100.0, 0.0 };
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glEnable(GL_LIGHT0);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat mat_shininess[] = { 50.0 };
+	GLfloat light_position[] = { -100.0, -100.0, -100.0, 0.0 };
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+	glEnable(GL_LIGHT0);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 //	glEnable(GL_LIGHTING);
 
-    time_start = sys_time();
-    gpuinfo_init();
-    http_init();
-    voxel_init();
-    return gui_init(argc, argv);
+	time_start = sys_time();
+	gpuinfo_init();
+	http_init();
+	voxel_init();
+	return gui_init(argc, argv);
 }
 
 int p_swim = 0;
@@ -91,93 +91,93 @@ float4 angle = {-0.126000, -3.261001, 0.000000, M_PI*0.5};
 
 void main_loop(void)
 {
-    gpuinfo_tick();
-    pos.w = 0.5 / (float)vid_width;
+	gpuinfo_tick();
+	pos.w = 0.5 / (float)vid_width;
 
-    float3 req = {0,0,0};
-    float nice = 0.007;
+	float3 req = {0,0,0};
+	float nice = 0.007;
 
-    if(keys[KEY_ESCAPE])
-    {
-        killme=1;
-    }
-    if(keys[KEY_W])
-    {
-        req.z -= nice;
-    }
-    if(keys[KEY_S])
-    {
-        req.z += nice;
-    }
-    if(keys[KEY_A])
-    {
-        req.x -= nice;
-    }
-    if(keys[KEY_D])
-    {
-        req.x += nice;
-    }
-    if(keys[KEY_LCONTROL])
-    {
-        req.y -= nice;
-    }
-    if(keys[KEY_SPACE])
-    {
-        req.y += nice;
-    }
+	if(keys[KEY_ESCAPE])
+	{
+		killme=1;
+	}
+	if(keys[KEY_W])
+	{
+		req.z -= nice;
+	}
+	if(keys[KEY_S])
+	{
+		req.z += nice;
+	}
+	if(keys[KEY_A])
+	{
+		req.x -= nice;
+	}
+	if(keys[KEY_D])
+	{
+		req.x += nice;
+	}
+	if(keys[KEY_LCONTROL])
+	{
+		req.y -= nice;
+	}
+	if(keys[KEY_SPACE])
+	{
+		req.y += nice;
+	}
 
-    if(mouse[2]) /// right mouse
-    {
-        angle.x += mickey_y * 0.003;
-        angle.y += mickey_x * 0.003;
-    }
-    if(keys[KEY_O])
-    {
-        p_swim = !p_swim;
-        keys[KEY_S] = 0;
-        printf("Swimming is %s.\n", p_swim ? "engaged" : "off");
-    }
-    if(keys[KEY_P])
-    {
-        printf("float4 pos = {%f, %f, %f, 0.0};\n", pos.x, pos.y, pos.z);
-        printf("float4 angle = {%f, %f, %f, M_PI*0.5};\n", angle.x, angle.y, angle.z);
-    }
+	if(mouse[2]) /// right mouse
+	{
+		angle.x += mickey_y * 0.003;
+		angle.y += mickey_x * 0.003;
+	}
+	if(keys[KEY_O])
+	{
+		p_swim = !p_swim;
+		keys[KEY_S] = 0;
+		printf("Swimming is %s.\n", p_swim ? "engaged" : "off");
+	}
+	if(keys[KEY_P])
+	{
+		printf("float4 pos = {%f, %f, %f, 0.0};\n", pos.x, pos.y, pos.z);
+		printf("float4 angle = {%f, %f, %f, M_PI*0.5};\n", angle.x, angle.y, angle.z);
+	}
 
-    if(p_swim)
-    {
-        float cx = cos(angle.x), sx = sin(angle.x), ty = req.y;
-        req.y = req.y * cx - req.z * sx;	// around x
-        req.z = ty * sx + req.z * cx;
-    }
-
-
-    float cy = cos(angle.y), sy = sin(angle.y), tx = req.x;
-    req.x = req.x * cy + req.z * sy;	// around y
-    req.z = tx * sy - req.z * cy;
+	if(p_swim)
+	{
+		float cx = cos(angle.x), sx = sin(angle.x), ty = req.y;
+		req.y = req.y * cx - req.z * sx;	// around x
+		req.z = ty * sx + req.z * cx;
+	}
 
 
-    F3ADD(pos, pos, req);
+	float cy = cos(angle.y), sy = sin(angle.y), tx = req.x;
+	req.x = req.x * cy + req.z * sy;	// around y
+	req.z = tx * sy - req.z * cy;
 
 
-    time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
+	F3ADD(pos, pos, req);
 
-    glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-    gui_input();
-    voxel_loop();
-    gui_draw();
-    http_loop();
+	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
+
+	glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+	gui_input();
+	voxel_loop();
+	gui_draw();
+	http_loop();
 }
 
 
 
 void main_end(void)
 {
-    voxel_end();
-    gui_end();
-    gpuinfo_end();
-    http_end();
+	voxel_end();
+	gui_end();
+	gpuinfo_end();
+	http_end();
 }
 
 

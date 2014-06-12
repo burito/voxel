@@ -260,7 +260,9 @@ int available_vram(void)
 	}
 	else if(strstr((const char*)glGetString(GL_VENDOR), "ATI"))
 	{
-		glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
+		/* Crashes on AMD devices :-/ */
+//		  glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
+		mem = 2000000;
 		return mem;
 	}
 	else
@@ -271,7 +273,7 @@ int available_vram(void)
 }
 
 GLint glBaseFormat(GLint SizedInternalFormat)
-{ // taken from https://www.opengl.org/sdk/docs/man4/xhtml/glTexImage3D.xml 
+{ // taken from https://www.opengl.org/sdk/docs/man4/xhtml/glTexImage3D.xml
 	switch(SizedInternalFormat) {
 
 	case GL_R8:
@@ -347,7 +349,7 @@ GLint glBaseFormat(GLint SizedInternalFormat)
 }
 
 GLint glBaseType(GLint SizedInternalFormat)
-{ // taken from https://www.opengl.org/sdk/docs/man4/xhtml/glTexImage3D.xml 
+{ // taken from https://www.opengl.org/sdk/docs/man4/xhtml/glTexImage3D.xml
 	switch(SizedInternalFormat) {
 
 	case GL_R16F:
