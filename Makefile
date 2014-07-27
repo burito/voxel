@@ -12,7 +12,6 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o \
 WDIR = build/win
 #WCC = i686-w64-mingw32-gcc
 #WINDRES = i686-w64-mingw32-windres
-WCC = wine64 ~/mingw64/bin/gcc.exe
 WINDRES = wine64 ~/mingw64/bin/windres.exe
 #WCC = x86_64-w64-mingw32-gcc
 #WINDRES = x86_64-w64-mingw32-windres
@@ -31,9 +30,11 @@ LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 default: gui
+WCC = wine64 ~/mingw64/bin/gcc.exe
 
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
+WCC = gcc
 WINDRES = windres
 default: gui.exe
 endif
