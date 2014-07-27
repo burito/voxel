@@ -6,6 +6,7 @@
 
 # trash
 .*.swp
+*~
 
 # data files
 *.msh

@@ -95,6 +95,9 @@ int http_init(void)
 	{
 		return 1;
 	}
+	const char yes = 1;
+#else
+	int yes = 1;
 #endif
 	s = socket(PF_INET, SOCK_STREAM, 0);
 	if(-1 == s)
@@ -103,7 +106,6 @@ int http_init(void)
 		return 2;
 	}
 
-	int yes = 1;
 
 	ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 	if(-1 == ret)
