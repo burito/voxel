@@ -37,6 +37,7 @@ freely, subject to the following restrictions:
 
 /*
 	NVML related stuff.
+	https://developer.nvidia.com/nvidia-management-library-nvml
 */
 HMODULE nvml=NULL;
 
@@ -61,6 +62,7 @@ nvmlDevice_t *nvml_devices;
 
 /*
 	ADL specific stuff
+	http://developer.amd.com/tools-and-sdks/graphics-development/display-library-adl-sdk/
 */
 HMODULE adl=NULL;
 #define ADL_MAX_PATH 256
@@ -202,11 +204,12 @@ void gpuinfo_tick(void)
 void gpuinfo_init(void)
 {
 #ifdef WIN32
-	const int dlllen = 100; 
-	char dllpath[dlllen];
-	memset(dllpath, 0, dlllen);
-	GetEnvironmentVariable("ProgramFiles", dllpath, dlllen);
-	strcpy(dllpath + strlen(dllpath), "/NVIDIA Corporation/NVSMI/nvml.dll");
+	char nvmlpath[] = "/NVIDIA Corporation/NVSMI/nvml.dll";
+	char dllpath[MAX_PATH];
+	memset(dllpath, 0, MAX_PATH);
+	GetEnvironmentVariable("ProgramFiles",
+			dllpath, MAX_PATH-(strlen(nvmlpath)+1) );
+	strcpy(dllpath + strlen(dllpath), nvmlpath);
 	nvml = LoadLibrary(dllpath);
 	adl = LoadLibrary("atiadlxx.dll");
 	if(!adl) adl = LoadLibrary("atiadlxy.dll");	// for 32bit systems
