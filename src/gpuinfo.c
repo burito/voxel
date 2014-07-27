@@ -202,8 +202,12 @@ void gpuinfo_tick(void)
 void gpuinfo_init(void)
 {
 #ifdef WIN32
-	nvml = LoadLibrary("%ProgramFiles%/NVIDIA Corporation/NVSMI/nvml.dll");
-//	nvml = LoadLibrary("nvml.dll");
+	char dllpath[1000];
+	memset(dllpath, 0, 1000);
+	GetEnvironmentVariable("ProgramFiles", dllpath, 1000);
+	strcpy(dllpath + strlen(dllpath), "/NVIDIA Corporation/NVSMI/nvml.dll");
+	printf("dllpath = \"%s\"\n", dllpath);
+	nvml = LoadLibrary(dllpath);
 	adl = LoadLibrary("atiadlxx.dll");
 	if(!adl) adl = LoadLibrary("atiadlxy.dll");	// for 32bit systems
 #else
