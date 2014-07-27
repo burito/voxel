@@ -65,6 +65,11 @@ int main_init(int argc, char *argv[])
 	printf("GL Renderer: %s\n", glGetString(GL_RENDERER) );
 	printf("GL Version : %s\n", glGetString(GL_VERSION) );
 	printf("SL Version : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION) );
+	if(!GLEW_VERSION_4_3)
+	{
+		printf("OpenGL 4.3 Required.\n");
+		return 1;
+	}
 
 	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
