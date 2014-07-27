@@ -202,11 +202,11 @@ void gpuinfo_tick(void)
 void gpuinfo_init(void)
 {
 #ifdef WIN32
-	char dllpath[1000];
-	memset(dllpath, 0, 1000);
-	GetEnvironmentVariable("ProgramFiles", dllpath, 1000);
+	const int dlllen = 100; 
+	char dllpath[dlllen];
+	memset(dllpath, 0, dlllen);
+	GetEnvironmentVariable("ProgramFiles", dllpath, dlllen);
 	strcpy(dllpath + strlen(dllpath), "/NVIDIA Corporation/NVSMI/nvml.dll");
-	printf("dllpath = \"%s\"\n", dllpath);
 	nvml = LoadLibrary(dllpath);
 	adl = LoadLibrary("atiadlxx.dll");
 	if(!adl) adl = LoadLibrary("atiadlxy.dll");	// for 32bit systems
@@ -239,9 +239,9 @@ void gpuinfo_init(void)
 			ret = nvmlDeviceGetHandleByIndex(i, &nvml_devices[i]);
 			if(ret)printf("nvmlDeviceGetHandleByIndex(%d) = %d\n", i, ret);
 		}
+		printf("NVML\n");
 
 	}
-	else printf("no nvml\n");
 	if(adl)
 	{
 		EvilMacro(adl, ADL_MAIN_CONTROL_CREATE,
@@ -303,8 +303,8 @@ void gpuinfo_init(void)
 			}
 		}
 		free(adl_inf);
+		printf("ADL\n");
 	}
-	else printf("no adl\n");
 
 	gpuinfo_tick();
 }
