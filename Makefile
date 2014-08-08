@@ -48,7 +48,7 @@ gui: $(LOBJS)
 
 
 voxel.zip: gui.exe
-	zip voxel.zip gui.exe Readme.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
+	zip voxel.zip gui.exe README.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
 
 # Housekeeping
 clean:
