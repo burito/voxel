@@ -24,10 +24,7 @@ freely, subject to the following restrictions:
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-
 #include <GL/glew.h>
-
 #include "3dmaths.h"
 #include "mesh.h"
 #include "text.h"
@@ -37,10 +34,10 @@ freely, subject to the following restrictions:
 #ifndef STATIC_TEST
 void mtl_begin(WF_MTL *m)
 {
-	GLfloat spec[] = {m->Ks.x, m->Ks.y, m->Ks.z, 1.0f};
-	GLfloat amb[] = {m->Ka.x, m->Ka.y, m->Ka.z, 1.0f};
+//	GLfloat spec[] = {m->Ks.x, m->Ks.y, m->Ks.z, 1.0f};
+//	GLfloat amb[] = {m->Ka.x, m->Ka.y, m->Ka.z, 1.0f};
 	GLfloat diff[] = {m->Kd.x, m->Kd.y, m->Kd.z, 1.0f};
-	GLfloat emit[] = {m->Ke.x, m->Ke.y, m->Ke.z, 1.0f};
+//	GLfloat emit[] = {m->Ke.x, m->Ke.y, m->Ke.z, 1.0f};
 //	glMateriali(GL_FRONT, GL_SHININESS, m->Ns);
 //	glMaterialfv(GL_FRONT, GL_SPECULAR, spec);
 //	glMaterialfv(GL_FRONT, GL_AMBIENT, amb);
