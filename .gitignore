@@ -3,6 +3,8 @@
 *.o
 *.exe
 *.res
+gui
+
 
 # trash
 .*.swp
