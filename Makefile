@@ -7,18 +7,10 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o \
 	http.o
 
 # Build rules
-
-
 WDIR = build/win
-#WCC = i686-w64-mingw32-gcc
-#WINDRES = i686-w64-mingw32-windres
-WINDRES = wine64 ~/mingw64/bin/windres.exe
-#WCC = x86_64-w64-mingw32-gcc
-#WINDRES = x86_64-w64-mingw32-windres
 _WOBJS = $(OBJS) win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
 WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32
-
 
 LDIR = build/lin
 LCC = gcc
@@ -30,8 +22,10 @@ LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 default: gui
-WCC = wine64 ~/mingw64/bin/gcc.exe
-
+WCC = x86_64-w64-mingw32-gcc
+WINDRES = x86_64-w64-mingw32-windres
+#WCC = i686-w64-mingw32-gcc
+#WINDRES = i686-w64-mingw32-windres
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
 WCC = gcc
@@ -44,37 +38,24 @@ $(WDIR)/win32.res: $(SDIR)/win32.rc
 
 $(WDIR)/%.o: $(SDIR)/%.c
 	$(WCC) $(CFLAGS) -DWIN32 $(INCLUDES)-c $< -o $@
-$(LDIR)/%.o: $(SDIR)/%.c
-	$(LCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
-
-
-all: default    # for QtCreator
-
-gui: $(LOBJS)
-	$(LCC) $^ $(LLIBS) -o $@
-
 gui.exe: $(WOBJS)
 	$(WCC) $^ $(WLIBS) -o $@
 
+$(LDIR)/%.o: $(SDIR)/%.c
+	$(LCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
+gui: $(LOBJS)
+	$(LCC) $^ $(LLIBS) -o $@
+
 
 voxel.zip: gui.exe
-	zip voxel.zip gui.exe README LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
-
-
-
-# Testing rules
-data: convertoct
-	./convertoct data/stanford-bunny.msh data/stanford-bunny.oct
-	./convertoct data/xyzrgb-dragon.msh data/xyzrgb-dragon.oct
-
-test: octview convertoct
-#	./octview data/stanford-bunny.oct
-	./octview data/xyzrgb-dragon.oct
+	zip voxel.zip gui.exe Readme.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
 
 # Housekeeping
 clean:
 	@rm -rf build gui gui.exe voxel.zip src/version.h
 
+# for QtCreator
+all: default
 
 # Create build directories
 $(shell	mkdir -p build/lin/GL build/win/GL)
