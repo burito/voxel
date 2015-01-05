@@ -133,7 +133,7 @@ int http_init(void)
 		printf("listen\n");
 	}
 
-	printf("http ok\n");
+	printf("HTTP Host  : OK\n");
 	memset(http_authorised_clients, 0, sizeof(http_auth)*HTTP_MAX_CLIENTS);
 	http_num_auth = 0;
 	memset(http_pending_requests, 0, sizeof(http_pending)*HTTP_MAX_CLIENTS);

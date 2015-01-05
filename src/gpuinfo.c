@@ -217,7 +217,7 @@ void gpuinfo_init(void)
 	nvml = dlopen("libnvidia-ml.so", RTLD_LAZY);
 	adl = dlopen("libatiadlxx.so", RTLD_LAZY);
 #endif
-
+	printf("GPU Temp   : ");
 	if(nvml)
 	{
 		EvilMacro(nvml, NVI, nvmlInit, "nvmlInit");
@@ -242,7 +242,7 @@ void gpuinfo_init(void)
 			ret = nvmlDeviceGetHandleByIndex(i, &nvml_devices[i]);
 			if(ret)printf("nvmlDeviceGetHandleByIndex(%d) = %d\n", i, ret);
 		}
-		printf("NVML\n");
+		printf("NVML ");
 
 	}
 	if(adl)
@@ -306,9 +306,13 @@ void gpuinfo_init(void)
 			}
 		}
 		free(adl_inf);
-		printf("ADL\n");
+		printf("ADL ");
 	}
 
+	if(!nvml && !adl)
+		printf("None.");
+
+	printf("\n");
 	gpuinfo_tick();
 }
 

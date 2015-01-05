@@ -544,7 +544,7 @@ void voxel_init(void)
 	int b_edge = 64;
 	int b_size = 8;
 
-	printf("Total vram = %dk\n", total_vram);
+	printf("Total VRAM : %dk\n", total_vram);
 
 	if(total_vram > 1200000) // 1.2gb of vram?
 	{
