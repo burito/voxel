@@ -70,6 +70,7 @@ widget* widget_new(int2 pos, int2 size)
 void widget_free(widget* w)
 {
 	if(!w)return;
+	if(latched == w)latched = widget_root;
 	widget_free(w->child);
 	widget_free(w->next);
 	if(w->free)w->free(w);
