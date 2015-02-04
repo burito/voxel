@@ -243,7 +243,7 @@ void brick_ray(
 	{	
 		float3 sample_loc = mix(near, far, pos)*iCount;
                 float4 voxeln = read_imagef(bricks, brSamp, (float4)(sample_loc+brick_pos, 0));
-                float4 voxelc = read_imagef(bricks, brSamp, (float4)(sample_loc+brick_pos, 0));
+                float4 voxelc = read_imagef(bricks_colour, brSamp, (float4)(sample_loc+brick_pos, 0));
                 retnorm.xyz += ((1.0-retnorm.w)*(1.0-retnorm.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
                 retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
                 retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
@@ -368,17 +368,17 @@ __kernel void Render(
 	}
 	if(colour.w > 0.01)
 	{
-		float3 nc = normalize(colour.xyz);
-		float3 lamb = {0.4,0.4,0.4};
+                float3 nc = normalize(normal.xyz);
+                float3 lamb = {0.7,0.7,0.7};
 		float3 lpwr = {0.3,0.3,0.3};
 		float3 ldir = {0,-1,0};
 		// diffuse lighting
 		float ill  = dot(ldir, nc);
-		colour.xyz = (float3)(lamb + ill * lpwr);
+                colour.xyz *= (lamb + ill * lpwr);
 		// specular lighting
 		float3 h = normalize( ldir + n );
                 ill = clamp( pow( dot( nc, h ), 15.0f ), 0.0f, 1.0f);
-		colour.xyz += (float3)(lpwr * ill);
+                colour.xyz += (lpwr * ill);
 	}
 	else colour.xyz = 0;
 	// debug information
@@ -386,7 +386,7 @@ __kernel void Render(
 //	colour.x = (float)ib / 15.0;
 //	colour.w = 1.0;
 
-	write_imagef(out, ipos, colour);
+        write_imagef(out, ipos, colour);
 }
 
 
