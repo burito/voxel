@@ -51,8 +51,8 @@ Afterword
 ---------
 It's a tech demo, don't expect it to work fast or at all.
 It only works on NVidia GPU's, I'm told it works on a GT240, but I
-use a GTX680, and advise you use something faster. AMD support is totally
-broken. With the help of my testers there is hope.
+use a GTX680, and advise you use something faster. AMD support is almost totally
+broken. It needs a miracle from AMD's driver team, not likely.
 
 -Dan
 
