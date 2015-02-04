@@ -5,27 +5,25 @@ It makes heavy use of GPU compute.
 
 Build Environment
 =================
-32bit Windows
--------------
-* Install [mingw-get-setup.exe](http://sourceforge.net/projects/mingw/)
-* When it asks, "mingw-developer-toolkit", "mingw32-base" and "mingw-gcc-g++"
-* Install http://msysgit.github.io/
-* Put their ``/bin`` directories in your ``PATH``.
-
-64bit Windows
--------------
+Windows
+-------
 * Install [mingw-w64-install.exe](http://sourceforge.net/projects/mingw-w64/files/)
 * Install http://msysgit.github.io/
 * Put their ``/bin`` directories in your ``PATH``.
+* At a git bash prompt type...
+    gendef `which opencl.dll`
+    dlltool -l libOpenCL.a -d OpenCL.def -k -A
+    mv libOpenCL.a /c/mingw64/mingw64/x86_64-w64-mingw32/lib    # Alter to taste
+* Source the OpenCL header files, give them to your compiler.
 
 Debian & Ubuntu
 ---------------
-    sudo apt-get install git-core libglu1-mesa-dev libxi-dev mingw-w64
+    sudo apt-get install git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
 
 Build Instructions
 ------------------
     git clone git@github.com:burito/voxel.git		# if you're using ssh
-    make -j8		# if you have 8 threads, alter to taste
+    make -j8		# if you have 8 threads
 
 By default, it will build the binary native for your platform.
 
@@ -43,13 +41,11 @@ Usage
 
 System Requirements
 -------------------
-* Needs OpenGL 4.3
+* Needs OpenGL 4.3 & OpenCL 1.1
 * Wants 64bit, but it's not needed. Yet.
-* You'll need up to date drivers. As of now that means Nvidia 340.24
+* You'll need up to date drivers. As of now that means Nvidia 347.25
 
-There is no Mac support, [OSX does not support OpenGL
-4.3.](https://developer.apple.com/graphicsimaging/opengl/capabilities/)
-
+There is no Mac support, [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
 
 Afterword
 ---------

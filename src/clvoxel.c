@@ -22,11 +22,17 @@ freely, subject to the following restrictions:
 */
 #include <GL/glew.h>
 
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define _MSC_VER 1
+#include <CL/cl_gl.h>
+#include <CL/cl.h>
+
 #include <stdio.h>
 #include <string.h>
 
 #include "main.h"
 #include "3dmaths.h"
+#include "ocl.h"
 #include "gui.h"
 #include "clvoxel.h"
 #include "shader.h"
@@ -39,7 +45,18 @@ int b_edge = 64;
 #define B_COUNT (b_edge*b_edge*b_edge)
 int np_size = 100000;
 
+
+OCLPROGRAM *clVox=NULL;
+int voxel_rebuildkernel_flag=0;
 int voxel_rebuildshader_flag=0;
+int Knl_Render;
+int Knl_ResetNodeTime;
+int Knl_ResetBrickTime;
+int Knl_NodeLRU;
+int Knl_NodeAlloc;
+int Knl_BrickLRU;
+int Knl_BrickAlloc;
+int use_glsl = 1;
 
 GLSLSHADER *s_Voxel=NULL;
 GLuint v_nn, v_nb, v_nut, v_nrt, v_brt, v_but;
@@ -75,7 +92,7 @@ GLuint bNL;		// Node Locality
 GLuint bBL;		// Brick Locality
 
 
-#define FBUFFER_SIZE	4196
+#define FBUFFER_SIZE	4096
 GLuint fbuffer;
 
 int frame = 0;
@@ -90,6 +107,11 @@ int populate = 1;
 void voxel_rebuildshader(widget* foo)
 {
 	voxel_rebuildshader_flag = 1;
+}
+
+void voxel_rebuildkernel(widget* foo)
+{
+	voxel_rebuildkernel_flag = 1;
 }
 
 GLuint vox_3Dtex(int3 size, int format, int interp)
@@ -107,9 +129,9 @@ GLuint vox_3Dtex(int3 size, int format, int interp)
 			glBaseFormat(format), glBaseType(format), NULL);
 //	printf("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
+	ocl_gltex3d(clVox, id);
 	return id;
 }
-
 
 GLuint vox_glbuf(int size, void *ptr)
 {
@@ -118,8 +140,69 @@ GLuint vox_glbuf(int size, void *ptr)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, buf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, size, ptr, GL_DYNAMIC_COPY);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	ocl_glbuf(clVox, buf);
 	return buf;
 }
+
+static void voxel_FindKernels(void)
+{
+	if(!clVox)return;
+	if(!clVox->happy)return;
+
+	for(int i=0; i<clVox->num_kernels; i++)
+	{
+		char buf[256];
+		clGetKernelInfo(clVox->k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
+		if(strstr(buf, "Render"))Knl_Render = i;
+		else if(strstr(buf, "ResetNodeTime"))Knl_ResetNodeTime = i;
+		else if(strstr(buf, "ResetBrickTime"))Knl_ResetBrickTime = i;
+		else if(strstr(buf, "NodeLRUSort"))Knl_NodeLRU = i;
+		else if(strstr(buf, "NodeAlloc"))Knl_NodeAlloc = i;
+		else if(strstr(buf, "BrickLRUSort"))Knl_BrickLRU = i;
+		else if(strstr(buf, "BrickAlloc"))Knl_BrickAlloc = i;
+	}
+}
+
+
+static void clvox_ResetTime(void)
+{
+	// Tell the GPU to reset the time buffers
+	if(!clVox->happy)return;
+	glFinish();
+	ocl_acquire(clVox);
+	cl_kernel k = clVox->k[Knl_ResetNodeTime];
+	clSetKernelArg(k, 0, sizeof(float), &time);
+	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[9]);
+	clSetKernelArg(k, 2, sizeof(cl_mem), &clVox->CLmem[7]);
+	clSetKernelArg(k, 3, sizeof(cl_mem), &clVox->CLmem[8]);
+
+	size_t work_size = np_size;
+	cl_int ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
+			NULL, 0, NULL, NULL);
+	if(ret != CL_SUCCESS)
+	{
+		clVox->happy = 0;
+		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+	}
+
+	// Tell the GPU to reset the brick time
+	k = clVox->k[Knl_ResetBrickTime];
+	clSetKernelArg(k, 0, sizeof(float), &time);
+	clSetKernelArg(k, 1, sizeof(cl_mem), &clVox->CLmem[12]);
+	clSetKernelArg(k, 2, sizeof(cl_mem), &clVox->CLmem[13]);
+
+	work_size = B_COUNT;
+	ret = clEnqueueNDRangeKernel(OpenCL->q, k, 1,NULL, &work_size,
+			NULL, 0, NULL, NULL);
+	if(ret != CL_SUCCESS)
+	{
+		clVox->happy = 0;
+		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+	}
+	ocl_release(clVox);
+}
+
+
 
 float texdepth= 0;
 void voxel_3dtexdraw(void)
@@ -371,15 +454,18 @@ void voxel_Voxel(int frame)
 	glUniform1i(s_Voxel->unif[0], frame);
 
 	glActiveTexture(GL_TEXTURE0 + 4);
+
 	glBindTexture(GL_TEXTURE_3D, t3DBrick);
-	glBindImageTexture(GL_TEXTURE4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
+	glBindImageTexture(4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_READ_ONLY, GL_RGBA16F);
 	glUniform1i(s_Voxel->unif[1], 4);
 
 	glActiveTexture(GL_TEXTURE0 + 5);
 	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
-	glBindImageTexture(GL_TEXTURE5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
+
+	glBindImageTexture(5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
 	GL_READ_ONLY, GL_RGBA8);
+
 	glUniform1i(s_Voxel->unif[2], 5);
 
 }
@@ -539,7 +625,11 @@ void voxel_init(void)
 	frame = 1;
 	total_vram = available_vram();
 	used_nodes = used_bricks = 0;
-	
+
+	clVox = ocl_build("./data/shaders/Voxel.OpenCL");
+	ocl_rm(clVox);
+	if(clVox->happy)voxel_FindKernels();
+
 	size_t size = np_size*8*4;
 	int b_edge = 64;
 	int b_size = 8;
@@ -549,12 +639,12 @@ void voxel_init(void)
 	if(total_vram > 1200000) // 1.2gb of vram?
 	{
 		shader_header =
-		"#define B_SIZE 8\n#define B_EDGE 64\n#define NP_SIZE 100000\n";
+		"#version 430\n#define B_SIZE 8\n#define B_EDGE 64\n#define NP_SIZE 100000\n";
 	}
 	else
 	{
 		shader_header =
-		"#define B_SIZE 8\n#define B_EDGE 48\n#define NP_SIZE 100000\n";
+		"#version 430\n#define B_SIZE 8\n#define B_EDGE 48\n#define NP_SIZE 100000\n";
 		b_edge = 48;
 	}
 
@@ -575,7 +665,6 @@ void voxel_init(void)
 	bBLU = vox_glbuf(B_COUNT*4, NULL);	// BrickLRU
 	bBLO = vox_glbuf(B_COUNT*4, NULL);	// BrickLRUOut
 	bBL = vox_glbuf(B_COUNT*4, NULL);	// BrickLocality
-
 
 	s_Voxel = shader_load("data/shaders/Vertex.GLSL","data/shaders/Voxel.GLSL");
 	s_Brick = shader_load("data/shaders/Vertex.GLSL","data/shaders/Brick.GLSL");
@@ -625,10 +714,10 @@ void voxel_init(void)
 
 	glGenFramebuffers(1, &fbuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
-	glFramebufferParameteri(GL_FRAMEBUFFER, 
-			GL_FRAMEBUFFER_DEFAULT_WIDTH, FBUFFER_SIZE);
-	glFramebufferParameteri(GL_FRAMEBUFFER,
-			GL_FRAMEBUFFER_DEFAULT_HEIGHT, FBUFFER_SIZE);
+//	glTexImage2D(GL_TEXTURE_2D, 0, intfmt, FBUFFER_SIZE, FBUFFER_SIZE, 0, type, GL_UNSIGNED_BYTE, img->buf);
+//	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbtex, 0);
+	glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH, FBUFFER_SIZE);
+	glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, FBUFFER_SIZE);
 	glFramebufferParameteri(GL_FRAMEBUFFER,GL_FRAMEBUFFER_DEFAULT_SAMPLES, 0);
 	glFramebufferParameteri(GL_FRAMEBUFFER,GL_FRAMEBUFFER_DEFAULT_LAYERS, 0);
 	GLenum err;
@@ -656,6 +745,7 @@ void print_atoms(void)
 	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
 
+int2 atm;
 int2 get_atoms(void)
 {
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
@@ -663,11 +753,14 @@ int2 get_atoms(void)
 
 	glCopyBufferSubData(GL_ATOMIC_COUNTER_BUFFER,
 			GL_SHADER_STORAGE_BUFFER, 0, 0, 8);
-	int2 atm;
+
 	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 8, (GLuint*)&atm);
 
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+//	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+//	printf("glUnmapBuffer(ssb)-%s\n", glError(glGetError()));
+//	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+//	printf("glUnmapBuffer(atomic)-%s\n", glError(glGetError()));
+
 	return atm;
 }
 
@@ -678,6 +771,7 @@ extern float4 angle;
 
 void voxel_loop(void)
 {
+	if(!clVox)return;
 	frame++;
 
 	if(keys[KEY_V])
@@ -697,6 +791,13 @@ void voxel_loop(void)
 	{
 		keys[KEY_Z] = 0;
 		voxel_rebuildshader_flag = 1;
+	}
+
+	if(voxel_rebuildkernel_flag)
+	{
+		voxel_rebuildkernel_flag = 0;
+		ocl_rebuild(clVox);
+		if(clVox->happy)voxel_FindKernels();
 	}
 
 	if(voxel_rebuildshader_flag)
@@ -725,13 +826,106 @@ void voxel_loop(void)
 	float tleft, tright;
 	float ttop, tbottom;
 
+	/* Render the oct-tree to screen */
+	if(!use_glsl)
+	{	/* OpenCL Rendering */
+		if(!clVox->happy)return;
+		OCLPROGRAM *p = clVox;
 
-	voxel_Voxel(frame);
-	tleft = 0; tright = 1;
-	float srat = ((float)vid_height / (float)vid_width) * 0.5;
-	ttop = 0.5 - srat;
-	tbottom = 0.5 + srat;
+		cl_int ret;
+	//	cl_event e;
+		size_t work_size[] = { vid_width, vid_height };
 
+		glFinish();
+		ocl_acquire(p);
+/*	1 = t3DBrick = vox_3Dtex(cube, GL_RGBA16F, GL_LINEAR);
+	2 = t3DBrickColour = vox_3Dtex(cube, GL_RGBA8, GL_LINEAR);
+	3 = bCamera = vox_glbuf(sizeof(float)*8, NULL);	// camera
+	4 = bNN = vox_glbuf(size, NULL);	// NodeNode
+	5 = bNL = vox_glbuf(size, NULL);	// NodeLocality
+	6 = bNB = vox_glbuf(size, NULL);	// NodeBrick
+	7 = bNRT = vox_glbuf(size, NULL);	// NodeReqTime
+	8 = bBRT = vox_glbuf(size, NULL);	// BrickReqTime
+	9 = bNUT = vox_glbuf(np_size*4, NULL);	// NodeUseTime
+	10 = bNLU = vox_glbuf(np_size*4, NULL);	// NodeLRU
+	11 = bNLO = vox_glbuf(np_size*4, NULL);	// NodeLRUOut
+	12 = bBUT = vox_glbuf(B_COUNT*4, NULL);	// BrickUseTime
+	13 = bBLU = vox_glbuf(B_COUNT*4, NULL);	// BrickLRU
+	14 = bBLO = vox_glbuf(B_COUNT*4, NULL);	// BrickLRUOut
+	15 = bBL = vox_glbuf(B_COUNT*4, NULL);	// BrickLocality
+
+	//OpenCL order...
+	0 = output buffer
+	1 = brick normal
+	2 = brick colour
+	3 = camera pos
+	4 = time
+	5 = node node	= 4
+	6 = node brick	= 6
+	7 = nodeRU	= 7
+	8 = bRU		= 8
+	9 = nUT		= 9
+	10 = bUT	= 12
+
+*/
+		cl_kernel k = p->k[Knl_Render];
+		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+
+		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[3], CL_TRUE, 0, 16,
+			&pos, 0, NULL, NULL);
+		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
+		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[3], CL_TRUE, 16, 16,
+			&angle, 0, NULL, NULL);
+		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
+	//	clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
+
+		ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);	// brick buffer
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);	// brick colour buffer
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+
+		ret = clSetKernelArg(k, 3, sizeof(cl_mem), &p->CLmem[3]);	// camera position buffer
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+
+		ret = clSetKernelArg(k, 4, sizeof(GLint), &frame);		// time
+		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
+		clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[6]);
+		clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[7]);
+		clSetKernelArg(k, 8, sizeof(cl_mem), &p->CLmem[8]);
+		clSetKernelArg(k, 9, sizeof(cl_mem), &p->CLmem[9]);
+		clSetKernelArg(k, 10, sizeof(cl_mem), &p->CLmem[12]);
+
+
+		ret = clEnqueueNDRangeKernel(OpenCL->q, k, 2,NULL, work_size,
+				NULL, 0, NULL, NULL);
+		if(ret != CL_SUCCESS)
+		{
+			p->happy = 0;
+			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+		}
+
+		ocl_release(p);
+		clFinish(OpenCL->q);
+	//	clWaitForEvents(1, &e);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, p->GLid[0]);
+			tleft = ttop = 0;
+		tright = (float)(vid_width)/(float)sys_width;
+		tbottom = (float)(vid_height)/(float)sys_height;
+	}
+	else
+	{	/* GLSL Rendering */
+		voxel_Voxel(frame);
+
+		tleft = 0; tright = 1;
+		float srat = ((float)vid_height / (float)vid_width) * 0.5;
+		ttop = 0.5 - srat;
+		tbottom = 0.5 + srat;
+	}
+
+	/* Output the Quad that covers the screen */
 	float left = 0, right = vid_width;
 	float top = 0, bottom = vid_height;
 	glMatrixMode(GL_PROJECTION);
@@ -748,11 +942,19 @@ void voxel_loop(void)
 	glTexCoord2f(tleft, ttop); glVertex2f(left, bottom);
 	glEnd();
 
+	if(!use_glsl)
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDisable(GL_TEXTURE_2D);
+	}
+	else
+	{
+		glUseProgram(0);
+	}
 
-	glUseProgram(0);
 
+	/* build the oct-tree */
 
-	
 //		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	//	if(vobj)print_breq(frame);
 
@@ -841,8 +1043,9 @@ void voxel_loop(void)
 		glViewport(0,0,vid_width, vid_height);
 		if(frame >= (tree_depth)*4) populate = 0;
 
-		}
+	}
 	// all done
+
 	glUseProgram(0);
 	glDisable(GL_TEXTURE_3D);
 //	glActiveTexture(GL_TEXTURE4);
@@ -852,10 +1055,13 @@ void voxel_loop(void)
 //	printf("Nodes = %d, Bricks = %d\n", used_nodes, used_bricks);
 
 	if(texdraw)voxel_3dtexdraw();
+
 }
 
 void voxel_end(void)
 {
+	ocl_free(clVox);
+
 	shader_free(s_Voxel);
 	shader_free(s_Brick);
 	shader_free(s_BrickDry);
@@ -889,9 +1095,16 @@ void voxel_open(void)
 	frame = 0;
 	odd_frame = 0;
 	vdepth = 1;
-	voxel_NodeClear();
-	voxel_NodeLRUReset(frame);
-	voxel_BrickLRUReset(frame);
+//	if(use_glsl)
+//	{
+		voxel_NodeClear();
+		voxel_NodeLRUReset(frame);
+		voxel_BrickLRUReset(frame);
+//	}
+//	else
+//	{
+//		clvox_ResetTime();
+//	}
 }
 
 

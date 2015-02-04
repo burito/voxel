@@ -21,8 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#version 430
-
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
 uniform sampler2D tex;

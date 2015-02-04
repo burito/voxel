@@ -21,8 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#version 430
-
 layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(shared, binding=0) buffer node_usetime { int i[]; } NodeUseTime;
@@ -33,15 +31,15 @@ uniform int time;
 
 void main(void)
 {
-	uint off = gl_GlobalInvocationID.x * 10;
-	off += gl_GlobalInvocationID.y;
+        uint offset = gl_GlobalInvocationID.x * 10;
+        offset += gl_GlobalInvocationID.y;
 
-	NodeUseTime.i[off] = time;
-	NodeLRU.i[off] = int(off);
+        NodeUseTime.i[offset] = time;
+        NodeLRU.i[offset] = int(offset);
 	for(int i=0; i< 8; i++)
 	{
-		NodeReqTime.i[off][i] = time;
-		BrickReqTime.i[off][i] = time;
+                NodeReqTime.i[offset][i] = time;
+                BrickReqTime.i[offset][i] = time;
 	}
 }
 

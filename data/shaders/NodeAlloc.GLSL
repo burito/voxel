@@ -21,8 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#version 430
-
 layout(local_size_x = 1, local_size_y = 1) in;
 
 
@@ -37,19 +35,20 @@ uniform int time;
 
 void main(void)
 {
-	uint off = gl_GlobalInvocationID.x * 10;
-	off = (off+gl_GlobalInvocationID.y) * 8;
-	off += gl_GlobalInvocationID.z;
+        uint offset = gl_GlobalInvocationID.x * 10;
+        offset = (offset+gl_GlobalInvocationID.y) * 8;
+        offset += gl_GlobalInvocationID.z;
 
-	int node_time = NodeReqTime.i[off];
-	if(time != node_time)return;
+        int req_time = NodeReqTime.i[offset];
+        if(time != req_time)return;
+
 	int dest = NodeLRU.i[ (NP_SIZE-1) - atomicCounterIncrement(atomStale)];
-	NodeNode.i[off] = dest;
+        NodeNode.i[offset] = dest;
 
 	uint old_parent = NodeLoc.i[dest*8];
 	if(old_parent != 0)NodeNode.i[old_parent] = 0;
 
-	NodeLoc.i[dest*8] = off;	// New nodes parent ptr
+        NodeLoc.i[dest*8] = offset;	// New nodes parent ptr
 
 	for(int j=0; j<8; j++)
 		NodeNode.i[dest*8+j] = 0;

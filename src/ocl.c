@@ -97,22 +97,8 @@ void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format)
 	p->CLmem[i] = mem;
 }
 
-void ocl_gltex3d(OCLPROGRAM *p, int3 size)
+void ocl_gltex3d(OCLPROGRAM *p, GLuint id)
 {
-	GLuint id;
-	glGenTextures(1, &id);
-	glBindTexture(GL_TEXTURE_3D, id);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, size.x, size.y, size.z, 0,
-			GL_RGBA, GL_FLOAT, NULL);
-//	printf("Error = \"%s\"\n", glError(glGetError()));
-	glBindTexture(GL_TEXTURE_3D, 0);
-
 	cl_int ret;
 	cl_mem mem = clCreateFromGLTexture3D(OpenCL->c, CL_MEM_READ_WRITE,
 		GL_TEXTURE_3D, 0, id, &ret);
@@ -124,28 +110,23 @@ void ocl_gltex3d(OCLPROGRAM *p, int3 size)
 
 	ocl_allocmem(p);
 	int i = p->num_mem - 1;
-	p->GLid[i] = id;
+	p->GLid[i] = 0;
 	p->GLtype[i] = GL_TEXTURE_3D;
 	p->CLmem[i] = mem;
 }
 
-void ocl_glbuf(OCLPROGRAM *p, int size, void *ptr)
+void ocl_glbuf(OCLPROGRAM *p, GLuint buf)
 {
-	GLuint buf;
-	glGenBuffers(1, &buf);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, buf);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, size, ptr, GL_DYNAMIC_COPY);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	cl_int ret;
 	cl_mem mem = clCreateFromGLBuffer(OpenCL->c, CL_MEM_READ_WRITE, buf, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("glbuf(%d):%s\n", size, clStrError(ret));
+		printf("glbuf():%s\n", clStrError(ret));
 //		glDeleteBuffers(1, &buf);
 	}
 	ocl_allocmem(p);
 	int i = p->num_mem - 1;
-	p->GLid[i] = buf;
+	p->GLid[i] = 0;
 	p->GLtype[i] = GL_ARRAY_BUFFER;
 	p->CLmem[i] = mem;
 }
@@ -209,17 +190,29 @@ int ocl_init(void)
 
 		char b[1024];
 		size_t bs = 1024;
+		clGetPlatformInfo( c->pid[i], CL_PLATFORM_VENDOR, bs, b, &bs);
+		printf("CL Vendor  : %s\n", b);
+		bs = 1024;
 		clGetPlatformInfo( c->pid[i], CL_PLATFORM_NAME, bs, b, &bs);
-//		printf("cl->pid[%d]:\"%s\"\n", i, b);
+		printf("CL Platform: %s\n", b);
+		bs = 1024;
+		clGetPlatformInfo( c->pid[i], CL_PLATFORM_VERSION, bs, b, &bs);
+		printf("CL Version : %s\n", b);
 		for(int j=0; j < c->num_did[i]; j++)
 		{
-			bs = 1024;
+//			bs = 1024;
 //			clGetDeviceInfo(c->did[i][j], CL_DEVICE_EXTENSIONS, bs, b, &bs);
 //			char *supported = strstr(b, "cl_khr_gl_sharing");
 //			printf("cl->did[%d][%d]%s:", i, j, (supported?":GL":":-("));
 			bs = 1024;
 			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, b, &bs);
-//			printf("\"%s\"\n", b);
+			printf("CL Dev Name: %s\n", b);
+			bs = 1024;
+			clGetDeviceInfo(c->did[i][j], CL_DEVICE_VERSION, bs, b, &bs);
+			printf("CL Dev Ver : %s\n", b);
+			bs = 1024;
+			clGetDeviceInfo(c->did[i][j], CL_DRIVER_VERSION, bs, b, &bs);
+			printf("CL Driv Ver: %s\n", b);
 		}
 	}
 
@@ -252,6 +245,7 @@ int ocl_init(void)
 		return 2;
 	}
 	OpenCL->happy = 1;
+
 	return 0;
 }
 
@@ -310,11 +304,12 @@ void ocl_free(OCLPROGRAM *p)
 	{
 		switch(p->GLtype[i]) {
 		case GL_TEXTURE_2D:
-		case GL_TEXTURE_3D:
+//		case GL_TEXTURE_3D:
 			glDeleteTextures(1, &p->GLid[i]);
 			break;
-		case GL_ARRAY_BUFFER:
-			glDeleteBuffers(1, &p->GLid[i]);
+//		case GL_ARRAY_BUFFER:
+//			glDeleteBuffers(1, &p->GLid[i]);
+		default:
 			break;
 		}
 		clReleaseMemObject(p->CLmem[i]);
@@ -410,6 +405,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	// Allocate the appropriate buffers.
 	
 	int2 size = {sys_width, sys_height};
+
 	ocl_gltex2d(clprog, size, GL_RGBA, GL_UNSIGNED_BYTE);
 	ocl_add(clprog);
 	ocl_rebuild(clprog);

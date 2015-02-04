@@ -1,16 +1,18 @@
 CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
 PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o gpuinfo.o
-LIBRARIES = -lm
+LIBRARIES = -lm -lOpenCL
 SDIR = src
 
 OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o \
-	http.o
+	http.o ocl.o
 
 # Build rules
 WDIR = build/win
 _WOBJS = $(OBJS) win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32
+WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 -lOpenCL
+#	-L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"
+#	-L"C:\Program Files (x86)\AMD APP SDK\3.0-0-Beta\lib\x86_64"
 
 LDIR = build/lin
 LCC = gcc
