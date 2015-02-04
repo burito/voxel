@@ -155,7 +155,7 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 			switch(buf[i+5]) {
 			case 'a': targeti = NULL; break; //targeti = &m->map_Ka; break;		// ambient
 			case 'd': targeti = &m->map_Kd; break;		// diffuse
-			case 'u': targeti = &m->map_bump; break;	// bump
+//			case 'u': targeti = &m->map_bump; break;	// bump
 			default:  targeti = NULL; break;
 			}
 			if(!targeti)break;
@@ -517,15 +517,9 @@ static void wf_vbo_load(WF_OBJ *w)
 {
 #ifndef STATIC_TEST
 	if(!w)return;
-
 	w->vbo = 0;
-	printf("genbuffers\n");
-	printf("%s\n", glError(glGetError()));
-
 	glGenBuffersARB(1, &w->vbo);
-	printf("bindbuffer\n");
 	glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
-	printf("bufferdata\n");
 	if(w->p)
 	{
 		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*32, w->p, GL_STATIC_DRAW);
@@ -983,6 +977,7 @@ WF_OBJ* wf_load(char * filename)
 	WF_OBJ *w = wf_parse(filename);
 
 	wf_bound(w);
+
 	if(w->nv != w->nn)wf_normals(w);
 	wf_texcoords(w);
 
@@ -1001,7 +996,6 @@ WF_OBJ* wf_load(char * filename)
 	{
 		wf_interleave(w);
 		wf_vbo_load(w);
-
 		w->draw = wf_drawelements;
 	}
 	else

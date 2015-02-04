@@ -21,8 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#version 430
-
 layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(shared, binding=0) buffer brick_usetime { int i[]; } BrickUseTime;

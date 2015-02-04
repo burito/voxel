@@ -39,6 +39,7 @@ freely, subject to the following restrictions:
 #include "mesh.h"
 #include "gui.h"
 #include "fontstash.h"
+#include "ocl.h"
 #include "clvoxel.h"
 #include "gpuinfo.h"
 #include "http.h"
@@ -553,6 +554,96 @@ void widget_menu_release(widget *w)
 }
 
 /*
+ * Widget OCL Functions
+ */
+
+
+void widget_window_ocl_draw(widget *w)
+{
+	widget_window_draw(w);
+	float left=10, right=w->size.x - 10;
+	float top=-40, bottom = -w->size.y + 10;
+
+	glColor4f(1,1,1,1);
+	sth_begin_draw(stash);
+	sth_draw_text(stash, 3, 20.0f, 6, -20, "\u2211", 0);
+	sth_end_draw(stash);
+
+	if(w->clicked == 10)
+	{
+		glColor4f(0.5f, 0.5f, 0.2f, 0.4f);
+		glTranslatef(0, -5, 0);
+		draw_rect(20, 23);
+		glTranslatef(0, 5, 0);
+		glColor4f(1,1,1,1);
+	}
+
+
+	float tx = (float)(w->size.x-20)/(float)sys_width;
+	float ty = (float)(w->size.y-50)/(float)sys_height;
+
+	OCLPROGRAM *p = w->data2;
+
+	glColor4f(1,1,1,1);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, p->GLid[0]);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 0); glVertex2f(left, top);
+	glTexCoord2f(tx, 0); glVertex2f(right, top);
+	glTexCoord2f(tx, ty); glVertex2f(right, bottom);
+	glTexCoord2f(0, ty); glVertex2f(left, bottom);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+}
+
+void widget_window_ocl_onclick(widget *w)
+{
+	widget_window_onclick(w);
+
+	if(w->clicked == 2)
+	if(w->delta.x < 23)
+		w->clicked = 10;
+
+}
+
+void widget_window_ocl_release(widget *w)
+{
+	widget_window_release(w);
+	if(w->clicked == 10)
+	if(w->delta.x > 0)
+	if(w->delta.x < 23)
+	if(w->delta.y > 5)
+	if(w->delta.y < 28)
+	{
+		ocl_rebuild(w->data2);
+	}
+
+
+}
+
+
+void widget_window_ocl_free(widget *w)
+{
+	OCLPROGRAM *m = w->data2;
+	ocl_free(m);
+}
+
+widget* spawn_ocl(char* filename)
+{
+	widget *w = widget_window_new(100, 100, filename);
+	w->draw = widget_window_ocl_draw;
+	w->release = widget_window_ocl_release;
+	w->onclick = widget_window_ocl_onclick;
+	w->free = widget_window_ocl_free;
+	OCLPROGRAM *p = ocl_build(filename);
+	w->data2 = p;
+	p->window = w;
+	widget_add(w);
+	return w;
+}
+
+/*
  * Widget List Functions
  */
 
@@ -877,6 +968,16 @@ void open_test(widget *w)
 			widget_destroy(p);
 			break;
 		}
+	case 'n':
+	case 'N':
+		switch(buf[len-2]) {
+		case 'c':
+		case 'C':	// OpenCL - OpenCL kernel
+			spawn_ocl(buf);
+			widget_destroy(p);
+			break;
+		}
+		break;
 
 	default:
 		break;
@@ -1107,8 +1208,35 @@ void spawn_gpuinfo(widget *x)
 		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
 	widget_child_add(w, item);
 
+	item = widget_text_new(10, 175, "OpenCL");
+	item->fontsize = 30.0f;
+	item->fontface = 1;
+	widget_child_add(w, item);
+
+	int count = 0;
+	size_t bs=1000;
+	char buf[bs];
+	OCLCONTEXT *c = OpenCL;
+		for(int i=0; i<c->num_pid; i++)
+	{
+		bs = 1000;
+		clGetPlatformInfo( c->pid[i], CL_PLATFORM_NAME, bs, buf, &bs);
+		item = widget_text_new(10, 200+count*20, hcopy(buf));
+		widget_child_add(w, item);
+		count ++;
+
+		for(int j=0; j<c->num_did[i]; j++)
+		{
+			bs = 1000;
+			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, buf, &bs);
+			item = widget_text_new(20, 200+count*20, hcopy(buf));
+			widget_child_add(w, item);
+			count ++;
+		}
+	}
+
 	w->size.x = 330;
-	w->size.y = 155;
+	w->size.y = 190 + count * 20;
 	w->noResize = 1;
 	widget_add(w);
 }
@@ -1312,15 +1440,24 @@ void widget_menu_bool_draw(widget *w)
 	sth_end_draw(stash);
 }
 
+
 void menu_killme(widget *w)
 {
 	killme = 1;
 }
 
+
 void menu_fullscreen(widget *w)
 {
 	fullscreen_toggle++;
 }
+
+
+void menu_glsl(widget *w)
+{
+	use_glsl = !use_glsl;
+}
+
 
 void menu_texdraw(widget *w)
 {
@@ -1328,11 +1465,13 @@ void menu_texdraw(widget *w)
 	texdraw = !texdraw;
 }
 
+
 void font_load(int i, char *path)
 {
 	int ret = sth_add_font(stash, path);
 	if(!ret)printf("Failed to load font %d:\"%s\"\n", i, path);
 }
+
 
 widget* widget_menu_separator_add(widget *item)
 {
@@ -1343,10 +1482,12 @@ widget* widget_menu_separator_add(widget *item)
 	return w;
 }
 
+
 void menu_http_toggle(widget *w)
 {
 	http_accepting_new_clients = !http_accepting_new_clients;
 }
+
 
 int frame_number = 0;
 #define MAX_FRAMES 60
@@ -1375,19 +1516,26 @@ int gui_init(int argc, char *argv[])
 	widget_menu_item_add(item, "Exit", menu_killme);
 
 	item = widget_menu_add(menu, "Display");
-	w = widget_menu_item_add(item, "	 Fullscreen - F11", menu_fullscreen);
+	w = widget_menu_item_add(item, "     Fullscreen - F11", menu_fullscreen);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &fullscreen;
-	w = widget_menu_item_add(item, "	 Draw 3D Texture", menu_texdraw);
+
+	w = widget_menu_item_add(item, "     GLSL Renderer", &menu_glsl);
+	w->draw = widget_menu_bool_draw;
+	w->data2 = &use_glsl;
+
+	w = widget_menu_item_add(item, "     Draw 3D Texture", menu_texdraw);
 	w->draw = widget_menu_bool_draw;
 	extern int texdraw;
 	w->data2 = &texdraw;
+
 	widget_menu_item_add(item, "GPU Information", spawn_gpuinfo);
 	widget_menu_separator_add(item);
+	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
 	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
 
 	item = widget_menu_add(menu, "Input");
-	w = widget_menu_item_add(item, "	 Accepting Tablets",
+	w = widget_menu_item_add(item, "     Accepting Tablets",
 		menu_http_toggle);
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &http_accepting_new_clients;

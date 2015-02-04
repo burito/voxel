@@ -21,8 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#version 430
-
 precision highp float;
 precision highp int;
 
@@ -260,9 +258,7 @@ inout vec4 normal, inout float remainder)
 		retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
 		retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
 		retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
-//		result.xyz = result.xyz + (1.0-result.w) * voxel.xyz;
-//		result.w = result.w + (1.0-result.w) * voxel.w;
-		if(retcol.w > 1.0)break;
+                if(retcol.w > 1.0)break;
 	}
 	remainder = (pos - 1.0) /steps;
 	normal = retnorm;

@@ -383,7 +383,7 @@ static void handle_events(void)
 
             int foo = sys_time() / 1000;
 
-            printf("mouse[] %d, @ %d\n", foo, (int)event.xbutton.time);
+  //          printf("mouse[] %d, @ %d\n", foo, (int)event.xbutton.time);
             break;
         case ButtonRelease:
             switch(event.xbutton.button) {
@@ -415,7 +415,7 @@ static void handle_events(void)
 
 /* keyboard */
         case KeyPress:
-            printf("keyd[%d] @ %d\n", event.xkey.keycode, (int)event.xkey.time);
+//            printf("keyd[%d] @ %d\n", event.xkey.keycode, (int)event.xkey.time);
             if(event.xkey.keycode < KEYMAX)
                 keys[event.xkey.keycode] = 1;
             break;

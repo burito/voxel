@@ -64,7 +64,7 @@ float slab_exitside(float3 p, float3 in, float4 box, float3 *axis)
 	float3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * in;
 	nearfar[1] = (box.xyz+box.w - p) * in;
-	int3 ind = convert_int(step(0.0, in));
+        int3 ind = convert_int3(step(0.0f, in));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -97,7 +97,7 @@ float slab_exit(float3 p, float3 in, float4 box)
 	float3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * in;
 	nearfar[1] = (box.xyz+box.w - p) * in;
-	int3 ind = convert_int(step(0.0, in));
+        int3 ind = convert_int3(step(0.0, in));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -110,7 +110,7 @@ float slab_enter(float3 p, float3 in, float4 box)
 	float3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * in;
 	nearfar[1] = (box.xyz+box.w - p) * in;
-	int3 ind = convert_int(step(0.0, -in));
+        int3 ind = convert_int3(step(0.0, -in));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -121,23 +121,23 @@ float slab_enter(float3 p, float3 in, float4 box)
 int oct_child(float3 pos, float4 *vol)
 {
 	int child=0;
-	vol->w *= 0.5;
-	float3 mid = vol->xyz + vol->w;
+        (*vol).w *= 0.5f;
+        float3 mid = (*vol).xyz + (*vol).w;
 	if(pos.x >= mid.x)
 	{
-		vol->x +=vol->w;
+                (*vol).x += (*vol).w;
 		child += 1;
 	}
 
 	if(pos.y >= mid.y)
 	{
-		vol->y += vol->w;
+                (*vol).y += (*vol).w;
 		child += 2;
 	}
 
 	if(pos.z >= mid.z)
 	{
-		vol->z += vol->w;
+                (*vol).z += (*vol).w;
 		child += 4;
 	}
 	return child;
@@ -161,7 +161,7 @@ int find_brick(
 	int tmp;
 	float volume = size * (float)B_SIZE;
 
-	while(volume < box->w)
+        while(volume < (*box).w)
 	{
 		NodeUseTime[parent] = time;
 		tmp = NodeNode[parent][child];
@@ -211,12 +211,14 @@ int3 brick_origini(int brick_id)
 
 
 void brick_ray(
-			__read_only image3d_t bricks,
+                        __read_only image3d_t bricks,
+                        __read_only image3d_t bricks_colour,
 			int brick_id,
 			float3 near,
 			float3 far,
-			float4 *colour,
-			float *steprem)
+                        float4 *colour,
+                        float4 *normal,
+                        float *steprem)
 {
 	float iSize = 1.0 / (float)B_SIZE;
 	float iCount = 1.0 / (float)B_EDGE;
@@ -225,7 +227,8 @@ void brick_ray(
 	far = far * (iSize * (B_SIZE-1)) + (float3)hs;
 	float len = length(far - near);
 	float3 brick_pos = brick_origin(brick_id);
-	float4 result = *colour;
+        float4 retnorm = *normal;
+        float4 retcol = *colour;
 
 	const sampler_t brSamp = CLK_NORMALIZED_COORDS_TRUE |
 							 CLK_ADDRESS_CLAMP_TO_EDGE |
@@ -239,16 +242,17 @@ void brick_ray(
 	for(pos= *steprem * steps; pos < 1.0; pos += steps)
 	{	
 		float3 sample_loc = mix(near, far, pos)*iCount;
-		float4 voxel = read_imagef(bricks, brSamp,
-			(float4)(sample_loc+brick_pos, 0));
-		result.xyz += ((1.0-result.w)*(1.0-result.w) * voxel.xyz)/(1.0 - result.xyz * voxel.xyz);
-		result.w = result.w + (1.0-result.w) * voxel.w;
-//		result.xyz = result.xyz + (1.0-result.w) * voxel.xyz;
-//		result.w = result.w + (1.0-result.w) * voxel.w;
-		if(result.w > 1.0)break;
+                float4 voxeln = read_imagef(bricks, brSamp, (float4)(sample_loc+brick_pos, 0));
+                float4 voxelc = read_imagef(bricks, brSamp, (float4)(sample_loc+brick_pos, 0));
+                retnorm.xyz += ((1.0-retnorm.w)*(1.0-retnorm.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
+                retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
+                retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
+                retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
+                if(retcol.w > 1.0)break;
 	}
-	*steprem = (pos - 1.0) /steps;
-	*colour = result;
+        *steprem = (pos - 1.0) /steps;
+        *normal = retnorm;
+        *colour = retcol;
 }
 
 
@@ -273,8 +277,9 @@ float3 escape(float3 pos, float3 normal, float4 box)
 
 __kernel void Render(
 			__write_only image2d_t out,
-			__read_only image3d_t bricks,
-			__global float4 *camera,
+                        __read_only image3d_t bricks,
+                        __read_only image3d_t bricks_colour,
+                        __global float4 *camera,
 			const int time,
 			__global int NodeNode[][8],
 			__global int NodeBrick[][8],
@@ -285,7 +290,7 @@ __kernel void Render(
 {
 	int2 ipos = {get_global_id(0), get_global_id(1)};
 	float2 size = {get_global_size(0), get_global_size(1)};
-	float2 fpos = convert_float(ipos);
+        float2 fpos = convert_float2(ipos);
 
 	float3 p = camera[0].xyz;
 	float3 angle = camera[1].xyz;
@@ -337,7 +342,8 @@ __kernel void Render(
 
 	// loop until we hit something solid/exit the volume
 	float4 colour = {0.0,0.0,0.0,0.0};
-	int i, ib=0;
+        float4 normal = {0.0,0.0,0.0,0.0};
+        int i, ib=0;
 	for(i=0; i<50 && colour.w < 1.0; i++)
 	{
 		float3 axis;
@@ -348,7 +354,7 @@ __kernel void Render(
 		{
 			float3 bnear = (near - box.xyz) / box.w;
 			float3 bfar = (far - box.xyz) / box.w;
-			brick_ray(bricks, brick_id, bnear, bfar, &colour, &steprem);
+                        brick_ray(bricks, bricks_colour, brick_id, bnear, bfar, &colour, &normal, &steprem);
 			ib++;
 		}
 		else steprem = 0;
@@ -371,7 +377,7 @@ __kernel void Render(
 		colour.xyz = (float3)(lamb + ill * lpwr);
 		// specular lighting
 		float3 h = normalize( ldir + n );
-		ill = clamp( pow( dot( nc, h ), 15.0 ), 0.0, 1.0);
+                ill = clamp( pow( dot( nc, h ), 15.0f ), 0.0f, 1.0f);
 		colour.xyz += (float3)(lpwr * ill);
 	}
 	else colour.xyz = 0;
@@ -383,117 +389,134 @@ __kernel void Render(
 	write_imagef(out, ipos, colour);
 }
 
-__kernel void ResetNodeTime(
-			const float time,
-			__global float NodeUseTime[][8],
-			__global float NodeReqTime[][8],
-			__global float BrickReqTime[][8])
+
+__kernel void NodeLRUReset(
+                        const int time,
+                        __global int NodeUseTime[],
+                        __global int NodeLRU[],
+                        __global int NodeReqTime[][8],
+                        __global int BrickReqTime[][8])
 {
-	int i = get_global_id(0);
-	for(int j=0; j< 8; j++)
-	{
-		NodeUseTime[i][j] = time;
-		NodeReqTime[i][j] = time;
-		BrickReqTime[i][j] = time;
-	}
+        int offset = get_global_id(0);
+
+        NodeUseTime[offset] = time;
+        NodeLRU[offset] = offset;
+        for(int i=0; i < 8; i++)
+        {
+                NodeReqTime[offset][i] = time;
+                BrickReqTime[offset][i] = time;
+        }
 }
 
 __kernel void ResetBrickTime(const int time,
-		__global int* BrickUseTime,
-		__global int* BrickLRU)
+                __global int* BrickUseTime,
+                __global int* BrickLRU)
 {
-	int i = get_global_id(0);
-	BrickUseTime[i] = time;
-	BrickLRU[i] = i;
+        int i = get_global_id(0);
+        BrickUseTime[i] = time;
+        BrickLRU[i] = i;
 }
 
 
 __kernel void NodeLRUsort(const int time,
-				__global int* NodeUseTime,
-				__global int* NodeLRU,
-				__global int* NodeLRUOut)
+                                __global int* NodeUseTime,
+                                __global int* NodeLRU,
+                                __global int* NodeLRUOut)
 {
-	__local volatile int atm_used, atm_unused;
-	atm_used = 0; atm_unused = B_COUNT-1;
-	barrier(CLK_LOCAL_MEM_FENCE);
-	int i = NodeLRU[get_global_id(0)];
-	int node_time = NodeUseTime[i];
-	if(time == node_time)
-	{
-		NodeLRUOut[atomic_inc(&atm_used)] = i;
-	}
-	else
-	{
-		NodeLRUOut[atomic_dec(&atm_unused)] = i;
-	}
+        __local volatile int atm_used, atm_unused;
+        atm_used = 0; atm_unused = B_COUNT-1;
+        barrier(CLK_LOCAL_MEM_FENCE);
+        int i = NodeLRU[get_global_id(0)];
+        int node_time = NodeUseTime[i];
+        if(time == node_time)
+        {
+                NodeLRUOut[atomic_inc(&atm_used)] = i;
+        }
+        else
+        {
+                NodeLRUOut[atomic_dec(&atm_unused)] = i;
+        }
 }
 
 __kernel void BrickLRUsort(const int time,
-				__global int* BrickUseTime,
-				__global int* BrickLRU,
-				__global int* BrickLRUOut)
+                                __global int* BrickUseTime,
+                                __global int* BrickLRU,
+                                __global int* BrickLRUOut)
 {
-	__local volatile int atm_used, atm_unused;
-	atm_used = 0; atm_unused = NP_SIZE-1;
-	barrier(CLK_LOCAL_MEM_FENCE);
-	int i = BrickLRU[get_global_id(0)];
-	int brick_time = BrickUseTime[i];
-	if(time == brick_time)
-	{
-		BrickLRUOut[atomic_inc(&atm_used)] = i;
-	}
-	else
-	{
-		BrickLRUOut[atomic_dec(&atm_unused)] = i;
-	}
+        __local volatile int atm_used, atm_unused;
+        atm_used = 0; atm_unused = NP_SIZE-1;
+        barrier(CLK_LOCAL_MEM_FENCE);
+        int i = BrickLRU[get_global_id(0)];
+        int brick_time = BrickUseTime[i];
+        if(time == brick_time)
+        {
+                BrickLRUOut[atomic_inc(&atm_used)] = i;
+        }
+        else
+        {
+                BrickLRUOut[atomic_dec(&atm_unused)] = i;
+        }
 }
 
 __kernel void NodeAlloc(const int time,
-				__global int* NodeNode,
-				__global int* NodeBrick,
-				__global int* NodeReqTime,
-				__global int* NodeLRU)
+                                __global int* NodeNode,
+                                __global int* NodeReqTime,
+                                __global int* NodeLRU,
+                                __global int* NodeLoc)
 {
-	__local volatile int atm;
-	atm = NP_SIZE - 1;
-	barrier(CLK_LOCAL_MEM_FENCE);
-	int i = get_global_id(0);
-	int req_time = NodeReqTime[i];
-	if(time != req_time)return;
+        __local volatile int atm;
+        atm = NP_SIZE - 1;
+        barrier(CLK_LOCAL_MEM_FENCE);
+        int offset = get_global_id(0);
 
-	int out = atomic_dec(&atm);
-	NodeNode[i] = out;
-	// now clear the newly allocated node
-	for(int j=0; j<8; j++)
-	{
-		int offset = out * 8 + j;
-		NodeNode[offset] = 0;
-		NodeBrick[offset] = 0;
-	}
+        int req_time = NodeReqTime[offset];
+        if(time != req_time)return;
+
+        int dest = atomic_dec(&atm);
+        NodeNode[offset] = dest;
+
+        int old_parent = NodeLoc[dest*8];
+        if(old_parent != 0)NodeNode[old_parent] = 0;
+
+        NodeLoc[dest*8] = offset;
+
+        // now clear the newly allocated node
+        for(int j=0; j<8; j++)
+                NodeNode[dest*8+j] = 0;
 }
-
+/*
 
 __kernel void BrickAlloc(const int time,
-				__write_only image3d_t bricks,
-				__global int* NodeBrick,
-				__global int* BrickReqTime,
-				__global int* BrickLRU)
+                                __write_only image3d_t bricks,
+                                __write_only image3d_t brick_col,
+                                __global int* NodeBrick,
+                                __global int* BrickReqTime,
+                                __global int* BrickLRU,
+                                __global int* BrickLoc)
 {
-	__local volatile int atm;
-	atm = B_COUNT - 1;
-	barrier(CLK_LOCAL_MEM_FENCE);
-	int i = get_global_id(0);
-	int req_time = BrickReqTime[i];
-	if(time != req_time)return;
+        __local volatile int atm;
+        atm = B_COUNT - 1;
+        barrier(CLK_LOCAL_MEM_FENCE);
 
-	int out = atomic_dec(&atm);
-	NodeBrick[i] = out;
-/*
-	int3 bpos = brick_origini(out);
-	// now clear the newly allocated brick
-	for(int x=0; x<B_SIZE; x++)
-	for(int y=0; y<B_SIZE; y++)
-	for(int z=0; z<B_SIZE; z++)
-		write_imagef(bricks, bpos+(int3)(x,y,z), (float4)(0,0,0,0));
-*/
+        int offset = get_global_id(0);
+
+        int req_time = BrickReqTime[offset];
+        if(time != req_time)return;
+
+        int dest = BrickLRU[atomic_dec(&atm)];
+        NodeBrick[offset] = dest;
+        NodeBrick[BrickLoc[dest]] = 0;
+        BrickLoc[dest] = offset;
+
+        // now clear the newly allocated brick
+        int3 bpos = brick_origini(dest);
+        for(int x=0; x<B_SIZE; x++)
+        for(int y=0; y<B_SIZE; y++)
+        for(int z=0; z<B_SIZE; z++)
+        {
+//		write_imagef(bricks, bpos+(int3)(x,y,z), (float4)(0,0,0,0));
+//		write_imagef(brick_col, bpos+(int3)(x,y,z), (float4)(0,0,0,0));
+        }
 }
+
+*/
