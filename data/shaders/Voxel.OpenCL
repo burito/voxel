@@ -231,8 +231,8 @@ void brick_ray(
 	float4 retcol = *colour;
 
 	const sampler_t brSamp = CLK_NORMALIZED_COORDS_TRUE |
-							 CLK_ADDRESS_CLAMP_TO_EDGE |
-							 CLK_FILTER_LINEAR;
+				 CLK_ADDRESS_CLAMP_TO_EDGE |
+				 CLK_FILTER_LINEAR;
 
 	if(len < 0.1)return;
 
@@ -244,7 +244,7 @@ void brick_ray(
 		float3 sample_loc = mix(near, far, pos)*iCount;
 		float4 voxeln = read_imagef(bricks, brSamp, (float4)(sample_loc+brick_pos, 0));
 		float4 voxelc = read_imagef(bricks_colour, brSamp, (float4)(sample_loc+brick_pos, 0));
-		retnorm.xyz += ((1.0-retnorm.w)*(1.0-retnorm.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
+		retnorm.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
 		retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
 		retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
 		retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
@@ -253,6 +253,7 @@ void brick_ray(
 	*steprem = (pos - 1.0) /steps;
 	*normal = retnorm;
 	*colour = retcol;
+	// TODO: interpolate between different resolutions
 }
 
 
@@ -524,8 +525,8 @@ __kernel void BrickAlloc(
 	for(int y=0; y<B_SIZE; y++)
 	for(int z=0; z<B_SIZE; z++)
 	{
-//		write_imagef(bricks, bpos+(int3)(x,y,z), (float4)(0,0,0,0));
-//		write_imagef(brick_col, bpos+(int3)(x,y,z), (float4)(0,0,0,0));
+//		write_imagef(bricks, bpos+(int3)(x,y,z), (float4)0.0f);
+//		write_imagef(brick_col, bpos+(int3)(x,y,z), (float4)0.0f);
 	}
 }
 

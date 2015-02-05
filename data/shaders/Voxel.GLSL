@@ -233,7 +233,6 @@ int find_brick(in vec3 pos, inout vec4 box, in float size)
 void brick_ray(in int brick_id, in vec3 near, in vec3 far, inout vec4 colour,
 inout vec4 normal, inout float remainder)
 {
-//	vec3 delta = far - near;
 	float iSize = 1.0 / float(B_SIZE);
 	float iCount = 1.0 / float(B_EDGE);
 	float hs = iSize * 0.5;
@@ -258,7 +257,7 @@ inout vec4 normal, inout float remainder)
 		retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
 		retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
 		retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
-                if(retcol.w > 1.0)break;
+		if(retcol.w > 1.0)break;
 	}
 	remainder = (pos - 1.0) /steps;
 	normal = retnorm;
