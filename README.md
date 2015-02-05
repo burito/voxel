@@ -19,6 +19,7 @@ Windows
 Debian & Ubuntu
 ---------------
     sudo apt-get install git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
+If cross compiling, copy the OpenCL library and headers from the Windows setup to ``/usr/x86_64-w64-mingw32/``
 
 Build Instructions
 ------------------
