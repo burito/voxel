@@ -23,6 +23,7 @@ Debian & Ubuntu
 Build Instructions
 ------------------
     git clone git@github.com:burito/voxel.git		# if you're using ssh
+    cd voxel
     make -j8		# if you have 8 threads
 
 By default, it will build the binary native for your platform.
