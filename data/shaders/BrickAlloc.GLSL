@@ -54,17 +54,17 @@ ivec3 brick_origin(in int brick_id)
 
 void main(void)
 {
-        uint offset = gl_GlobalInvocationID.x * 10;
-        offset = (offset+gl_GlobalInvocationID.y) * 8;
-        offset += gl_GlobalInvocationID.z;
+	uint offset = gl_GlobalInvocationID.x * 10;
+	offset = (offset+gl_GlobalInvocationID.y) * 8;
+	offset += gl_GlobalInvocationID.z;
 
-        int req_time = BrickReqTime.i[offset];
-        if(time != req_time)return;
+	int req_time = BrickReqTime.i[offset];
+	if(time != req_time)return;
 
 	int dest = BrickLRU.i[(B_COUNT-1)-atomicCounterIncrement(atomStale)];
-        NodeBrick.i[offset] = dest;
+	NodeBrick.i[offset] = dest;
 	NodeBrick.i[BrickLoc.i[dest]] = 0;
-        BrickLoc.i[dest] = offset;
+	BrickLoc.i[dest] = offset;
 
 	ivec3 ipos = brick_origin(dest);
 	for(int x=0; x<B_SIZE; x++)

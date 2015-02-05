@@ -31,15 +31,15 @@ uniform int time;
 
 void main(void)
 {
-        uint offset = gl_GlobalInvocationID.x * 10;
-        offset += gl_GlobalInvocationID.y;
+	uint offset = gl_GlobalInvocationID.x * 10;
+	offset += gl_GlobalInvocationID.y;
 
-        NodeUseTime.i[offset] = time;
-        NodeLRU.i[offset] = int(offset);
+	NodeUseTime.i[offset] = time;
+	NodeLRU.i[offset] = int(offset);
 	for(int i=0; i< 8; i++)
 	{
-                NodeReqTime.i[offset][i] = time;
-                BrickReqTime.i[offset][i] = time;
+		NodeReqTime.i[offset][i] = time;
+		BrickReqTime.i[offset][i] = time;
 	}
 }
 

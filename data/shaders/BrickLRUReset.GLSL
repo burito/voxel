@@ -30,12 +30,12 @@ uniform int time;
 
 void main(void)
 {
-	uint off = gl_GlobalInvocationID.x * B_EDGE;
-	off = (off+gl_GlobalInvocationID.y)* B_EDGE;
-	off += gl_GlobalInvocationID.z;
+	uint offset = gl_GlobalInvocationID.x * B_EDGE;
+	offset = (offset+gl_GlobalInvocationID.y)* B_EDGE;
+	offset += gl_GlobalInvocationID.z;
 
-	BrickUseTime.i[off] = time;
-	BrickLRU.i[off] = int(off);
-	BrickLoc.i[off] = 0;
+	BrickUseTime.i[offset] = time;
+	BrickLRU.i[offset] = int(offset);
+	BrickLoc.i[offset] = 0;
 }
 

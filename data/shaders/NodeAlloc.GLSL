@@ -35,21 +35,22 @@ uniform int time;
 
 void main(void)
 {
-        uint offset = gl_GlobalInvocationID.x * 10;
-        offset = (offset+gl_GlobalInvocationID.y) * 8;
-        offset += gl_GlobalInvocationID.z;
+	uint offset = gl_GlobalInvocationID.x * 10;
+	offset = (offset+gl_GlobalInvocationID.y) * 8;
+	offset += gl_GlobalInvocationID.z;
 
-        int req_time = NodeReqTime.i[offset];
-        if(time != req_time)return;
+	int req_time = NodeReqTime.i[offset];
+	if(time != req_time)return;
 
 	int dest = NodeLRU.i[ (NP_SIZE-1) - atomicCounterIncrement(atomStale)];
-        NodeNode.i[offset] = dest;
+	NodeNode.i[offset] = dest;
 
 	uint old_parent = NodeLoc.i[dest*8];
 	if(old_parent != 0)NodeNode.i[old_parent] = 0;
 
-        NodeLoc.i[dest*8] = offset;	// New nodes parent ptr
+	NodeLoc.i[dest*8] = offset;	// New nodes parent ptr
 
+	// now clear the newly allocated node
 	for(int j=0; j<8; j++)
 		NodeNode.i[dest*8+j] = 0;
 }
