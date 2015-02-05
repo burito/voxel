@@ -1662,7 +1662,7 @@ void gui_draw(void)
 	long long delta_time, this_time = sys_time();
 	delta_time = this_time - last_time;
 	last_time = this_time;
-	double DeltaTime = (double)delta_time / (double)sys_ticksecond;
+//	double DeltaTime = (double)delta_time / (double)sys_ticksecond;
 
 	frame_number++;
 	if(frame_number>=MAX_FRAMES) frame_number=0;

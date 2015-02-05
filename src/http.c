@@ -151,7 +151,7 @@ void http_loop(void)
 {
 	char go_away[] = "HTTP/1.1 403 Forbidden\n";
 	char pending[] = "HTTP/1.1 202 Accepted\n";
-	char welcome[] = "HTTP/1.1 200 OK\n";
+//	char welcome[] = "HTTP/1.1 200 OK\n";
 	char overload[] = "HTTP/1.1 503 Service Unavailable\n";
 
 	int ret;

@@ -270,7 +270,7 @@ static void x11_init(void)
 //	XSetDeviceMode(display, mouse, Relative);
 #endif
 }
-
+/*
 static void print_rawmotion(XIRawEvent *event)
 {
     int i;
@@ -294,7 +294,7 @@ static void print_rawmotion(XIRawEvent *event)
         }
     }
 }
-
+*/
 static void handle_events(void)
 {
     int deltax;
@@ -380,8 +380,6 @@ static void handle_events(void)
             case 2:	mouse[1]=1; break;
             case 3:	mouse[2]=1; break;
             }
-
-            int foo = sys_time() / 1000;
 
   //          printf("mouse[] %d, @ %d\n", foo, (int)event.xbutton.time);
             break;

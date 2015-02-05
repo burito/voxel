@@ -982,7 +982,7 @@ void voxel_loop(void)
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-		float scale = FBUFFER_SIZE;
+//		float scale = FBUFFER_SIZE;
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(0, vwidth, 0, vwidth, -4000, 4000);
