@@ -20,6 +20,11 @@ freely, subject to the following restrictions:
    3. This notice may not be removed or altered from any source
    distribution.
 */
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/glew.h>
+#endif
 
 
 #include <stdio.h>
@@ -30,7 +35,6 @@ freely, subject to the following restrictions:
 #define radians(X) ((3.14159265358979323846/180.0)*X)
 
 #include <zlib.h>
-#include <GL/glew.h>
 #include "main.h"
 #include "shader.h"
 #include "3dmaths.h"

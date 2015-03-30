@@ -16,6 +16,11 @@ Windows
     mv libOpenCL.a /c/mingw64/mingw64/x86_64-w64-mingw32/lib    # Alter to taste
 * Source the OpenCL header files, give them to your compiler.
 
+Mac OSX Yosemite
+----------------
+* Install XCode
+
+
 Debian & Ubuntu
 ---------------
     sudo apt-get install git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
@@ -31,6 +36,7 @@ By default, it will build the binary native for your platform.
 
     make gui		# builds the default linux binary
     make gui.exe	# builds the default windows binary
+    make gui.app	# builds the default OSX binary
     make voxel.zip  # builds the distributable
 
 Usage
@@ -43,11 +49,11 @@ Usage
 
 System Requirements
 -------------------
-* Needs OpenGL 4.3 & OpenCL 1.1
+* Needs OpenGL 4.3 or OpenCL 1.1
 * Wants 64bit, but it's not needed. Yet.
 * You'll need up to date drivers. As of now that means Nvidia 347.25
 
-There is no Mac support, [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
+The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
 
 Afterword
 ---------

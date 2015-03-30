@@ -20,12 +20,17 @@ freely, subject to the following restrictions:
    3. This notice may not be removed or altered from any source
    distribution.
 */
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <OpenCL/cl.h>
+#else
 #include <GL/glew.h>
 
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #define _MSC_VER 1
 #include <CL/cl_gl.h>
 #include <CL/cl.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>

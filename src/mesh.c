@@ -20,11 +20,15 @@ freely, subject to the following restrictions:
    3. This notice may not be removed or altered from any source
    distribution.
 */
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/glew.h>
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <GL/glew.h>
 #include "3dmaths.h"
 #include "mesh.h"
 #include "text.h"
@@ -992,11 +996,15 @@ WF_OBJ* wf_load(char * filename)
 		printf("verts only\n");
 	}
 	else
+
+#ifndef __APPLE__
 	if(GLEW_VERSION_1_5 && GLEW_ARB_vertex_buffer_object)
 	{
+#endif
 		wf_interleave(w);
 		wf_vbo_load(w);
 		w->draw = wf_drawelements;
+#ifndef __APPLE__
 	}
 	else
 	{
@@ -1007,6 +1015,7 @@ WF_OBJ* wf_load(char * filename)
 		glBufferDataARB(GL_ARRAY_BUFFER, w->nf*32*3, w->p, GL_STATIC_DRAW);
 		glBindBufferARB(GL_ARRAY_BUFFER, 0);
 	}
+#endif
 	printf("All done.\n");
 	return w;
 }

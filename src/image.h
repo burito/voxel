@@ -24,8 +24,6 @@ freely, subject to the following restrictions:
 #ifndef __IMG_H__
 #define __IMG_H__
 
-#include <GL/glew.h>
-
 typedef struct IMG
 {
 	int x, y;

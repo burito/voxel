@@ -1,14 +1,16 @@
 CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
-PLATFORM = GL/glew.o stb_image.o stb_truetype.o fontstash.o image.o gpuinfo.o
+
+PLATFORM = stb_image.o stb_truetype.o fontstash.o image.o
 LIBRARIES = -lm -lOpenCL
 SDIR = src
 
-OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o clvoxel.o shader.o \
+OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
 	http.o ocl.o
+
 
 # Build rules
 WDIR = build/win
-_WOBJS = $(OBJS) win32.o win32.res
+_WOBJS = $(OBJS) gpuinfo.o GL/glew.o win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
 WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 -lOpenCL
 #	-L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"
@@ -16,9 +18,18 @@ WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 -lOpenCL
 
 LDIR = build/lin
 LCC = gcc
-_LOBJS = $(OBJS) x11.o
+_LOBJS = $(OBJS) gpuinfo.o GL/glew.o x11.o
 LOBJS = $(patsubst %,$(LDIR)/%,$(_LOBJS))
 LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
+
+MDIR = build/mac
+MCC = clang
+_MOBJS = $(OBJS)
+MFLAGS = -Wall
+MOBJS = $(patsubst %,$(MDIR)/%,$(_MOBJS))
+MLIBS = -F/System/Library/Frameworks -framework OpenGL -framework CoreVideo -framework Cocoa -framework OpenCL
+
+
 
 # Evil platform detection magic
 UNAME := $(shell uname)
@@ -34,6 +45,10 @@ WCC = gcc
 WINDRES = windres
 default: gui.exe
 endif
+ifeq ($(UNAME), Darwin)
+default: gui.bin
+endif 
+
 
 $(WDIR)/win32.res: $(SDIR)/win32.rc
 	$(WINDRES) $^ -O coff -o $@
@@ -49,18 +64,33 @@ gui: $(LOBJS)
 	$(LCC) $^ $(LLIBS) -o $@
 
 
+$(MDIR)/osx.o: $(SDIR)/osx.m
+	$(MCC) $(MFLAGS) -c $< -o $@
+$(MDIR)/%.o: $(SDIR)/%.c
+	$(MCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
+gui.bin: $(MOBJS) $(MDIR)/osx.o
+	$(MCC) $^ $(MLIBS) -o $@
+gui.app: gui.bin
+	mkdir -p gui.app/Contents/MacOS
+	mkdir gui.app/Contents/Resources
+	cp gui.bin gui.app/Contents/MacOS/gui
+	cp src/Info.plist gui.app/Contents
+	cp src/AppIcon.icns gui.app/Contents/Resources
+	codesign --force --sign - gui.app
+
+
 voxel.zip: gui.exe
 	zip voxel.zip gui.exe README.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
 
 # Housekeeping
 clean:
-	@rm -rf build gui gui.exe voxel.zip src/version.h
+	@rm -rf build gui gui.exe gui.bin gui.app voxel.zip src/version.h
 
 # for QtCreator
 all: default
 
 # Create build directories
-$(shell	mkdir -p build/lin/GL build/win/GL)
+$(shell	mkdir -p build/lin/GL build/win/GL build/mac)
 
 # create the version info
 $(shell echo "#define GIT_REV \"`git rev-parse --short HEAD`\"" > src/version.h)

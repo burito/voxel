@@ -16,13 +16,16 @@
 //    misrepresented as being the original software.
 // 3. This notice may not be removed or altered from any source distribution.
 //
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/glew.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h> /* @rlyeh: floorf() */
-
-#include <GL/glew.h>  /* @rlyeh: before including GL. doesnt hurt and makes life better */
 
 /* @rlyeh: removed STB_TRUETYPE_IMPLENTATION. We link it externally */
 #include "stb_truetype.h"

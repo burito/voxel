@@ -20,6 +20,16 @@ freely, subject to the following restrictions:
    3. This notice may not be removed or altered from any source
    distribution.
 */
+
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#include <OpenCL/cl.h>
+#include <OpenCL/cl_gl_ext.h>
+
+CGLContextObj CGLGetCurrentContext (void);
+
+#else
 #include <GL/glew.h>
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 
@@ -34,6 +44,8 @@ freely, subject to the following restrictions:
 #include <CL/cl_gl.h>
 
 #include <CL/cl.h>
+
+#endif /* __APPLE__ */
 
 #include "3dmaths.h"
 #include "ocl.h"
@@ -221,7 +233,10 @@ int ocl_init(void)
 
 	// create the context
 	cl_context_properties properties[] = {
-#ifdef WIN32
+#ifdef __APPLE__
+CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)CGLGetShareGroup(CGLGetCurrentContext()),
+
+#elif WIN32
 		CL_GL_CONTEXT_KHR,		(cl_context_properties)wglGetCurrentContext(),
 		CL_WGL_HDC_KHR,			(cl_context_properties)wglGetCurrentDC(),
 #else
