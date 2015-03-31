@@ -22,12 +22,9 @@ int mouse_x = 0;
 int mouse_y = 0;
 int mickey_x = 0;
 int mickey_y = 0;
-// the Logitech drivers aer happy to send up to 8 numbered "mouse" buttons
 char mouse[] = {0,0,0,0,0,0,0,0};
-/* Logitech drivers found at...
- *    http://www.logitech.com/pub/techsupport/mouse/mac/lcc3.9.1.b20.zip
- * will send events for 8 mouse buttons.
- */
+// the Logitech drivers are happy to send up to 8 numbered "mouse" buttons
+// http://www.logitech.com/pub/techsupport/mouse/mac/lcc3.9.1.b20.zip
 
 #define KEYMAX 512
 char keys[KEYMAX];
@@ -70,7 +67,7 @@ NSOpenGLContext *MyContext;
 {
     CVDisplayLinkRef displayLink;
 }
--(void) drawRect:(NSRect)dirtyRect;
+//-(void) drawRect:(NSRect)dirtyRect;
 @end
 
 @implementation MyOpenGLView
@@ -89,13 +86,8 @@ NSOpenGLContext *MyContext;
 
 -(void)mouseDown:(NSEvent *)event
 {
-    NSPoint clickLocation;
-    // convert the click location into the view coords
-    clickLocation = [self convertPoint:[event locationInWindow]
-                  fromView:nil];
-
-    mouse_x = clickLocation.x;
-    mouse_y = vid_height - clickLocation.y + y_correction;
+    mouse_x = event.locationInWindow.x * bsFactor;
+    mouse_y = -(event.locationInWindow.y + y_correction) * bsFactor;
     mouse[0] = 1;
 }
 -(void)mouseUp:(NSEvent *)event
@@ -147,17 +139,20 @@ NSOpenGLContext *MyContext;
 -(void)mouseMoved:(NSEvent *)event
 {
     mouse_x = event.locationInWindow.x * bsFactor;
-    mouse_y = vid_height - event.locationInWindow.y * bsFactor + y_correction;
+    mouse_y = -(event.locationInWindow.y + y_correction) * bsFactor;
     mickey_x -= event.deltaX * bsFactor;
     mickey_y -= event.deltaY * bsFactor;
+    printf("mmouse = %d, %d\n", mouse_x, mouse_y);
 }
 
 -(void)mouseDragged:(NSEvent *)event
 {
     mouse_x = event.locationInWindow.x * bsFactor;
-    mouse_y = vid_height - event.locationInWindow.y * bsFactor + y_correction;
+    mouse_y = -(event.locationInWindow.y + y_correction) * bsFactor;
     mickey_x -= event.deltaX * bsFactor;
     mickey_y -= event.deltaY * bsFactor;
+    printf("dmouse = %d, %d\n", mouse_x, mouse_y);
+
 }
 
 
@@ -166,7 +161,7 @@ NSOpenGLContext *MyContext;
 {
 //    vid_width = [[self superview] bounds].size.width;
 //    vid_height = [[self superview] bounds].size.height;
-#ifdef RETINA_TEST   
+#ifdef RETINA_TEST
     vid_width = [[self window] frame].size.width;
     vid_height = [[self window] frame].size.height;
     y_correction = [[[self window] contentView] frame].size.height - vid_height;
@@ -177,8 +172,9 @@ NSOpenGLContext *MyContext;
 #else
     vid_width = [self convertRectToBacking:[self bounds]].size.width;
     vid_height = [self convertRectToBacking:[self bounds]].size.height;
+    y_correction = [[[self window] contentView] frame].size.height - vid_height;
     if(vid_height == 0) vid_height = 1;
-    glViewport(0, 0, vid_width, vid_height);
+    glViewport(0, y_correction * bsFactor, vid_width, vid_height);
 #endif
 }
 
@@ -313,6 +309,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
         window = [[NSWindow alloc] initWithContentRect:contentSize styleMask:windowStyleMask backing:NSBackingStoreBuffered defer:YES];
         window.backgroundColor = [NSColor whiteColor];
         window.title = @"Kittens";
+        
         [window setCollectionBehavior:(NSWindowCollectionBehaviorFullScreenPrimary)];
         
         NSOpenGLPixelFormatAttribute pixelFormatAttributes[] =
@@ -345,6 +342,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     [window makeKeyAndOrderFront:self];
+    [window setAcceptsMouseMovedEvents:YES];
 
     memset(keys, 0, KEYMAX);
     main_init(gargc, gargv);
