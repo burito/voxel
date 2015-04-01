@@ -63,7 +63,6 @@ long long sys_time(void)
 
 void shell_browser(char *url)
 {
-//    NSURL *MyNSURL = [NSURL fileURLWithPath:[NSString initWithUTF8String:url]];
     NSURL *MyNSURL = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     [[NSWorkspace sharedWorkspace] openURL:MyNSURL];
 }
@@ -74,9 +73,6 @@ NSWindow * window;
 NSApplication * myapp;
 int y_correction = 0;  // to correct mouse position for title bar
 
-void osx_init(void)
-{
-}
 
 NSOpenGLContext *MyContext;
 
@@ -89,10 +85,13 @@ NSOpenGLContext *MyContext;
 
 @implementation MyOpenGLView
 
+-(BOOL)acceptsFirstResponder
+{
+    return YES;
+}
+
 -(void)reshape
 {
-//    vid_width = [[self superview] bounds].size.width;
-//    vid_height = [[self superview] bounds].size.height;
 #ifdef RETINA_TEST
     vid_width = [[self window] frame].size.width;
     vid_height = [[self window] frame].size.height;
@@ -138,9 +137,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
     mickey_x = mickey_y = 0;
     if(killme)
     {
-//        [glview terminate];
-//        [NSApp terminate:nil];
-        [myapp terminate:nil];
+        [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
     }
 
     if(fullscreen_toggle)
@@ -300,7 +297,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 void mouse_move(NSEvent * theEvent)
 {
     mouse_x = theEvent.locationInWindow.x * bsFactor;
-    mouse_y = -(theEvent.locationInWindow.y + y_correction) * bsFactor;
+    mouse_y = vid_height-(theEvent.locationInWindow.y + y_correction) * bsFactor;
     mickey_x -= theEvent.deltaX * bsFactor;
     mickey_y -= theEvent.deltaY * bsFactor;
 }
