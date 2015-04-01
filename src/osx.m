@@ -109,6 +109,42 @@ NSOpenGLContext *MyContext;
 #endif
 }
 
+// #define CVDISP
+
+#ifndef CVDISP
+-(void)drawRect:(NSRect)dirtyRect
+{
+    [[self openGLContext] makeCurrentContext];
+    main_loop();
+    [[self openGLContext] flushBuffer];
+    mickey_x = mickey_y = 0;
+    if(killme)
+    {
+        [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
+    }
+    
+    if(fullscreen_toggle)
+    {
+        //        [glview toggleFullScreen];
+        fullscreen_toggle = 0;
+        
+        [window toggleFullScreen:(window)];
+    }
+
+    
+}
+
+NSTimer * renderTimer;
+
+
+- (void)timerFired:(NSTimer*)timer
+{
+    [self setNeedsDisplay:YES];
+}
+
+
+
+#endif
 - (void)prepareOpenGL
 {
     GLint vsync = 1;
@@ -117,22 +153,41 @@ NSOpenGLContext *MyContext;
 
     [self setWantsBestResolutionOpenGLSurface:YES];   // enable retina resolutions
     bsFactor = [self.window backingScaleFactor];
-
     [[self openGLContext] setValues:&vsync forParameter:NSOpenGLCPSwapInterval];
+#ifdef CVDISP
     CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
     CVDisplayLinkSetOutputCallback(displayLink, &MyDisplayLinkCallback, (__bridge void *)(self));
     CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
     CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
     CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
     CVDisplayLinkStart(displayLink);
+#endif
     [self reshape];
+    renderTimer = [NSTimer scheduledTimerWithTimeInterval:0.001
+                                                   target:self
+                                                 selector:@selector(timerFired:)
+                                                 userInfo:nil
+                                                  repeats:YES];
+    [[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSDefaultRunLoopMode];
+    [[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSEventTrackingRunLoopMode];
+    //Ensure timer fires during resize
+    
+    [NSApp activateIgnoringOtherApps:YES];  // to the front!
+
 }
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
 {
     MyOpenGLView *glview = (__bridge MyOpenGLView*) displayLinkContext;
     [[glview openGLContext] makeCurrentContext];
-    main_loop();
+    
+ //   NSAutoreleasePool* pool = [NSAutoreleasePool new];
+ //   if ([glview lockFocusIfCanDraw])
+ //   {
+        main_loop();
+ //       [glview unlockFocus];
+ //   }
+//    [pool drain];
 
     mickey_x = mickey_y = 0;
     if(killme)
@@ -155,8 +210,10 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 
 - (void)dealloc
 {
+#ifdef CVDISP
     CVDisplayLinkRelease(displayLink);
-//    [super dealloc];
+#endif
+    [super dealloc];
 }
 /*
 - (void) drawRect:(NSRect)dirtyRect
@@ -272,7 +329,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 {
     [window makeKeyAndOrderFront:self];
     [window setAcceptsMouseMovedEvents:YES];
-    [window makeFirstResponder:view];
+    [window makeFirstResponder:window];
 
     memset(keys, 0, KEYMAX);
     main_init(gargc, gargv);
@@ -294,7 +351,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 @end
 
 
-void mouse_move(NSEvent * theEvent)
+static void mouse_move(NSEvent * theEvent)
 {
     mouse_x = theEvent.locationInWindow.x * bsFactor;
     mouse_y = vid_height-(theEvent.locationInWindow.y + y_correction) * bsFactor;

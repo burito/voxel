@@ -70,7 +70,7 @@ $(MDIR)/%.o: $(SDIR)/%.c
 	$(MCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
 gui.bin: $(MOBJS) $(MDIR)/osx.o
 	$(MCC) $^ $(MLIBS) -o $@
-gui.app: gui.bin src/Info.plist src/AppIcon.icns
+gui.app/Contents/_CodeSignature/CodeResources: gui.bin src/Info.plist src/AppIcon.icns
 	rm -rf gui.app
 	mkdir -p gui.app/Contents/MacOS
 	mkdir gui.app/Contents/Resources
@@ -79,6 +79,7 @@ gui.app: gui.bin src/Info.plist src/AppIcon.icns
 	cp src/AppIcon.icns gui.app/Contents/Resources
 	codesign --force --sign - gui.app
 
+gui.app: gui.app/Contents/_CodeSignature/CodeResources
 
 voxel.zip: gui.exe
 	zip voxel.zip gui.exe README.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
