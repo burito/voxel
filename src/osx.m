@@ -9,6 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #include <OpenGL/GL.h>
 
+#include "keyboard.h"
 
 
 int killme=0;
@@ -55,6 +56,7 @@ void shell_browser(char *url)
 int gargc;
 const char ** gargv;
 NSWindow * window;
+NSApplication * myapp;
 int y_correction = 0;  // to correct mouse position for title bar
 
 void osx_init(void)
@@ -72,91 +74,6 @@ NSOpenGLContext *MyContext;
 
 @implementation MyOpenGLView
 
-- (BOOL)acceptsFirstResponder
-{
-    return YES;
-}
-
--(void)keyDown:(NSEvent *)event
-{
-	printf("keydown:%s\n", [event charactersIgnoringModifiers]);
-
-	[super keyDown:event];
-}
-
--(void)mouseDown:(NSEvent *)event
-{
-    mouse_x = event.locationInWindow.x * bsFactor;
-    mouse_y = -(event.locationInWindow.y + y_correction) * bsFactor;
-    mouse[0] = 1;
-}
--(void)mouseUp:(NSEvent *)event
-{
-    mouse[0] = 0;
-}
-
--(void)otherMouseDown:(NSEvent *)event
-{
-    int a = [event buttonNumber];
-    switch(a) {
-    case 2: mouse[2] = 1; break;
-    case 3: mouse[3] = 1; break;
-    case 4: mouse[4] = 1; break;
-    case 5: mouse[5] = 1; break;
-    case 6: mouse[6] = 1; break;
-    case 7: mouse[7] = 1; break;
-    default:
-    printf("Mouse button %d\n", a);
-        break;
-    }
-}
-
--(void)otherMouseUp:(NSEvent *)event
-{
-    int a = [event buttonNumber];
-    switch(a) {
-    case 2: mouse[2] = 0; break;
-    case 3: mouse[3] = 0; break;
-    case 4: mouse[4] = 0; break;
-    case 5: mouse[5] = 0; break;
-    case 6: mouse[6] = 0; break;
-    case 7: mouse[7] = 0; break;
-    default: break;
-    }
-}
-
-
--(void)rightMouseDown:(NSEvent *)event
-{
-    mouse[1] = 1;
-}
--(void)rightMouseUp:(NSEvent *)event
-{
-    mouse[1] = 0;
-}
-
-
--(void)mouseMoved:(NSEvent *)event
-{
-    mouse_x = event.locationInWindow.x * bsFactor;
-    mouse_y = -(event.locationInWindow.y + y_correction) * bsFactor;
-    mickey_x -= event.deltaX * bsFactor;
-    mickey_y -= event.deltaY * bsFactor;
-    printf("mmouse = %d, %d\n", mouse_x, mouse_y);
-}
-
--(void)mouseDragged:(NSEvent *)event
-{
-    mouse_x = event.locationInWindow.x * bsFactor;
-    mouse_y = -(event.locationInWindow.y + y_correction) * bsFactor;
-    mickey_x -= event.deltaX * bsFactor;
-    mickey_y -= event.deltaY * bsFactor;
-    printf("dmouse = %d, %d\n", mouse_x, mouse_y);
-
-}
-
-
-
 -(void)reshape
 {
 //    vid_width = [[self superview] bounds].size.width;
@@ -172,9 +89,9 @@ NSOpenGLContext *MyContext;
 #else
     vid_width = [self convertRectToBacking:[self bounds]].size.width;
     vid_height = [self convertRectToBacking:[self bounds]].size.height;
-    y_correction = [[[self window] contentView] frame].size.height - vid_height;
+    y_correction = bsFactor * [[[self window] contentView] frame].size.height - vid_height;
     if(vid_height == 0) vid_height = 1;
-    glViewport(0, y_correction * bsFactor, vid_width, vid_height);
+    glViewport(0, y_correction, vid_width, vid_height);
 #endif
 }
 
@@ -208,7 +125,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
     {
 //        [glview terminate];
 //        [NSApp terminate:nil];
-        [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.001];
+        [myapp terminate:nil];
     }
 
     if(fullscreen_toggle)
@@ -227,7 +144,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 - (void)dealloc
 {
     CVDisplayLinkRelease(displayLink);
-    [super dealloc];
+//    [super dealloc];
 }
 /*
 - (void) drawRect:(NSRect)dirtyRect
@@ -343,6 +260,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 {
     [window makeKeyAndOrderFront:self];
     [window setAcceptsMouseMovedEvents:YES];
+    [window makeFirstResponder:view];
 
     memset(keys, 0, KEYMAX);
     main_init(gargc, gargv);
@@ -358,16 +276,137 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 
 @end
 
+@interface MyApp : NSApplication
+{
+}
+@end
+
+
+void mouse_move(NSEvent * theEvent)
+{
+    mouse_x = theEvent.locationInWindow.x * bsFactor;
+    mouse_y = -(theEvent.locationInWindow.y + y_correction) * bsFactor;
+    mickey_x -= theEvent.deltaX * bsFactor;
+    mickey_y -= theEvent.deltaY * bsFactor;
+}
+
+@implementation MyApp
+
+
+
+-(void)sendEvent:(NSEvent *)theEvent
+{
+
+// https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ApplicationKit/Classes/NSEvent_Class/#//apple_ref/c/tdef/NSEventType
+    
+    switch(theEvent.type) {
+        case NSLeftMouseDown:
+            mouse[0] = 1;
+            mouse_move(theEvent);
+            break;
+        case NSLeftMouseUp:
+            mouse[0] = 0;
+            mouse_move(theEvent);
+            break;
+        case NSRightMouseDown:
+            mouse[1] = 1;
+            mouse_move(theEvent);
+            break;
+        case NSRightMouseUp:
+            mouse[1] = 0;
+            mouse_move(theEvent);
+            break;
+        case NSOtherMouseDown:
+            switch(theEvent.buttonNumber) {
+                case 2: mouse[2] = 1; break;
+                case 3: mouse[3] = 1; break;
+                case 4: mouse[4] = 1; break;
+                case 5: mouse[5] = 1; break;
+                case 6: mouse[6] = 1; break;
+                case 7: mouse[7] = 1; break;
+                default: printf("Unexpected Mouse Button %d\n", (int)theEvent.buttonNumber); break;
+            }
+            mouse_move(theEvent);
+            break;
+        case NSOtherMouseUp:
+            switch(theEvent.buttonNumber) {
+                case 2: mouse[2] = 0; break;
+                case 3: mouse[3] = 0; break;
+                case 4: mouse[4] = 0; break;
+                case 5: mouse[5] = 0; break;
+                case 6: mouse[6] = 0; break;
+                case 7: mouse[7] = 0; break;
+                default: break;
+            }
+            mouse_move(theEvent);
+            break;
+           
+        case NSMouseMoved:
+        case NSLeftMouseDragged:
+        case NSRightMouseDragged:
+        case NSOtherMouseDragged:
+            mouse_move(theEvent);
+            break;
+            
+        case NSKeyDown:
+            keys[theEvent.keyCode] = 1;
+            
+            
+            break;
+        case NSKeyUp:
+            keys[theEvent.keyCode] = 0;
+            break;
+        case NSFlagsChanged:
+            for(int i = 0; i<32; i++)
+            {
+                int x = 1 << i;
+                int bit = !!(theEvent.modifierFlags & x);
+                switch(i) {
+                    case   0: keys[KEY_LCONTROL] = bit; break;
+                    case   1: keys[KEY_LSHIFT] = bit; break;
+                    case   2: keys[KEY_RSHIFT] = bit; break;
+                    case   3: keys[KEY_LLOGO] = bit; break;
+                    case   4: keys[KEY_RLOGO] = bit; break;
+                    case   5: keys[KEY_LALT] = bit; break;
+                    case   6: keys[KEY_RALT] = bit; break;
+                    case   8: break; // Always on?
+                    case  13: keys[KEY_RCONTROL] = bit; break;
+                    case  16: keys[KEY_CAPSLOCK] = bit; break;
+                    case  17: break; // AllShift
+                    case  18: break; // AllCtrl
+                    case  19: break; // AllAlt
+                    case  20: break; // AllLogo
+                    case  23: keys[KEY_FN] = bit; break;
+                    default: break;
+                }
+            }
+            break;
+            
+        case NSScrollWheel:
+            break;
+        
+        case NSMouseEntered:
+        case NSMouseExited:
+            break;
+            
+        default:
+            break;
+    }
+    [super sendEvent:theEvent];
+
+}
+
+@end
 
 
 int main(int argc, const char * argv[])
 {
     gargc = argc;
     gargv = argv;
-    NSApplication * app = [NSApplication sharedApplication];
+    myapp = [MyApp sharedApplication];
     AppDelegate * appd = [[AppDelegate alloc] init];
-    [app setDelegate:appd];
-    [app run];
-    [app setDelegate:nil];
+    [myapp setDelegate:appd];
+    [myapp run];
+    [myapp setDelegate:nil];
     return 0;
 }
