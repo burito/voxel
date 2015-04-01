@@ -70,7 +70,8 @@ $(MDIR)/%.o: $(SDIR)/%.c
 	$(MCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
 gui.bin: $(MOBJS) $(MDIR)/osx.o
 	$(MCC) $^ $(MLIBS) -o $@
-gui.app: gui.bin
+gui.app: gui.bin src/Info.plist src/AppIcon.icns
+	rm -rf gui.app
 	mkdir -p gui.app/Contents/MacOS
 	mkdir gui.app/Contents/Resources
 	cp gui.bin gui.app/Contents/MacOS/gui
