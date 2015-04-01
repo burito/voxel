@@ -16,9 +16,9 @@ Windows
     mv libOpenCL.a /c/mingw64/mingw64/x86_64-w64-mingw32/lib    # Alter to taste
 * Source the OpenCL header files, give them to your compiler.
 
-Mac OSX Yosemite
-----------------
-* Install XCode
+Mac OS X Yosemite
+-----------------
+* Install [XCode](https://developer.apple.com/xcode/downloads/)
 
 
 Debian & Ubuntu
@@ -45,7 +45,7 @@ Usage
 * WASD keys move around.
 * CTRL goes down, SPACE goes up.
 * Holding Right Mouse aims the camera.
-* F11 toggles Fullscreen.
+* F11 toggles Fullscreen. (⌃⌘F on Mac)
 
 System Requirements
 -------------------
