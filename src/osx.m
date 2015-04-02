@@ -23,6 +23,8 @@ distribution.
 
 #import <Cocoa/Cocoa.h>
 #include <OpenGL/GL.h>
+#include <sys/time.h>
+
 
 #include "keyboard.h"
 
@@ -54,11 +56,13 @@ int main_init(int argc, const char *argv[]);
 void main_loop(void);
 void main_end(void);
 
-const int sys_ticksecond = 1000;
-long long sys_timevalue = 0;
+const int sys_ticksecond = 1000000;
 long long sys_time(void)
 {
-    return sys_timevalue;
+    struct timeval tv;
+    tv.tv_usec = 0;	// tv.tv_sec = 0;
+    gettimeofday(&tv, NULL);
+    return tv.tv_usec + tv.tv_sec * sys_ticksecond;
 }
 
 void shell_browser(char *url)
