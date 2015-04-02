@@ -1358,11 +1358,11 @@ void spawn_credits(widget *x)
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(180, 120, "SourceSansPro",
-			"https://github.com/adobe/source-sans-pro");
+			"https://github.com/adobe-fonts/source-sans-pro");
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(180, 160, "SourceCodePro",
-			"https://github.com/adobe/source-code-pro");
+			"https://github.com/adobe-fonts/source-code-pro");
 	item->fontface = 1;
 	item->size.x = 140;
 	widget_child_add(w, item);
