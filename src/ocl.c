@@ -377,8 +377,9 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 		error++;
 	}
 
-	clGetProgramInfo(p, CL_PROGRAM_BINARY_SIZES,
-				sizeof(size), &size, NULL);
+//	clGetProgramInfo(p, CL_PROGRAM_BINARY_SIZES,
+//				sizeof(size), &size, NULL);
+	// Causes a crash on OS X
 //	printf("Success: %zu bytes.\n", size);
 
 	cl_uint nk=0;

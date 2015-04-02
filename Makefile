@@ -46,7 +46,7 @@ WINDRES = windres
 default: gui.exe
 endif
 ifeq ($(UNAME), Darwin)
-default: gui.bin
+default: gui.app
 endif 
 
 
