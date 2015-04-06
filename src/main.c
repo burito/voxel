@@ -83,7 +83,6 @@ int main_init(int argc, char *argv[])
 	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 	glEnable(GL_LIGHT0);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-//	glEnable(GL_LIGHTING);
 
 	time_start = sys_time();
 	gpuinfo_init();
@@ -180,10 +179,7 @@ void main_loop(void)
 	ocl_loop();
 	gui_draw();
 	http_loop();
-
 }
-
-
 
 void main_end(void)
 {
@@ -193,6 +189,4 @@ void main_end(void)
 	gpuinfo_end();
 	http_end();
 }
-
-
 
