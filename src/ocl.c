@@ -181,6 +181,13 @@ int ocl_init(void)
 	memset(c, 0, sizeof(OCLCONTEXT));
 	OpenCL = c;
 
+	const size_t _bs = 1024;	// tmp strings length
+	char b[_bs];			// tmp string
+	size_t bs = _bs;		// tmp string available
+
+	int ideal_pid = -1;
+	int ideal_did = -1;
+
 	// get OpenCL Platform ID info
 	clGetPlatformIDs(0, 0, &c->num_pid);
 	c->pid = malloc(sizeof(cl_platform_id) * c->num_pid);
@@ -199,37 +206,52 @@ int ocl_init(void)
 		memset(c->did[i], 0, sizeof(cl_device_id)*c->num_did[i]);
 		clGetDeviceIDs(c->pid[i], CL_DEVICE_TYPE_ALL, c->num_did[i],
 				c->did[i], &c->num_did[i]);
-
-		char b[1024];
-		size_t bs = 1024;
-		clGetPlatformInfo( c->pid[i], CL_PLATFORM_VENDOR, bs, b, &bs);
-		printf("CL Vendor  : %s\n", b);
-		bs = 1024;
-		clGetPlatformInfo( c->pid[i], CL_PLATFORM_NAME, bs, b, &bs);
-		printf("CL Platform: %s\n", b);
-		bs = 1024;
-		clGetPlatformInfo( c->pid[i], CL_PLATFORM_VERSION, bs, b, &bs);
-		printf("CL Version : %s\n", b);
+		// while we're here, check for a device we want
 		for(int j=0; j < c->num_did[i]; j++)
 		{
-//			bs = 1024;
-//			clGetDeviceInfo(c->did[i][j], CL_DEVICE_EXTENSIONS, bs, b, &bs);
-//			char *supported = strstr(b, "cl_khr_gl_sharing");
-//			printf("cl->did[%d][%d]%s:", i, j, (supported?":GL":":-("));
-			bs = 1024;
+			bs = _bs;
 			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, b, &bs);
-			printf("CL Dev Name: %s\n", b);
-			bs = 1024;
-			clGetDeviceInfo(c->did[i][j], CL_DEVICE_VERSION, bs, b, &bs);
-			printf("CL Dev Ver : %s\n", b);
-			bs = 1024;
-			clGetDeviceInfo(c->did[i][j], CL_DRIVER_VERSION, bs, b, &bs);
-			printf("CL Driv Ver: %s\n", b);
+			// grab the first CL device that is a substring of the GL renderer
+			char* result = strstr(glGetString(GL_RENDERER), b);
+			if(result && ideal_pid < 0 && ideal_did < 0)
+			{
+				ideal_pid = i;
+				ideal_did = j;
+			}
 		}
 	}
 
+	if(ideal_pid == -1 || ideal_did == -1)
+	{
+		printf("WARNING: No CL device matching the GL Render\n");
+		ideal_pid = 0;
+		ideal_did = 0;
+	}
+
 	// select a platform and device to use
-	c->p = &c->pid[0]; c->d = &c->did[0][0];
+	c->p = &c->pid[ideal_pid];
+	c->d = &c->did[ideal_pid][ideal_did];
+
+	// Tell me about the selected platform
+	bs = _bs;
+	clGetPlatformInfo( c->p, CL_PLATFORM_VENDOR, bs, b, &bs);
+	printf("CL Vendor  : %s\n", b);
+	bs = _bs;
+	clGetPlatformInfo( c->p, CL_PLATFORM_NAME, bs, b, &bs);
+	printf("CL Platform: %s\n", b);
+	bs = _bs;
+	clGetPlatformInfo( c->p, CL_PLATFORM_VERSION, bs, b, &bs);
+	printf("CL Version : %s\n", b);
+	// Tell me about the selected device
+	bs = _bs;
+	clGetDeviceInfo(c->d, CL_DEVICE_NAME, bs, b, &bs);
+	printf("CL Dev Name: %s\n", b);
+	bs = _bs;
+	clGetDeviceInfo(c->d, CL_DEVICE_VERSION, bs, b, &bs);
+	printf("CL Dev Ver : %s\n", b);
+	bs = _bs;
+	clGetDeviceInfo(c->d, CL_DRIVER_VERSION, bs, b, &bs);
+	printf("CL Driv Ver: %s\n", b);
 
 	// create the context
 	cl_context_properties properties[] = {
