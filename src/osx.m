@@ -134,8 +134,6 @@ NSOpenGLContext *MyContext;
         
         [window toggleFullScreen:(window)];
     }
-
-    
 }
 
 NSTimer * renderTimer;
@@ -151,7 +149,7 @@ NSTimer * renderTimer;
 #endif
 - (void)prepareOpenGL
 {
-    GLint vsync = 1;
+    GLint vsync = 0;
 //    MyContext = [NSOpenGLContext currentContext];
 //    [context makeCurrentContext];
 
@@ -165,7 +163,7 @@ NSTimer * renderTimer;
     CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
     CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
     CVDisplayLinkStart(displayLink);
-#endif
+#else
     [self reshape];
     renderTimer = [NSTimer scheduledTimerWithTimeInterval:0.001
                                                    target:self
@@ -175,15 +173,20 @@ NSTimer * renderTimer;
     [[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSDefaultRunLoopMode];
     [[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSEventTrackingRunLoopMode];
     //Ensure timer fires during resize
-    
+#endif
     [NSApp activateIgnoringOtherApps:YES];  // to the front!
 
 }
 
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
 {
-    MyOpenGLView *glview = (__bridge MyOpenGLView*) displayLinkContext;
-    [[glview openGLContext] makeCurrentContext];
+	MyOpenGLView *glview = (__bridge MyOpenGLView*) displayLinkContext;
+	NSOpenGLContext *glcontext = [glview openGLContext];
+	[glcontext makeCurrentContext];
+
+	CGLContextObj context = [glcontext CGLContextObj];
+
+	CGLLockContext(context);
     
  //   NSAutoreleasePool* pool = [NSAutoreleasePool new];
  //   if ([glview lockFocusIfCanDraw])
@@ -209,6 +212,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 
 
     [[glview openGLContext] flushBuffer];
+	CGLUnlockContext(context);
     return kCVReturnSuccess;
 }
 
