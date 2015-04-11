@@ -21,20 +21,25 @@ misrepresented as being the original software.
 distribution.
 */
 
+//#define CVDISPLAYLINK		// or use an NSTimer
+//#define MODERN_OPENGL		// or use a GL2 context
+
 #import <Cocoa/Cocoa.h>
 #include <OpenGL/GL.h>
 #include <sys/time.h>
 
+////////////////////////////////////////////////////////////////////////////////
+//////// Public Interface to the rest of the program
+////////////////////////////////////////////////////////////////////////////////
 
 #include "keyboard.h"
-
 
 int killme=0;
 int sys_width  = 1980;	/* dimensions of default screen */
 int sys_height = 1200;
 int vid_width  = 1280;	/* dimensions of our part of the screen */
 int vid_height = 720;
-int win_width  = 0;		/* used for switching from fullscreen back to window */
+int win_width  = 0;	/* used for switching from fullscreen back to window */
 int win_height = 0;
 int mouse_x = 0;
 int mouse_y = 0;
@@ -59,32 +64,38 @@ void main_end(void);
 const int sys_ticksecond = 1000000;
 long long sys_time(void)
 {
-    struct timeval tv;
-    tv.tv_usec = 0;	// tv.tv_sec = 0;
-    gettimeofday(&tv, NULL);
-    return tv.tv_usec + tv.tv_sec * sys_ticksecond;
+	struct timeval tv;
+	tv.tv_usec = 0;	// tv.tv_sec = 0;
+	gettimeofday(&tv, NULL);
+	return tv.tv_usec + tv.tv_sec * sys_ticksecond;
 }
 
 void shell_browser(char *url)
 {
-    NSURL *MyNSURL = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
-    [[NSWorkspace sharedWorkspace] openURL:MyNSURL];
+	NSURL *MyNSURL = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
+	[[NSWorkspace sharedWorkspace] openURL:MyNSURL];
 }
 
-int gargc;
-const char ** gargv;
-NSWindow * window;
-NSApplication * myapp;
-int y_correction = 0;  // to correct mouse position for title bar
+////////////////////////////////////////////////////////////////////////////////
+//////// Mac OS X OpenGL window setup
+////////////////////////////////////////////////////////////////////////////////
 
+static int gargc;
+static const char ** gargv;
+static NSWindow * window;
+static NSApplication * myapp;
+static int y_correction = 0;  // to correct mouse position for title bar
 
-NSOpenGLContext *MyContext;
+static NSOpenGLContext *MyContext;
 
 @interface MyOpenGLView : NSOpenGLView
 {
-    CVDisplayLinkRef displayLink;
+#ifdef CVDISPLAYLINK
+	CVDisplayLinkRef displayLink;
+#else
+	NSTimer * renderTimer;
+#endif
 }
-//-(void) drawRect:(NSRect)dirtyRect;
 @end
 
 @implementation MyOpenGLView
@@ -96,253 +107,203 @@ NSOpenGLContext *MyContext;
 
 -(void)reshape
 {
-#ifdef RETINA_TEST
-    vid_width = [[self window] frame].size.width;
-    vid_height = [[self window] frame].size.height;
-    y_correction = [[[self window] contentView] frame].size.height - vid_height;
-
-    if(vid_height == 0) vid_height = 1;
-    glViewport(0, y_correction * bsFactor, vid_width*bsFactor, vid_height*bsFactor);
-// glScissor knows the real resolution??!?!?
-#else
-    vid_width = [self convertRectToBacking:[self bounds]].size.width;
-    vid_height = [self convertRectToBacking:[self bounds]].size.height;
-    y_correction = bsFactor * [[[self window] contentView] frame].size.height - vid_height;
-    if(vid_height == 0) vid_height = 1;
-    glViewport(0, y_correction, vid_width, vid_height);
-#endif
-}
-
-// #define CVDISP
-
-#ifndef CVDISP
--(void)drawRect:(NSRect)dirtyRect
-{
-    [[self openGLContext] makeCurrentContext];
-    main_loop();
-    [[self openGLContext] flushBuffer];
-    mickey_x = mickey_y = 0;
-    if(killme)
-    {
-        [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
-    }
-    
-    if(fullscreen_toggle)
-    {
-        //        [glview toggleFullScreen];
-        fullscreen_toggle = 0;
-        
-        [window toggleFullScreen:(window)];
-    }
-}
-
-NSTimer * renderTimer;
-
-
-- (void)timerFired:(NSTimer*)timer
-{
-    [self setNeedsDisplay:YES];
+	vid_width = [self convertRectToBacking:[self bounds]].size.width;
+	vid_height = [self convertRectToBacking:[self bounds]].size.height;
+	y_correction = bsFactor * [[[self window] contentView] frame].size.height - vid_height;
+	if(vid_height == 0) vid_height = 1;
+	glViewport(0, y_correction, vid_width, vid_height);
 }
 
 
-
-#endif
 - (void)prepareOpenGL
 {
-    GLint vsync = 0;
-//    MyContext = [NSOpenGLContext currentContext];
-//    [context makeCurrentContext];
+	GLint vsync = 0;
 
-    [self setWantsBestResolutionOpenGLSurface:YES];   // enable retina resolutions
-    bsFactor = [self.window backingScaleFactor];
-    [[self openGLContext] setValues:&vsync forParameter:NSOpenGLCPSwapInterval];
-#ifdef CVDISP
-    CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
-    CVDisplayLinkSetOutputCallback(displayLink, &MyDisplayLinkCallback, (__bridge void *)(self));
-    CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
-    CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
-    CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
-    CVDisplayLinkStart(displayLink);
+	[self setWantsBestResolutionOpenGLSurface:YES];   // enable retina resolutions
+	bsFactor = [self.window backingScaleFactor];
+	[[self openGLContext] setValues:&vsync forParameter:NSOpenGLCPSwapInterval];
+#ifdef CVDISPLAYLINK
+	// Use a CVDisplayLink to do the render loop
+	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
+	CVDisplayLinkSetOutputCallback(displayLink, &MyDisplayLinkCallback, (__bridge void *)(self));
+	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
+	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
+	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, cglContext, cglPixelFormat);
+	CVDisplayLinkStart(displayLink);
 #else
-    [self reshape];
-    renderTimer = [NSTimer scheduledTimerWithTimeInterval:0.001
-                                                   target:self
-                                                 selector:@selector(timerFired:)
-                                                 userInfo:nil
-                                                  repeats:YES];
-    [[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSDefaultRunLoopMode];
-    [[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSEventTrackingRunLoopMode];
-    //Ensure timer fires during resize
+	// Use an NSTimer to do the render loop
+	[self reshape];
+	renderTimer = [NSTimer scheduledTimerWithTimeInterval:0.001
+						       target:self
+						     selector:@selector(timerFired:)
+						     userInfo:nil
+						      repeats:YES];
+	[[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSDefaultRunLoopMode];
+	[[NSRunLoop currentRunLoop] addTimer:renderTimer forMode:NSEventTrackingRunLoopMode];
+	//Ensure timer fires during resize
 #endif
-    [NSApp activateIgnoringOtherApps:YES];  // to the front!
+	[NSApp activateIgnoringOtherApps:YES];  // to the front!
 
 }
 
+#ifdef CVDISPLAYLINK
+// This is the CVDisplayLink callback
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
 {
-	MyOpenGLView *glview = (__bridge MyOpenGLView*) displayLinkContext;
+	MyOpenGLView *glview= (__bridge MyOpenGLView*) displayLinkContext;
 	NSOpenGLContext *glcontext = [glview openGLContext];
-	[glcontext makeCurrentContext];
-
 	CGLContextObj context = [glcontext CGLContextObj];
 
 	CGLLockContext(context);
-    
- //   NSAutoreleasePool* pool = [NSAutoreleasePool new];
- //   if ([glview lockFocusIfCanDraw])
- //   {
-        main_loop();
- //       [glview unlockFocus];
- //   }
-//    [pool drain];
-
-    mickey_x = mickey_y = 0;
-    if(killme)
-    {
-        [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
-    }
-
-    if(fullscreen_toggle)
-    {
-//        [glview toggleFullScreen];
-        fullscreen_toggle = 0;
-
-        [window toggleFullScreen:(window)];
-    }
-
-
-    [[glview openGLContext] flushBuffer];
+	[glcontext makeCurrentContext];
+	main_loop();
+	[glcontext flushBuffer];
 	CGLUnlockContext(context);
-    return kCVReturnSuccess;
+
+	mickey_x = mickey_y = 0;
+	if(killme)
+	{
+		[NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
+	}
+
+	if(fullscreen_toggle)
+	{
+		fullscreen_toggle = 0;
+		[window toggleFullScreen:(window)];
+	}
+
+	return kCVReturnSuccess;
 }
 
 - (void)dealloc
 {
-#ifdef CVDISP
-    CVDisplayLinkRelease(displayLink);
-#endif
-    [super dealloc];
+	CVDisplayLinkRelease(displayLink);
+	[super dealloc];
 }
-/*
-- (void) drawRect:(NSRect)dirtyRect
+
+#else
+-(void)drawRect:(NSRect)dirtyRect
 {
-    [[self openGLContext] makeCurrentContext];
-    glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColor3f(1.0f, 0.85f, 0.35f);
-    glBegin(GL_TRIANGLES);
-    {
-        glVertex3f(  0.0,  0.6, 0.0);
-        glVertex3f( -0.2, -0.3, 0.0);
-        glVertex3f(  0.2, -0.3 ,0.0);
-    }
-    glEnd();
-    [[self openGLContext] flushBuffer];
-    
-//    glFlush(); 
-}*/
+	[[self openGLContext] makeCurrentContext];
+	main_loop();
+	[[self openGLContext] flushBuffer];
+
+	mickey_x = mickey_y = 0;
+
+	if(killme)
+	{
+		[NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
+	}
+
+	if(fullscreen_toggle)
+	{
+		fullscreen_toggle = 0;
+		[window toggleFullScreen:(window)];
+	}
+}
+
+- (void)timerFired:(NSTimer*)timer
+{
+	[self setNeedsDisplay:YES];
+}
+#endif
+
 @end
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 {
-    NSView * view;
+	NSView * view;
 }
 @end
 
 @implementation AppDelegate
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication {
-    return YES;
-}
-
-
--(void) add_menu
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)app
 {
-    NSMenu * mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
-    NSMenuItem * menuItem;
-    NSMenu * submenu;
-    
-    menuItem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
-    submenu = [[NSMenu alloc] initWithTitle:@"Apple"];
-    [NSApp performSelector:@selector(setAppleMenu:) withObject:submenu];
-    [self populateApplicationMenu:submenu];
-    [mainMenu setSubmenu:submenu forItem:menuItem];
-    [NSApp setMainMenu:mainMenu];
-}
-
--(void) populateApplicationMenu:(NSMenu *)aMenu
-{
-    NSString * applicationName = @"voxel";
-    NSMenuItem * menuItem;
-    
-    menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
-                                action:@selector(orderFrontStandardAboutPanel:)
-                         keyEquivalent:@""];
-    [menuItem setTarget:NSApp];
-    [aMenu addItem:[NSMenuItem separatorItem]];
-    
-    menuItem = [aMenu addItemWithTitle:NSLocalizedString(@"Fullscreen", nil)
-                                action:@selector(toggleFullScreen:)
-                         keyEquivalent:@"f"];
-    [menuItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSControlKeyMask];
-    menuItem.target = nil;
-    
-    [aMenu addItem:[NSMenuItem separatorItem]];
-    
-    menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Quit", nil), applicationName]
-                                action:@selector(terminate:)
-                         keyEquivalent:@"q"];
-    [menuItem setTarget:NSApp];
+	return YES;
 }
 
 -(id)init
 {
-    
-    if(self = [super init]) {
-        NSRect contentSize = NSMakeRect(100.0, 400.0, 640.0, 360.0);
-        NSUInteger windowStyleMask = NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
-        window = [[NSWindow alloc] initWithContentRect:contentSize styleMask:windowStyleMask backing:NSBackingStoreBuffered defer:YES];
-        window.backgroundColor = [NSColor whiteColor];
-        window.title = @"Kittens";
-        
-        [window setCollectionBehavior:(NSWindowCollectionBehaviorFullScreenPrimary)];
-        
-        NSOpenGLPixelFormatAttribute pixelFormatAttributes[] =
-        {
-//            NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core,
-            NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersionLegacy,
-            NSOpenGLPFAColorSize    , 24,
-            NSOpenGLPFAAlphaSize    , 8,
-            NSOpenGLPFADepthSize    , 24,
-            NSOpenGLPFADoubleBuffer ,
-            NSOpenGLPFAAccelerated  ,
-            NSOpenGLPFANoRecovery   ,
-            0
-        };
-        NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:pixelFormatAttributes];
+	NSRect contentSize = NSMakeRect(100.0, 400.0, 640.0, 360.0);
+	NSUInteger windowStyleMask = NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
+	window = [[NSWindow alloc] initWithContentRect:contentSize styleMask:windowStyleMask backing:NSBackingStoreBuffered defer:YES];
+	window.backgroundColor = [NSColor whiteColor];
+	window.title = @"Kittens";
 
-        
-        view = [[MyOpenGLView alloc] initWithFrame:[[window contentView] bounds] pixelFormat:pixelFormat];
-    }
-    return self;
+	[window setCollectionBehavior:(NSWindowCollectionBehaviorFullScreenPrimary)];
+
+	NSOpenGLPixelFormatAttribute pixelFormatAttributes[] =
+	{
+#ifdef MODERN_OPENGL
+		NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core,
+#else
+		NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersionLegacy,
+#endif
+		NSOpenGLPFAColorSize    , 24,
+		NSOpenGLPFAAlphaSize    , 8,
+		NSOpenGLPFADepthSize    , 24,
+		NSOpenGLPFADoubleBuffer ,
+		NSOpenGLPFAAccelerated  ,
+		NSOpenGLPFANoRecovery   ,
+		0
+	};
+	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:pixelFormatAttributes];
+
+	view = [[MyOpenGLView alloc] initWithFrame:[[window contentView] bounds] pixelFormat:pixelFormat];
+	return [super init];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
-    [self add_menu];
-    [window setContentView:view];
+	// Create the menu that goes on the Apple Bar
+	NSMenu * mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
+	NSMenuItem * menuTitle;
+	NSMenu * aMenu;
 
+	menuTitle = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
+	aMenu = [[NSMenu alloc] initWithTitle:@"Apple"];
+	[NSApp performSelector:@selector(setAppleMenu:) withObject:aMenu];
+
+	// generate contents of menu
+	NSMenuItem * menuItem;
+	NSString * applicationName = @"voxel";
+	menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
+				    action:@selector(orderFrontStandardAboutPanel:)
+			     keyEquivalent:@""];
+	[menuItem setTarget:NSApp];
+	[aMenu addItem:[NSMenuItem separatorItem]];
+
+	menuItem = [aMenu addItemWithTitle:NSLocalizedString(@"Fullscreen", nil)
+				    action:@selector(toggleFullScreen:)
+			     keyEquivalent:@"f"];
+	[menuItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSControlKeyMask];
+	menuItem.target = nil;
+
+	[aMenu addItem:[NSMenuItem separatorItem]];
+
+	menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Quit", nil), applicationName]
+				    action:@selector(terminate:)
+			     keyEquivalent:@"q"];
+	[menuItem setTarget:NSApp];
+
+	// attach generated menu to menuitem
+	[mainMenu setSubmenu:aMenu forItem:menuTitle];
+	[NSApp setMainMenu:mainMenu];
+
+	// Because this is where you do it?
+	[window setContentView:view];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    [window makeKeyAndOrderFront:self];
-    [window setAcceptsMouseMovedEvents:YES];
-    [window makeFirstResponder:window];
+	[window makeKeyAndOrderFront:self];
+	[window setAcceptsMouseMovedEvents:YES];
+	[window makeFirstResponder:window];
 
-    memset(keys, 0, KEYMAX);
-    main_init(gargc, gargv);
+	memset(keys, 0, KEYMAX);
+	main_init(gargc, gargv);
 
-//    [window toggleFullScreen:(self)];
+//	[window toggleFullScreen:(self)];
 }
 
 
@@ -369,11 +330,8 @@ static void mouse_move(NSEvent * theEvent)
 
 @implementation MyApp
 
-
-
 -(void)sendEvent:(NSEvent *)theEvent
 {
-
 // https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ApplicationKit/Classes/NSEvent_Class/#//apple_ref/c/tdef/NSEventType
     
     switch(theEvent.type) {
