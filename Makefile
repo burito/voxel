@@ -59,10 +59,15 @@ $(WDIR)/%.o: $(SDIR)/%.c
 gui.exe: $(WOBJS)
 	$(WCC) $^ $(WLIBS) -o $@
 
+# crazy stuff to get icons on x11
+$(LDIR)/x11icon: $(SDIR)/x11icon.c
+	$(LCC) $^ -o $@
 $(LDIR)/icon.rgba: $(SDIR)/Icon.png
-	convert -resize 48x48 $^ $@
-$(LDIR)/icon.h: $(LDIR)/icon.rgba
-	bin2h 16 < $^ > $@
+	convert -resize 256x256 $^ $@
+$(LDIR)/icon.argb: $(LDIR)/icon.rgba $(LDIR)/x11icon
+	./build/lin/x11icon < $(LDIR)/icon.rgba > $@
+$(LDIR)/icon.h: $(LDIR)/icon.argb
+	bin2h 13 < $^ > $@
 $(LDIR)/x11.o: $(SDIR)/x11.c $(LDIR)/icon.h
 	$(LCC) $(CFLAGS) $(INCLUDES) -I$(LDIR) -c $< -o $@
 $(LDIR)/%.o: $(SDIR)/%.c
