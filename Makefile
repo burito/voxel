@@ -59,8 +59,14 @@ $(WDIR)/%.o: $(SDIR)/%.c
 gui.exe: $(WOBJS)
 	$(WCC) $^ $(WLIBS) -o $@
 
+$(LDIR)/icon.rgba: $(SDIR)/Icon.png
+	convert -resize 48x48 $^ $@
+$(LDIR)/icon.h: $(LDIR)/icon.rgba
+	bin2h 16 < $^ > $@
+$(LDIR)/x11.o: $(SDIR)/x11.c $(LDIR)/icon.h
+	$(LCC) $(CFLAGS) $(INCLUDES) -I$(LDIR) -c $< -o $@
 $(LDIR)/%.o: $(SDIR)/%.c
-	$(LCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
+	$(LCC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 gui: $(LOBJS)
 	$(LCC) $^ $(LLIBS) -o $@
 

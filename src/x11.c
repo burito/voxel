@@ -80,6 +80,9 @@ void shell_browser(char *url)
     system(buf);
 }
 
+const unsigned char icon_buffer[] = { 8,0,0,0,  8,0,0,0,
+#include <icon.h>
+,0,0,0,0};
 
 Display *display;
 Window window;
@@ -177,6 +180,15 @@ static void x11_window(void)
         XSetStandardProperties(display, window, "Kittens", "Kitteh", None,
                 NULL, 0, NULL);
         XMapRaised(display, window);
+
+	Atom net_wm_icon = XInternAtom(display, "_NET_WM_ICON", False);
+	Atom cardinal = XInternAtom(display, "CARDINAL", False);
+	int length = 2 + 48 * 48;
+//	XChangeProperty(display, window, net_wm_icon, cardinal, 32,
+//		PropModeReplace, &icon_buffer[0], length);
+
+//	X11_XSetTextProperty(display, window, _NET_WM_ICON_NAME, "Icon.png");
+//	XChangeProperty( display, window, _NET_WM_ICON_NAME, 
     }
 
     if(fullscreen)
