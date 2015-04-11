@@ -366,7 +366,7 @@ static void handle_events(void)
 			default:
 				break;
 			}
-		XFreeEventData(display, &event.xcookie);
+			XFreeEventData(display, &event.xcookie);
 		}
 		else
 		switch(event.type) {
@@ -473,7 +473,7 @@ static void x11_end(void)
 int main(int argc, char* argv[])
 {
 	x11_init();
-	glewInit();		// belongs after GL context creation
+	glewInit();	// belongs after GL context creation
 	int ret = main_init(argc, argv);
 	if(ret)
 	{
