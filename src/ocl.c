@@ -190,6 +190,12 @@ int ocl_init(void)
 
 	// get OpenCL Platform ID info
 	clGetPlatformIDs(0, 0, &c->num_pid);
+	if(c->num_pid < 1)
+	{
+		printf("FATAL: There are no OpenCL platforms\n");
+		printf("Your Video Drivers are not installed correctly.\n");
+		exit(1);
+	}
 	c->pid = malloc(sizeof(cl_platform_id) * c->num_pid);
 	memset(c->pid, 0, sizeof(cl_platform_id) * c->num_pid);
 	clGetPlatformIDs(c->num_pid, c->pid, &c->num_pid);
