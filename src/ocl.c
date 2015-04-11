@@ -218,7 +218,7 @@ int ocl_init(void)
 			bs = _bs;
 			clGetDeviceInfo(c->did[i][j], CL_DEVICE_NAME, bs, b, &bs);
 			// grab the first CL device that is a substring of the GL renderer
-			char* result = strstr(glGetString(GL_RENDERER), b);
+			char* result = strstr((const char*)glGetString(GL_RENDERER), b);
 			if(result && ideal_pid < 0 && ideal_did < 0)
 			{
 				ideal_pid = i;
