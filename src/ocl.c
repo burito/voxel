@@ -234,23 +234,23 @@ int ocl_init(void)
 
 	// Tell me about the selected platform
 	bs = _bs;
-	clGetPlatformInfo( c->p, CL_PLATFORM_VENDOR, bs, b, &bs);
+	clGetPlatformInfo( *c->p, CL_PLATFORM_VENDOR, bs, b, &bs);
 	printf("CL Vendor  : %s\n", b);
 	bs = _bs;
-	clGetPlatformInfo( c->p, CL_PLATFORM_NAME, bs, b, &bs);
+	clGetPlatformInfo( *c->p, CL_PLATFORM_NAME, bs, b, &bs);
 	printf("CL Platform: %s\n", b);
 	bs = _bs;
-	clGetPlatformInfo( c->p, CL_PLATFORM_VERSION, bs, b, &bs);
+	clGetPlatformInfo( *c->p, CL_PLATFORM_VERSION, bs, b, &bs);
 	printf("CL Version : %s\n", b);
 	// Tell me about the selected device
 	bs = _bs;
-	clGetDeviceInfo(c->d, CL_DEVICE_NAME, bs, b, &bs);
+	clGetDeviceInfo(*c->d, CL_DEVICE_NAME, bs, b, &bs);
 	printf("CL Dev Name: %s\n", b);
 	bs = _bs;
-	clGetDeviceInfo(c->d, CL_DEVICE_VERSION, bs, b, &bs);
+	clGetDeviceInfo(*c->d, CL_DEVICE_VERSION, bs, b, &bs);
 	printf("CL Dev Ver : %s\n", b);
 	bs = _bs;
-	clGetDeviceInfo(c->d, CL_DRIVER_VERSION, bs, b, &bs);
+	clGetDeviceInfo(*c->d, CL_DRIVER_VERSION, bs, b, &bs);
 	printf("CL Driv Ver: %s\n", b);
 
 	// create the context
