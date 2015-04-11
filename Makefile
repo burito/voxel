@@ -64,23 +64,35 @@ gui: $(LOBJS)
 	$(LCC) $^ $(LLIBS) -o $@
 
 
+# generate the Apple Icon file from src/Icon.png
+$(MDIR)/AppIcon.iconset/icon_512x512@2x.png: src/Icon.png
+	cp $^ $@
+$(MDIR)/AppIcon.iconset/icon_512x512.png: src/Icon.png
+	cp $^ $@
+	sips -Z 512 $@
+$(MDIR)/AppIcon.icns: $(MDIR)/AppIcon.iconset/icon_512x512@2x.png $(MDIR)/AppIcon.iconset/icon_512x512.png
+	iconutil -c icns $(MDIR)/AppIcon.iconset
+	iconutil -c iconset $@
+	iconutil -c icns $(MDIR)/AppIcon.iconset
+# build the Apple binary
 $(MDIR)/osx.o: $(SDIR)/osx.m
 	$(MCC) $(MFLAGS) -c $< -o $@
 $(MDIR)/%.o: $(SDIR)/%.c
 	$(MCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
 gui.bin: $(MOBJS) $(MDIR)/osx.o
 	$(MCC) $^ $(MLIBS) -o $@
-gui.app/Contents/_CodeSignature/CodeResources: gui.bin src/Info.plist src/AppIcon.icns
+# generate the Apple .app file
+gui.app/Contents/_CodeSignature/CodeResources: gui.bin src/Info.plist $(MDIR)/AppIcon.icns
 	rm -rf gui.app
 	mkdir -p gui.app/Contents/MacOS
 	mkdir gui.app/Contents/Resources
 	cp gui.bin gui.app/Contents/MacOS/gui
 	cp src/Info.plist gui.app/Contents
-	cp src/AppIcon.icns gui.app/Contents/Resources
+	cp $(MDIR)/AppIcon.icns gui.app/Contents/Resources
 	codesign --force --sign - gui.app
-
 gui.app: gui.app/Contents/_CodeSignature/CodeResources
 
+# build a zip of the windows exe
 voxel.zip: gui.exe
 	zip voxel.zip gui.exe README.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
 
@@ -92,7 +104,7 @@ clean:
 all: default
 
 # Create build directories
-$(shell	mkdir -p build/lin/GL build/win/GL build/mac)
+$(shell	mkdir -p build/lin/GL build/win/GL build/mac/AppIcon.iconset)
 
 # create the version info
 $(shell echo "#define GIT_REV \"`git rev-parse --short HEAD`\"" > src/version.h)
