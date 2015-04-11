@@ -50,9 +50,10 @@ default: gui.app
 endif 
 
 
-$(WDIR)/win32.res: $(SDIR)/win32.rc
-	$(WINDRES) $^ -O coff -o $@
-
+$(WDIR)/Icon.ico: $(SDIR)/Icon.png
+	convert -resize 256x256 $^ $@
+$(WDIR)/win32.res: $(SDIR)/win32.rc $(WDIR)/Icon.ico
+	$(WINDRES) -I $(WDIR) -O coff src/win32.rc -o $@
 $(WDIR)/%.o: $(SDIR)/%.c
 	$(WCC) $(CFLAGS) -DWIN32 $(INCLUDES)-c $< -o $@
 gui.exe: $(WOBJS)

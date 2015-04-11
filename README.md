@@ -15,6 +15,7 @@ Windows
     dlltool -l libOpenCL.a -d OpenCL.def -k -A
     mv libOpenCL.a /c/mingw64/mingw64/x86_64-w64-mingw32/lib    # Alter to taste
 * Source the OpenCL header files, give them to your compiler.
+* Install [ImageMagick](http://www.imagemagick.org/script/binary-releases.php#windows)
 
 Mac OS X Yosemite
 -----------------
