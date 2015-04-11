@@ -4,11 +4,14 @@
 *.exe
 *.res
 gui
-
+gui.bin
+gui.app
+build
 
 # trash
 .*.swp
 *~
+.DS_Store
 
 # data files
 *.msh
