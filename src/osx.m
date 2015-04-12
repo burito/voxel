@@ -642,6 +642,7 @@ static void mouse_move(NSEvent * theEvent)
 
 	case NSMouseEntered:
 	case NSMouseExited:
+		mouse[0] = 0;
 		break;
 
 	default:
