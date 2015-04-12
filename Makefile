@@ -27,7 +27,7 @@ MCC = clang
 _MOBJS = $(OBJS)
 MFLAGS = -Wall
 MOBJS = $(patsubst %,$(MDIR)/%,$(_MOBJS))
-MLIBS = -F/System/Library/Frameworks -framework OpenGL -framework CoreVideo -framework Cocoa -framework OpenCL
+MLIBS = -F/System/Library/Frameworks -framework OpenGL -framework CoreVideo -framework Cocoa -framework OpenCL -framework IOKit
 
 
 
@@ -83,8 +83,6 @@ $(MDIR)/AppIcon.iconset/icon_512x512.png: src/Icon.png
 	cp $^ $@
 	sips -Z 512 $@
 $(MDIR)/AppIcon.icns: $(MDIR)/AppIcon.iconset/icon_512x512@2x.png $(MDIR)/AppIcon.iconset/icon_512x512.png
-	iconutil -c icns $(MDIR)/AppIcon.iconset
-	iconutil -c iconset $@
 	iconutil -c icns $(MDIR)/AppIcon.iconset
 # build the Apple binary
 $(MDIR)/osx.o: $(SDIR)/osx.m

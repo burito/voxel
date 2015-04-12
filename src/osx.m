@@ -22,9 +22,11 @@ distribution.
 */
 
 //#define CVDISPLAYLINK		// or use an NSTimer
-//#define MODERN_OPENGL		// or use a GL2 context
+#define MODERN_OPENGL		// or use a GL2 context
 
 #import <Cocoa/Cocoa.h>
+#import <IOKit/hid/IOHIDLib.h>
+#include <IOKit/hid/IOHIDKeys.h>
 #include <OpenGL/GL.h>
 #include <sys/time.h>
 
@@ -80,13 +82,26 @@ void shell_browser(char *url)
 //////// Mac OS X OpenGL window setup
 ////////////////////////////////////////////////////////////////////////////////
 
+struct fvec2
+{
+	float x, y;
+};
+
+typedef struct joystick
+{
+	void *device;
+	struct fvec2 l, r;
+	float lt, rt;
+	int button[15];
+} joystick;
+
+joystick joy[4];
+
 static int gargc;
 static const char ** gargv;
 static NSWindow * window;
 static NSApplication * myapp;
 static int y_correction = 0;  // to correct mouse position for title bar
-
-static NSOpenGLContext *MyContext;
 
 @interface MyOpenGLView : NSOpenGLView
 {
@@ -213,6 +228,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 {
 	NSView * view;
+	IOHIDManagerRef hidManager;
 }
 @end
 
@@ -300,6 +316,8 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	[window setAcceptsMouseMovedEvents:YES];
 	[window makeFirstResponder:window];
 
+	[self setupGamepad];
+
 	memset(keys, 0, KEYMAX);
 	main_init(gargc, gargv);
 
@@ -309,7 +327,117 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
-    main_end();
+	main_end();
+}
+
+
+void gamepadWasAdded(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef device)
+{
+	for(int i=0; i<4; i++)
+	if(joy[i].device == 0)
+	{
+		joy[i].device = device;
+		printf("joystick %d plugged in = %p\n", i, device);
+		return;
+	}
+	printf("More than 4 joysticks plugged in\n");
+}
+
+void gamepadWasRemoved(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef device)
+{
+	for(int i=0; i<4; i++)
+	if(joy[i].device == device)
+	{
+		joy[i].device = 0;
+		printf("joystick %d removed = %p\n", i, device);
+		return;
+	}
+	printf("Unexpected Joystick unplugged\n");
+}
+
+// https://developer.apple.com/library/mac/documentation/DeviceDrivers/Conceptual/HID/new_api_10_5/tn2187.html#//apple_ref/doc/uid/TP40000970-CH214-SW2
+void gamepadAction(void* inContext, IOReturn inResult,
+		   void* inSender, IOHIDValueRef valueRef) {
+
+	IOHIDElementRef element = IOHIDValueGetElement(valueRef);
+	Boolean isElement = CFGetTypeID(element) == IOHIDElementGetTypeID();
+	if (!isElement)
+		return;
+//	IOHIDElementCookie cookie = IOHIDElementGetCookie(element);
+//	IOHIDElementType type = IOHIDElementGetType(element);
+//	CFStringRef name = IOHIDElementGetName(element);
+	int page = IOHIDElementGetUsagePage(element);
+	int usage = IOHIDElementGetUsage(element);
+
+	int value = IOHIDValueGetIntegerValue(valueRef);
+
+	int i = -1;
+	for(int j=0; j<4; j++)
+	if(joy[j].device == inSender)
+	{
+		i = j;
+		break;
+	}
+	if(i == -1)
+	{
+		printf("Unexpected joystick event = %p\n", inSender);
+		return;
+	}
+	// page == 1 = axis
+	// page == 9 = button
+	switch(usage) {
+	case 1:	// A
+	case 2:	// B
+	case 3:	// X
+	case 4:	// Y
+	case 5:	// LB
+	case 6: // RB
+	case 7: // LJ
+	case 8: // RJ
+	case 9: // Start
+	case 10: // Select
+	case 11: // Logo
+	case 12: // Dpad Up
+	case 13: // Dpad Down
+	case 14: // Dpad Left
+	case 15: // Dpad Right
+		joy[i].button[usage] = value;
+		break;
+	case 48: // L-X
+		joy[i].l.x = value;
+		break;
+	case 49: // L-Y
+		joy[i].l.y = value;
+		break;
+	case 51: // R-X
+		joy[i].r.x = value;
+		break;
+	case 52: // R-Y
+		joy[i].r.y = value;
+		break;
+	case 50: // LT
+		joy[i].lt = value;
+		break;
+	case 53: // RT
+		joy[i].rt = value;
+		break;
+	default:
+		printf("usage = %d, page = %d, value = %d\n", usage, page, value);
+		break;
+	}
+}
+
+-(void) setupGamepad {
+	hidManager = IOHIDManagerCreate( kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+	NSMutableDictionary* criterion = [[NSMutableDictionary alloc] init];
+	[criterion setObject: [NSNumber numberWithInt: kHIDPage_GenericDesktop] forKey: (NSString*)CFSTR(kIOHIDDeviceUsagePageKey)];
+	[criterion setObject: [NSNumber numberWithInt: kHIDUsage_GD_GamePad] forKey: (NSString*)CFSTR(kIOHIDDeviceUsageKey)];
+	IOHIDManagerSetDeviceMatching(hidManager, (__bridge CFDictionaryRef)criterion);
+	IOHIDManagerRegisterDeviceMatchingCallback(hidManager, gamepadWasAdded, (void*)self);
+	IOHIDManagerRegisterDeviceRemovalCallback(hidManager, gamepadWasRemoved, (void*)self);
+	IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+	IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone);
+	IOHIDManagerRegisterInputValueCallback(hidManager, gamepadAction, (void*)self);
 }
 
 @end
