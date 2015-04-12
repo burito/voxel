@@ -27,7 +27,7 @@ MCC = clang
 _MOBJS = $(OBJS)
 MFLAGS = -Wall
 MOBJS = $(patsubst %,$(MDIR)/%,$(_MOBJS))
-MLIBS = -F/System/Library/Frameworks -framework OpenGL -framework CoreVideo -framework Cocoa -framework OpenCL -framework IOKit
+MLIBS = -F/System/Library/Frameworks -framework OpenGL -framework CoreVideo -framework Cocoa -framework OpenCL -framework IOKit -framework ForceFeedback
 
 
 

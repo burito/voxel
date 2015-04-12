@@ -22,11 +22,12 @@ distribution.
 */
 
 //#define CVDISPLAYLINK		// or use an NSTimer
-#define MODERN_OPENGL		// or use a GL2 context
+//#define MODERN_OPENGL		// or use a GL2 context
 
 #import <Cocoa/Cocoa.h>
 #import <IOKit/hid/IOHIDLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
+#include <ForceFeedback/ForceFeedback.h>
 #include <OpenGL/GL.h>
 #include <sys/time.h>
 
@@ -78,10 +79,6 @@ void shell_browser(char *url)
 	[[NSWorkspace sharedWorkspace] openURL:MyNSURL];
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//////// Mac OS X OpenGL window setup
-////////////////////////////////////////////////////////////////////////////////
-
 struct fvec2
 {
 	float x, y;
@@ -89,13 +86,36 @@ struct fvec2
 
 typedef struct joystick
 {
-	void *device;
+	int connected;
 	struct fvec2 l, r;
 	float lt, rt;
 	int button[15];
+	int fflarge, ffsmall;
+	const char * name;
 } joystick;
 
 joystick joy[4];
+
+
+////////////////////////////////////////////////////////////////////////////////
+//////// Mac OS X OpenGL window setup
+////////////////////////////////////////////////////////////////////////////////
+
+
+typedef struct osx_joystick
+{
+	IOHIDDeviceRef device;
+	io_service_t iost;
+	FFDeviceObjectReference ff;
+	FFEFFECT *effect;
+	FFCUSTOMFORCE *customforce;
+	FFEffectObjectReference effectRef;
+} osx_joystick;
+
+
+osx_joystick osx_joy[4];
+
+void ff_set(void);
 
 static int gargc;
 static const char ** gargv;
@@ -174,6 +194,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	main_loop();
 	[glcontext flushBuffer];
 	CGLUnlockContext(context);
+	ff_set();
 
 	mickey_x = mickey_y = 0;
 	if(killme)
@@ -202,6 +223,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	[[self openGLContext] makeCurrentContext];
 	main_loop();
 	[[self openGLContext] flushBuffer];
+	ff_set();
 
 	mickey_x = mickey_y = 0;
 
@@ -330,14 +352,100 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	main_end();
 }
 
+const char* GetDeviceName(io_service_t device)
+{
+	CFMutableDictionaryRef serviceProperties;
+	NSDictionary *properties;
+	NSString *deviceName = nil;
+
+	if (IORegistryEntryCreateCFProperties(device, &serviceProperties, kCFAllocatorDefault, kNilOptions) != KERN_SUCCESS)
+		return nil;
+	properties = CFBridgingRelease(serviceProperties);
+	deviceName = properties[@kIOHIDProductKey];
+	if (deviceName == nil)
+		deviceName = properties[@"USB Product Name"];
+	return [deviceName UTF8String];
+}
+
+void ff_init(osx_joystick* j)
+{
+	FFCreateDevice(j->iost, &j->ff);
+	if (j->ff == 0) return;
+
+	FFCAPABILITIES capabs;
+	FFDeviceGetForceFeedbackCapabilities(j->ff, &capabs);
+
+	if(capabs.numFfAxes != 2) return;
+
+	j->effect = malloc(sizeof(FFEFFECT));
+	j->customforce = malloc(sizeof(FFCUSTOMFORCE));
+	LONG *c = malloc(2 * sizeof(LONG));
+	DWORD *a = malloc(2 * sizeof(DWORD));
+	LONG *d = malloc(2 * sizeof(LONG));
+
+	c[0] = 0;
+	c[1] = 0;
+	a[0] = capabs.ffAxes[0];
+	a[1] = capabs.ffAxes[1];
+	d[0] = 0;
+	d[1] = 0;
+
+	j->customforce->cChannels = 2;
+	j->customforce->cSamples = 2;
+	j->customforce->rglForceData = c;
+	j->customforce->dwSamplePeriod = 100*1000;
+
+	j->effect->cAxes = capabs.numFfAxes;
+	j->effect->rglDirection = d;
+	j->effect->rgdwAxes = a;
+	j->effect->dwSamplePeriod = 0;
+	j->effect->dwGain = 10000;
+	j->effect->dwFlags = FFEFF_OBJECTOFFSETS | FFEFF_SPHERICAL;
+	j->effect->dwSize = sizeof(FFEFFECT);
+	j->effect->dwDuration = FF_INFINITE;
+	j->effect->dwSamplePeriod = 100*1000;
+	j->effect->cbTypeSpecificParams = sizeof(FFCUSTOMFORCE);
+	j->effect->lpvTypeSpecificParams = j->customforce;
+	j->effect->lpEnvelope = NULL;
+	FFDeviceCreateEffect(j->ff, kFFEffectType_CustomForce_ID, j->effect, &j->effectRef);
+}
+
+void ff_shutdown(osx_joystick *j)
+{
+	if (j->effectRef == NULL) return;
+	FFDeviceReleaseEffect(j->ff, j->effectRef);
+	j->effectRef = NULL;
+	free(j->customforce->rglForceData);
+	free(j->effect->rgdwAxes);
+	free(j->effect->rglDirection);
+	free(j->customforce);
+	free(j->effect);
+	FFReleaseDevice(j->ff);
+}
+void ff_set(void)
+{
+	for(int i=0; i<4; i++)
+	{
+		if(osx_joy[i].effectRef == NULL) continue;
+		osx_joy[i].customforce->rglForceData[0] = (joy[i].fflarge * 10000) / 255;
+		osx_joy[i].customforce->rglForceData[1] = (joy[i].ffsmall * 10000) / 255;
+		FFEffectSetParameters(osx_joy[i].effectRef, osx_joy[i].effect, FFEP_TYPESPECIFICPARAMS);
+		FFEffectStart(osx_joy[i].effectRef, 1, 0);
+	}
+}
 
 void gamepadWasAdded(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef device)
 {
 	for(int i=0; i<4; i++)
-	if(joy[i].device == 0)
+	if(osx_joy[i].device == 0)
 	{
-		joy[i].device = device;
-		printf("joystick %d plugged in = %p\n", i, device);
+		osx_joy[i].device = device;
+		osx_joy[i].iost = IOHIDDeviceGetService(device);
+		ff_init(&osx_joy[i]);
+		joy[i].connected = 1;
+		joy[i].name = GetDeviceName(osx_joy[i].iost);
+
+		printf("%d:\"%s\" plugged in\n", i, joy[i].name);
 		return;
 	}
 	printf("More than 4 joysticks plugged in\n");
@@ -346,10 +454,12 @@ void gamepadWasAdded(void* inContext, IOReturn inResult, void* inSender, IOHIDDe
 void gamepadWasRemoved(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef device)
 {
 	for(int i=0; i<4; i++)
-	if(joy[i].device == device)
+	if(osx_joy[i].device == device)
 	{
-		joy[i].device = 0;
-		printf("joystick %d removed = %p\n", i, device);
+		ff_shutdown(&osx_joy[i]);
+		osx_joy[i].device = 0;
+		joy[i].connected = 0;
+		printf("joystick %d removed\n", i);
 		return;
 	}
 	printf("Unexpected Joystick unplugged\n");
@@ -369,11 +479,11 @@ void gamepadAction(void* inContext, IOReturn inResult,
 	int page = IOHIDElementGetUsagePage(element);
 	int usage = IOHIDElementGetUsage(element);
 
-	int value = IOHIDValueGetIntegerValue(valueRef);
+	long value = IOHIDValueGetIntegerValue(valueRef);
 
 	int i = -1;
 	for(int j=0; j<4; j++)
-	if(joy[j].device == inSender)
+	if(osx_joy[j].device == inSender)
 	{
 		i = j;
 		break;
@@ -422,7 +532,7 @@ void gamepadAction(void* inContext, IOReturn inResult,
 		joy[i].rt = value;
 		break;
 	default:
-		printf("usage = %d, page = %d, value = %d\n", usage, page, value);
+		printf("usage = %d, page = %d, value = %d\n", usage, page, (int)value);
 		break;
 	}
 }
