@@ -137,7 +137,7 @@ static int y_correction = 0;  // to correct mouse position for title bar
 
 -(BOOL)acceptsFirstResponder
 {
-    return YES;
+	return YES;
 }
 
 -(void)reshape
@@ -511,7 +511,7 @@ void gamepadAction(void* inContext, IOReturn inResult,
 	case 13: // Dpad Down
 	case 14: // Dpad Left
 	case 15: // Dpad Right
-		joy[i].button[usage] = value;
+		joy[i].button[usage-1] = value;
 		break;
 	case 48: // L-X
 		joy[i].l.x = value;
@@ -560,10 +560,10 @@ void gamepadAction(void* inContext, IOReturn inResult,
 
 static void mouse_move(NSEvent * theEvent)
 {
-    mouse_x = theEvent.locationInWindow.x * bsFactor;
-    mouse_y = vid_height-(theEvent.locationInWindow.y + y_correction) * bsFactor;
-    mickey_x -= theEvent.deltaX * bsFactor;
-    mickey_y -= theEvent.deltaY * bsFactor;
+	mouse_x = theEvent.locationInWindow.x * bsFactor;
+	mouse_y = vid_height-(theEvent.locationInWindow.y + y_correction) * bsFactor;
+	mickey_x -= theEvent.deltaX * bsFactor;
+	mickey_y -= theEvent.deltaY * bsFactor;
 }
 
 @implementation MyApp
@@ -571,102 +571,83 @@ static void mouse_move(NSEvent * theEvent)
 -(void)sendEvent:(NSEvent *)theEvent
 {
 // https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ApplicationKit/Classes/NSEvent_Class/#//apple_ref/c/tdef/NSEventType
-    
-    switch(theEvent.type) {
-        case NSLeftMouseDown:
-            mouse[0] = 1;
-            mouse_move(theEvent);
-            break;
-        case NSLeftMouseUp:
-            mouse[0] = 0;
-            mouse_move(theEvent);
-            break;
-        case NSRightMouseDown:
-            mouse[1] = 1;
-            mouse_move(theEvent);
-            break;
-        case NSRightMouseUp:
-            mouse[1] = 0;
-            mouse_move(theEvent);
-            break;
-        case NSOtherMouseDown:
-            switch(theEvent.buttonNumber) {
-                case 2: mouse[2] = 1; break;
-                case 3: mouse[3] = 1; break;
-                case 4: mouse[4] = 1; break;
-                case 5: mouse[5] = 1; break;
-                case 6: mouse[6] = 1; break;
-                case 7: mouse[7] = 1; break;
-                default: printf("Unexpected Mouse Button %d\n", (int)theEvent.buttonNumber); break;
-            }
-            mouse_move(theEvent);
-            break;
-        case NSOtherMouseUp:
-            switch(theEvent.buttonNumber) {
-                case 2: mouse[2] = 0; break;
-                case 3: mouse[3] = 0; break;
-                case 4: mouse[4] = 0; break;
-                case 5: mouse[5] = 0; break;
-                case 6: mouse[6] = 0; break;
-                case 7: mouse[7] = 0; break;
-                default: break;
-            }
-            mouse_move(theEvent);
-            break;
-           
-        case NSMouseMoved:
-        case NSLeftMouseDragged:
-        case NSRightMouseDragged:
-        case NSOtherMouseDragged:
-            mouse_move(theEvent);
-            break;
-            
-        case NSKeyDown:
-            keys[theEvent.keyCode] = 1;
-            
-            
-            break;
-        case NSKeyUp:
-            keys[theEvent.keyCode] = 0;
-            break;
-        case NSFlagsChanged:
-            for(int i = 0; i<32; i++)
-            {
-                int x = 1 << i;
-                int bit = !!(theEvent.modifierFlags & x);
-                switch(i) {
-                    case   0: keys[KEY_LCONTROL] = bit; break;
-                    case   1: keys[KEY_LSHIFT] = bit; break;
-                    case   2: keys[KEY_RSHIFT] = bit; break;
-                    case   3: keys[KEY_LLOGO] = bit; break;
-                    case   4: keys[KEY_RLOGO] = bit; break;
-                    case   5: keys[KEY_LALT] = bit; break;
-                    case   6: keys[KEY_RALT] = bit; break;
-                    case   8: break; // Always on?
-                    case  13: keys[KEY_RCONTROL] = bit; break;
-                    case  16: keys[KEY_CAPSLOCK] = bit; break;
-                    case  17: break; // AllShift
-                    case  18: break; // AllCtrl
-                    case  19: break; // AllAlt
-                    case  20: break; // AllLogo
-                    case  23: keys[KEY_FN] = bit; break;
-                    default: break;
-                }
-            }
-            break;
-            
-        case NSScrollWheel:
-            break;
-        
-        case NSMouseEntered:
-        case NSMouseExited:
-            break;
-            
-        default:
-            break;
-    }
-    [super sendEvent:theEvent];
+	int bit=0;
+	switch(theEvent.type) {
+	case NSLeftMouseDown:
+		bit = 1;
+	case NSLeftMouseUp:
+		mouse[0] = bit;
+		mouse_move(theEvent);
+		break;
+	case NSRightMouseDown:
+		bit = 1;
+	case NSRightMouseUp:
+		mouse[1] = bit;
+		mouse_move(theEvent);
+		break;
+	case NSOtherMouseDown:
+		bit = 1;
+	case NSOtherMouseUp:
+		switch(theEvent.buttonNumber) {
+		case 2: mouse[2] = bit; break;
+		case 3: mouse[3] = bit; break;
+		case 4: mouse[4] = bit; break;
+		case 5: mouse[5] = bit; break;
+		case 6: mouse[6] = bit; break;
+		case 7: mouse[7] = bit; break;
+		default: printf("Unexpected Mouse Button %d\n", (int)theEvent.buttonNumber); break;
+		}
+		mouse_move(theEvent);
+		break;
 
+	case NSMouseMoved:
+	case NSLeftMouseDragged:
+	case NSRightMouseDragged:
+	case NSOtherMouseDragged:
+		mouse_move(theEvent);
+		break;
+
+	case NSKeyDown:
+		bit = 1;
+	case NSKeyUp:
+		keys[theEvent.keyCode] = bit;
+		break;
+	case NSFlagsChanged:
+		for(int i = 0; i<24; i++)
+		{
+			bit = !!(theEvent.modifierFlags & (1 << i));
+			switch(i) {
+			case   0: keys[KEY_LCONTROL] = bit; break;
+			case   1: keys[KEY_LSHIFT] = bit; break;
+			case   2: keys[KEY_RSHIFT] = bit; break;
+			case   3: keys[KEY_LLOGO] = bit; break;
+			case   4: keys[KEY_RLOGO] = bit; break;
+			case   5: keys[KEY_LALT] = bit; break;
+			case   6: keys[KEY_RALT] = bit; break;
+			case   8: break; // Always on?
+			case  13: keys[KEY_RCONTROL] = bit; break;
+			case  16: keys[KEY_CAPSLOCK] = bit; break;
+			case  17: break; // AllShift
+			case  18: break; // AllCtrl
+			case  19: break; // AllAlt
+			case  20: break; // AllLogo
+			case  23: keys[KEY_FN] = bit; break;
+			default: break;
+			}
+		}
+		break;
+
+	case NSScrollWheel:
+		break;
+
+	case NSMouseEntered:
+	case NSMouseExited:
+		break;
+
+	default:
+		break;
+	}
+	[super sendEvent:theEvent];
 }
 
 @end
@@ -674,12 +655,12 @@ static void mouse_move(NSEvent * theEvent)
 
 int main(int argc, const char * argv[])
 {
-    gargc = argc;
-    gargv = argv;
-    myapp = [MyApp sharedApplication];
-    AppDelegate * appd = [[AppDelegate alloc] init];
-    [myapp setDelegate:appd];
-    [myapp run];
-    [myapp setDelegate:nil];
-    return 0;
+	gargc = argc;
+	gargv = argv;
+	myapp = [MyApp sharedApplication];
+	AppDelegate * appd = [[AppDelegate alloc] init];
+	[myapp setDelegate:appd];
+	[myapp run];
+	[myapp setDelegate:nil];
+	return 0;
 }
