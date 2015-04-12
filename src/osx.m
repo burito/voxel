@@ -338,11 +338,12 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	[window setAcceptsMouseMovedEvents:YES];
 	[window makeFirstResponder:window];
 
-	[self setupGamepad];
-
 	memset(keys, 0, KEYMAX);
 	memset(joy, 0, sizeof(joystick)*4);
 	memset(osx_joy, 0, sizeof(osx_joystick)*4);
+
+	[self setupGamepad];
+
 	main_init(gargc, gargv);
 
 //	[window toggleFullScreen:(self)];
