@@ -58,7 +58,6 @@ typedef struct joystick
 	float lt, rt;
 	int button[15];
 	int fflarge, ffsmall;
-	const char * name;
 } joystick;
 
 extern joystick joy[4];

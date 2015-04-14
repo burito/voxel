@@ -91,7 +91,6 @@ typedef struct joystick
 	float lt, rt;
 	int button[15];
 	int fflarge, ffsmall;
-	const char * name;
 } joystick;
 
 joystick joy[4];
@@ -361,20 +360,6 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	IOPMAssertionRelease(assertNoSleep);
 }
 
-const char* GetDeviceName(io_service_t device)
-{
-	CFMutableDictionaryRef serviceProperties;
-	NSDictionary *properties;
-	NSString *deviceName = nil;
-
-	if (IORegistryEntryCreateCFProperties(device, &serviceProperties, kCFAllocatorDefault, kNilOptions) != KERN_SUCCESS)
-		return nil;
-	properties = CFBridgingRelease(serviceProperties);
-	deviceName = properties[@kIOHIDProductKey];
-	if (deviceName == nil)
-		deviceName = properties[@"USB Product Name"];
-	return [deviceName UTF8String];
-}
 
 void ff_init(osx_joystick* j)
 {
@@ -452,9 +437,6 @@ void gamepadWasAdded(void* inContext, IOReturn inResult, void* inSender, IOHIDDe
 		osx_joy[i].iost = IOHIDDeviceGetService(device);
 		ff_init(&osx_joy[i]);
 		joy[i].connected = 1;
-		joy[i].name = GetDeviceName(osx_joy[i].iost);
-
-		printf("%d:\"%s\" plugged in\n", i, joy[i].name);
 		return;
 	}
 	printf("More than 4 joysticks plugged in\n");
@@ -468,7 +450,6 @@ void gamepadWasRemoved(void* inContext, IOReturn inResult, void* inSender, IOHID
 		ff_shutdown(&osx_joy[i]);
 		osx_joy[i].device = 0;
 		joy[i].connected = 0;
-		printf("joystick %d removed\n", i);
 		return;
 	}
 	printf("Unexpected Joystick unplugged\n");

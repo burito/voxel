@@ -75,7 +75,6 @@ typedef struct joystick
 	float lt, rt;
 	int button[15];
 	int fflarge, ffsmall;
-	const char * name;
 } joystick;
 
 joystick joy[4];
@@ -108,90 +107,55 @@ static void fail(const char * string)
 	printf("%s: %s", string, errStr);
 }
 
-
-#ifdef XBOX360PAD
-
-#define THUMB XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
-#define TRIGGER XINPUT_GAMEPAD_TRIGGER_THRESHOLD
-#define CAP 32767
 static void sys_input(void)
 {
+ 	DWORD result;
+ 	XINPUT_STATE state;
 
-    float x, l, r, mag, normx;
-    int i;
-    DWORD result;
-    XINPUT_STATE state;
-
-    memset(&pin1, 0, sizeof(playerstate));
-
-	for(i=0; i<1; i++)
+	for(int i=0; i<4; i++)
 	{
 		ZeroMemory( &state, sizeof(XINPUT_STATE) );
 		result = XInputGetState( i, &state );
-		if( result != ERROR_SUCCESS ) continue;
-
-		x = state.Gamepad.sThumbLX;
-		if( x > 0.0 )
+		if( result != ERROR_SUCCESS )
 		{
-			if( x < THUMB ) x = 0.0;
-			else
-			{
-				if( x > CAP ) x = CAP;
-				x -= THUMB;
-	    		}
+			joy[i].connected = 0;
+			continue;
 		}
-		else
-		{
-			if( x > -THUMB ) x = 0.0;
-			else
-			{
-				if( x < -CAP ) x = -CAP;
-				x += THUMB;
-			}
-		}
-		x = x / (CAP - THUMB);
+		joy[i].connected = 1;
 
-//		x = x * x * x;
+		joy[i].l.x = state.Gamepad.sThumbLX;
+		joy[i].l.y = state.Gamepad.sThumbLY;
+		joy[i].r.x = state.Gamepad.sThumbRX;
+		joy[i].r.y = state.Gamepad.sThumbRY;
+		joy[i].lt = state.Gamepad.bLeftTrigger;
+		joy[i].rt = state.Gamepad.bRightTrigger;
 
-		l = state.Gamepad.bLeftTrigger;
-		if(l > 255) l = 255;
-		l -= TRIGGER;
-		if( l < 0.0 ) l = 0.0;
-		l = l / (255 - TRIGGER);
+		joy[i].button[1] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_A);
+		joy[i].button[2] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_B);
+		joy[i].button[3] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_X);
+		joy[i].button[4] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_Y);
+		joy[i].button[5] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+		joy[i].button[6] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+		joy[i].button[7] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB);
+		joy[i].button[8] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB);
+		joy[i].button[9] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_START);
+		joy[i].button[10] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK);
+		joy[i].button[11] = 0;
+		joy[i].button[12] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
+		joy[i].button[13] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+		joy[i].button[14] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+		joy[i].button[15] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
-		r = state.Gamepad.bRightTrigger;
-		if(r > 255) r = 255;
-		r -= TRIGGER;
-		if( r < 0.0 ) r = 0.0;
-		r = r / (255 - TRIGGER);
-
-		pin1.steering = x;
-		pin1.throttle = r;
-		pin1.brake = l;
-
-		if( state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT )
-			pin1.steering = -1.0;
-		if( state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT )
-			pin1.steering = 1.0;
-		if( state.Gamepad.wButtons & XINPUT_GAMEPAD_A )
-			pin1.throttle = 1.0;
-		if( state.Gamepad.wButtons & XINPUT_GAMEPAD_B )
-		pin1.brake = 1.0;
+		XINPUT_VIBRATION vib;
+		vib.wLeftMotorSpeed = joy[i].fflarge * 255;
+		vib.wRightMotorSpeed = joy[i].ffsmall * 255;
+		XInputSetState(i, &vib);
 	}
-
-	if(keys[KEY_UP]) pin1.throttle = 1.0;
-	if(keys[KEY_DOWN]) pin1.brake = 1.0;
-	if(keys[KEY_LEFT] && !keys[KEY_RIGHT])pin1.steering = -1.0;
-	if(keys[KEY_RIGHT] && !keys[KEY_LEFT])pin1.steering = 1.0;
-
-	if(keys[27])killme = 1;
 }
-#endif
+
 
 static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	// PAINTSTRUCT: temporary variable for painting to the window
-	static PAINTSTRUCT ps;
 	int code;
 	int bit=0;
 	switch(uMsg) {
@@ -365,6 +329,7 @@ char *winClassName = "Kittens";
 static void win_init(void)
 {
 	memset(keys, 0, KEYMAX);
+	memset(joy, 0, sizeof(joystick)*4);
 
 	WNDCLASSEX wc;
 	wc.cbSize	= sizeof(WNDCLASSEX);
@@ -429,22 +394,7 @@ static void handle_events(void)
 {
 	MSG mesg;
 	mickey_x = mickey_y = 0;
-	int ret;
-	switch(WaitForInputIdle(GetCurrentProcess() , 10)) {
-	case 0:
-		break;
-	case WAIT_TIMEOUT:
-//		msg("Wait timed out");
-		break;
-	case 0xFFFFFFFF:
-		ret = GetLastError();
-//		if(lastError)
-//			msg("Wait Error:%s", strerror(lastError));
-		break;
-	default:
-//		msg("Wait unexpected retval");
-		break;
-	}
+	sys_input();
 
 	while(PeekMessage(&mesg, NULL, 0, 0, PM_REMOVE))
 	{

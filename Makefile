@@ -12,7 +12,7 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
 WDIR = build/win
 _WOBJS = $(OBJS) gpuinfo.o GL/glew.o win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 -lOpenCL
+WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 -lOpenCL -lxinput9_1_0
 #	-L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"
 #	-L"C:\Program Files (x86)\AMD APP SDK\3.0-0-Beta\lib\x86_64"
 
