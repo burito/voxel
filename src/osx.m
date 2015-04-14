@@ -25,9 +25,11 @@ distribution.
 //#define MODERN_OPENGL		// or use a GL2 context
 
 #import <Cocoa/Cocoa.h>
+#import <IOKit/pwr_mgt/IOPMLib.h>	// to disable sleep
 #import <IOKit/hid/IOHIDLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
 #include <ForceFeedback/ForceFeedback.h>
+
 #include <OpenGL/GL.h>
 #include <sys/time.h>
 
@@ -251,6 +253,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 {
 	NSView * view;
 	IOHIDManagerRef hidManager;
+	IOPMAssertionID assertNoSleep;
 }
 @end
 
@@ -288,6 +291,12 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:pixelFormatAttributes];
 
 	view = [[MyOpenGLView alloc] initWithFrame:[[window contentView] bounds] pixelFormat:pixelFormat];
+
+	IOReturn success = IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep, kIOPMAssertionLevelOn, CFSTR("Game Window"), &assertNoSleep);
+	if (success != kIOReturnSuccess)
+	{
+		NSLog(@"Requesting NoSleep failed");
+	}
 	return [super init];
 }
 
@@ -353,6 +362,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
 	main_end();
+	IOPMAssertionRelease(assertNoSleep);
 }
 
 const char* GetDeviceName(io_service_t device)
@@ -530,9 +540,11 @@ void gamepadAction(void* inContext, IOReturn inResult,
 		break;
 	case 50: // LT
 		joy[i].lt = value;
+//		joy[i].fflarge = value;
 		break;
 	case 53: // RT
 		joy[i].rt = value;
+//		joy[i].ffsmall = value;
 		break;
 	default:
 		printf("usage = %d, page = %d, value = %d\n", usage, page, (int)value);
