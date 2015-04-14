@@ -62,6 +62,8 @@ typedef struct joystick
 
 extern joystick joy[4];
 
+extern float time;
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
