@@ -26,6 +26,8 @@ freely, subject to the following restrictions:
 #include <X11/Xatom.h>
 #include <X11/extensions/XInput2.h>
 
+#include <linux/input.h>
+
 #include <sys/time.h>
 
 #include <stdlib.h>
@@ -36,9 +38,14 @@ freely, subject to the following restrictions:
 #include <GL/glx.h>
 
 #include <dlfcn.h>
+#include <fcntl.h>
+#include <unistd.h>
 
+///////////////////////////////////////////////////////////////////////////////
+//////// Public Interface to the rest of the program
+///////////////////////////////////////////////////////////////////////////////
 
-#include "keyboard.h"
+//#include "keyboard.h"
 
 int killme = 0;
 int sys_width  = 1980;	/* dimensions of default screen */
@@ -80,6 +87,27 @@ void shell_browser(char *url)
 	system(buf);
 }
 
+struct fvec2
+{
+	float x, y;
+};
+
+typedef struct joystick
+{
+	int connected;
+	struct fvec2 l, r;
+	float lt, rt;
+	int button[15];
+	int fflarge, ffsmall;
+} joystick;
+
+joystick joy[4];
+
+///////////////////////////////////////////////////////////////////////////////
+//////// X11 OpenGL window setup
+///////////////////////////////////////////////////////////////////////////////
+
+
 const unsigned char icon_buffer[] = { 0,1,0,0,0,0,0,0, 0,1,0,0,0,0,0,0,
 #include <icon.h>
 };
@@ -103,6 +131,227 @@ int xAttrList[] = {
 };
 
 int oldx=0, oldy=0;
+
+// https://www.kernel.org/doc/Documentation/input/input.txt
+
+struct lin_joystick
+{
+	int fd;
+	int id;
+	int ffid;
+};
+
+struct lin_joystick lin_joy[4]; 
+
+
+static int dev_open(int n)
+{
+	char filename[32];
+	snprintf(filename, sizeof(filename), "/dev/input/event%d", n);
+	return open(filename, O_RDWR);
+}
+
+static void dev_all(void)
+{
+	struct ff_effect ff;
+	memset(&ff, 0, sizeof(ff));
+	ff.type = FF_RUMBLE;
+	ff.id = -1;
+	for(int i=0; i<32; i++)
+	{
+		int fd = dev_open(i);
+		if(fd < 0)continue;
+		int j;
+
+		for(j=0; j<4; j++)
+		{
+			if(joy[j].connected)
+			if(lin_joy[j].id == i)break;
+		}
+		if(j < 4)	// we already have it
+		{
+			close(fd);
+//			printf("already have it\n");
+			continue;
+		}
+		for(j=0; j<4; j++)
+		{
+			if(joy[j].connected == 0)
+			{
+				struct input_id id;
+				ioctl(fd, EVIOCGID, &id);
+				printf("vend:%x, prod:%x, ver:%d\n",
+					id.vendor, id.product, id.version);
+				char buf[32];
+				ioctl(fd, EVIOCGNAME(sizeof(buf)), buf);
+				printf("name = %s\n", buf);
+
+				lin_joy[j].fd = fd;
+				lin_joy[j].id = i;
+				joy[j].connected = 1;
+				lin_joy[j].ffid = ioctl(fd, EVIOCSFF, &ff);
+				break;
+			}
+		}
+		if(j == 4)
+		{
+			close(fd);
+			printf("too many joysticks\n");
+			return;
+		}
+	}
+}
+
+
+static void x11_input(void)
+{
+	struct timeval tv;
+	struct ff_effect ff;
+	struct input_event event, play;
+	fd_set set;
+	memset(&ff, 0, sizeof(ff));
+	ff.type = FF_RUMBLE;
+	ff.replay.length = 1000;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+
+	dev_all();
+
+	for(int i=0; i<4; i++)
+	{
+		if(!joy[i].connected)continue;
+		FD_ZERO(&set);
+		FD_SET(lin_joy[i].fd, &set);
+		int ret = select(lin_joy[i].fd+1, &set, NULL, NULL, &tv);
+		if(-1 == ret)
+		{
+			printf("select error\n");
+			continue;
+		}
+		while(ret > 0)
+		{
+			int ret2 = read(lin_joy[i].fd, &event, sizeof(event));
+			if(-1 == ret2)
+			{
+			//	printf("Joystick disconnected\n");
+				joy[i].connected = 0;
+				close(lin_joy[i].fd);
+				break;
+			}
+			if(0 == ret2)
+			{
+				printf("EOF\n");
+			}
+			switch(event.type) {
+			case EV_ABS:	// axis
+				switch(event.code) {
+				case 0:	// LX
+					joy[i].l.x = event.value;break;
+				case 1:	// LY
+					joy[i].l.y = event.value;break;
+				case 2:	// LT
+					joy[i].lt = event.value;break;
+				case 3:	// RX
+					joy[i].r.x = event.value;break;
+				case 4:	// RY
+					joy[i].r.y = event.value;break;
+				case 5:	// RT
+					joy[i].rt = event.value;break;
+				case 16:	// Dpad X on old Wired Pad
+					switch(event.value) {
+					case -1: // left
+						joy[i].button[13] = 1;
+						joy[i].button[14] = 0;
+						break;
+					case 0: // center 
+						joy[i].button[13] = 0;
+						joy[i].button[14] = 0;
+						break;
+					case 1: // right
+						joy[i].button[13] = 0;
+						joy[i].button[14] = 1;
+						break;
+					default: // haven't seen this
+						break;
+					}
+					break;
+				case 17:	// Dpad Y on old Wired Pad
+					switch(event.value) {
+					case -1: // up 
+						joy[i].button[11] = 1;
+						joy[i].button[12] = 0;
+						break;
+					case 0: // center 
+						joy[i].button[11] = 0;
+						joy[i].button[12] = 0;
+						break;
+					case 1: // down
+						joy[i].button[11] = 0;
+						joy[i].button[12] = 1;
+						break;
+					default: // haven't seen this
+						break;
+					}
+					break;
+				default:
+					printf("axis e: %d, v:%d\n", event.code, event.value);
+				}
+				break;
+
+			case EV_KEY:	// button
+				switch(event.code) {
+				case 304:	// A
+					joy[i].button[0] = event.value; break;
+				case 305:	// B
+					joy[i].button[1] = event.value; break;
+				case 307:	// X
+					joy[i].button[2] = event.value; break;
+				case 308:	// Y
+					joy[i].button[3] = event.value; break;
+				case 310:	// LB
+					joy[i].button[4] = event.value; break;
+				case 311:	// RB
+					joy[i].button[5] = event.value; break;
+				case 317:	// LJ
+					joy[i].button[6] = event.value; break;
+				case 318:	// RJ
+					joy[i].button[7] = event.value; break;
+				case 315:	// Start
+					joy[i].button[8] = event.value; break;
+				case 314:	// Select
+					joy[i].button[9] = event.value; break;
+				case 316:	// Logo
+					joy[i].button[10] = event.value; break;
+				case 706:	// Dpad Up on New Wireless pad
+					joy[i].button[11] = event.value; break;
+				case 707:	// Dpad Down on New Wireless pad
+					joy[i].button[12] = event.value; break;
+				case 704:	// Dpad Left on New Wireless pad
+					joy[i].button[13] = event.value; break;
+				case 705:	// Dpad Right on New Wireless pad
+					joy[i].button[14] = event.value; break;
+				default:
+					printf("butt e: %d, v:%d\n", event.code, event.value);
+				}
+				break;
+			default:
+				break;
+			}
+
+			ret = select(lin_joy[i].fd+1, &set, NULL, NULL, &tv);
+		}
+
+		// upload the Force Feedback settings
+		ff.id = lin_joy[i].ffid;
+		ff.u.rumble.strong_magnitude = joy[i].fflarge * 255;
+		ff.u.rumble.weak_magnitude = joy[i].ffsmall * 255;
+		ioctl(lin_joy[i].fd, EVIOCSFF, &ff);
+		play.type = EV_FF;
+		play.code = ff.id;
+		play.value = 1;
+		write(lin_joy[i].fd, &play, sizeof(play));
+	}
+}
 
 
 static void x11_down(void)
@@ -211,6 +460,8 @@ static void x11_init(void)
 {
 	memset(keys, 0, KEYMAX);
 	memset(mouse, 0, 3);
+	memset(joy, 0, sizeof(joy));
+	memset(lin_joy, 0, sizeof(lin_joy));
 
 	display = XOpenDisplay(0);
 	Screen *screen = DefaultScreenOfDisplay(display);
@@ -312,6 +563,8 @@ static void handle_events(void)
 	XEvent event;
 	XIDeviceEvent *e;
 	double value;
+
+	x11_input();
 
 	mickey_x = mickey_y = 0;
 
