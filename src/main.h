@@ -27,32 +27,46 @@ extern int sys_width;	/* dimensions of default screen */
 extern int sys_height;
 extern int vid_width;	/* dimensions of our part of the screen */
 extern int vid_height;
-extern int mouse_x;		/* position */
+extern int mouse_x;	/* position */
 extern int mouse_y;
 extern int mickey_x;	/* velocity */
 extern int mickey_y;
-extern char mouse[3];	/* button status 0=up 1=down */
+extern char mouse[8];	/* button status 0=up 1=down */
 extern char keys[];
 
+extern int fullscreen;
+extern int fullscreen_toggle;
 
 int main_init(int argc, char *argv[]);
 void main_loop(void);
 void main_end(void);
 
-extern int fullscreen;
-extern int fullscreen_toggle;
-
 extern const int sys_ticksecond;	/* ticks in a second */
 long long sys_time(void);
 
-extern float time;
+void shell_browser(char *url);
 
+struct fvec2
+{
+	float x, y;
+};
+
+typedef struct joystick
+{
+	int connected;
+	struct fvec2 l, r;
+	float lt, rt;
+	int button[15];
+	int fflarge, ffsmall;
+	const char * name;
+} joystick;
+
+extern joystick joy[4];
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-void shell_browser(char *url);
 
 #include "keyboard.h"
 

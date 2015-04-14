@@ -9,16 +9,16 @@ Permission is granted to anyone to use this software for any purpose,
 including commercial applications, and to alter it and redistribute it
 freely, subject to the following restrictions:
 
-1. The origin of this software must not be misrepresented; you must not
-claim that you wrote the original software. If you use this software
-in a product, an acknowledgment in the product documentation would be
-appreciated but is not required.
+   1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
 
-2. Altered source versions must be plainly marked as such, and must not be
-misrepresented as being the original software.
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
 
-3. This notice may not be removed or altered from any source
-distribution.
+   3. This notice may not be removed or altered from any source
+   distribution.
 */
 
 //#define CVDISPLAYLINK		// or use an NSTimer
@@ -33,9 +33,9 @@ distribution.
 #include <OpenGL/GL.h>
 #include <sys/time.h>
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 //////// Public Interface to the rest of the program
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 #include "keyboard.h"
 
@@ -44,8 +44,6 @@ int sys_width  = 1980;	/* dimensions of default screen */
 int sys_height = 1200;
 int vid_width  = 1280;	/* dimensions of our part of the screen */
 int vid_height = 720;
-int win_width  = 0;	/* used for switching from fullscreen back to window */
-int win_height = 0;
 int mouse_x = 0;
 int mouse_y = 0;
 int mickey_x = 0;
@@ -98,11 +96,9 @@ typedef struct joystick
 
 joystick joy[4];
 
-
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 //////// Mac OS X OpenGL window setup
-////////////////////////////////////////////////////////////////////////////////
-
+///////////////////////////////////////////////////////////////////////////////
 
 typedef struct osx_joystick
 {
