@@ -112,6 +112,12 @@ void main_loop(void)
 #ifndef __APPLE__
 	gpuinfo_tick();
 #endif
+	for(int i=0; i<4; i++)
+	{
+		joy[i].fflarge = joy[i].lt;
+		joy[i].ffsmall = joy[i].rt;
+	}
+
 	pos.w = 0.5 / (float)vid_width;
 
 	float3 req = {0,0,0};

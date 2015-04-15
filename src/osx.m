@@ -517,11 +517,11 @@ void gamepadAction(void* inContext, IOReturn inResult,
 		break;
 	case 50: // LT
 		joy[i].lt = value;
-//		joy[i].fflarge = value;
 		break;
 	case 53: // RT
 		joy[i].rt = value;
-//		joy[i].ffsmall = value;
+		break;
+	case -1: // Gets fired occasionally on connect
 		break;
 	default:
 		printf("usage = %d, page = %d, value = %d\n", usage, page, (int)value);
