@@ -21,10 +21,16 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/glew.h>
+#endif
+
+
 #include <string.h>
 #include <stdlib.h>
 
-#include <GL/glew.h>
 #include "stb_image.h"
 
 #include "image.h"

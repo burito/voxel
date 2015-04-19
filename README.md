@@ -17,10 +17,16 @@ Windows
     mv libOpenCL.a /c/mingw64/mingw64/x86_64-w64-mingw32/lib    # Alter to taste
 ```
 * Source the OpenCL header files, give them to your compiler.
+* Install [ImageMagick](http://www.imagemagick.org/script/binary-releases.php#windows)
+
+Mac OS X Yosemite
+-----------------
+* Install [XCode](https://developer.apple.com/xcode/downloads/)
+
 
 Debian & Ubuntu
 ---------------
-    sudo apt-get install git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
+    sudo apt-get install a56 imagemagick git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
 If cross compiling, copy the OpenCL library and headers from the Windows setup to ``/usr/x86_64-w64-mingw32/``
 
 Build Instructions
@@ -33,6 +39,7 @@ By default, it will build the binary native for your platform.
 
     make gui		# builds the default linux binary
     make gui.exe	# builds the default windows binary
+    make gui.app	# builds the default OSX binary
     make voxel.zip  # builds the distributable
 
 Usage
@@ -41,15 +48,15 @@ Usage
 * WASD keys move around.
 * CTRL goes down, SPACE goes up.
 * Holding Right Mouse aims the camera.
-* F11 toggles Fullscreen.
+* F11 toggles Fullscreen. (⌃⌘F on Mac)
 
 System Requirements
 -------------------
-* Needs OpenGL 4.3 & OpenCL 1.1
+* Needs OpenGL 4.3 or OpenCL 1.1
 * Wants 64bit, but it's not needed. Yet.
 * You'll need up to date drivers. As of now that means Nvidia 347.25
 
-There is no Mac support, [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
+The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
 
 Afterword
 ---------

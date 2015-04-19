@@ -25,6 +25,7 @@ freely, subject to the following restrictions:
 #else
 #include <GL/glew.h>
 #endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -113,6 +114,7 @@ static void shader_unifind(GLSLSHADER *s)
 	}
 }
 
+#ifndef __APPLE__
 static void shader_buffind(GLSLSHADER *s)
 {
 	if(!s)return;
@@ -128,7 +130,7 @@ static void shader_buffind(GLSLSHADER *s)
 		}
 	}
 }
-
+#endif
 
 
 
@@ -151,7 +153,9 @@ void shader_rebuild(GLSLSHADER *s)
 	}
 	else
 	{
+#ifndef __APPLE__
 		s->frag = shader_fileload(GL_COMPUTE_SHADER, s->fragfile, shader_header);
+#endif
 		if(!s->frag)return;
 		glAttachShader(s->prog, s->frag);
 	}
@@ -167,7 +171,7 @@ void shader_rebuild(GLSLSHADER *s)
 	{
 		s->happy = 1;
 		shader_unifind(s);
-		shader_buffind(s);
+//		shader_buffind(s);
 	}
 }
 
@@ -224,7 +228,7 @@ void shader_uniform(GLSLSHADER *s, char *name)
 	}
 }
 
-
+#ifndef __APPLE__
 void shader_buffer(GLSLSHADER *s, char *name)
 {
 	if(!s)return;
@@ -251,6 +255,7 @@ void shader_buffer(GLSLSHADER *s, char *name)
 		glUniformBlockBinding(s->prog, s->buf[i], i);
 	}
 }
+#endif
 
 int available_vram(void)
 {

@@ -21,7 +21,11 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#ifdef __APPLE__
+#include <OpenCL/cl.h>
+#else
 #include <CL/cl.h>
+#endif
 
 typedef struct OCLPROGRAM
 {

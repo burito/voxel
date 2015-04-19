@@ -20,6 +20,11 @@ freely, subject to the following restrictions:
    3. This notice may not be removed or altered from any source
    distribution.
 */
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/glew.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +35,6 @@ freely, subject to the following restrictions:
 #include <unistd.h>
 #include <dirent.h>
 
-#include <GL/glew.h>
 
 #include "3dmaths.h"
 #include "image.h"
@@ -919,10 +923,11 @@ widget* spawn_voxobj(char* filename)
 {
 //	widget *w = widget_window_new(100, 100, filename);
 	WF_OBJ *m = wf_load(filename);
-	extern WF_OBJ *vobj;
-	if(vobj)wf_free(vobj);
-	vobj = m;
-	voxel_open();
+//	extern WF_OBJ *vobj;
+//	if(vobj)wf_free(vobj);
+//	vobj = m;
+//	voxel_open();
+
 //	w->data2 = m;
 //	w->draw = widget_window_obj_draw;
 //	w->free = widget_window_obj_free;
@@ -1353,11 +1358,11 @@ void spawn_credits(widget *x)
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(180, 120, "SourceSansPro",
-			"https://github.com/adobe/source-sans-pro");
+			"https://github.com/adobe-fonts/source-sans-pro");
 	item->size.x = 140;
 	widget_child_add(w, item);
 	item = widget_url_new(180, 160, "SourceCodePro",
-			"https://github.com/adobe/source-code-pro");
+			"https://github.com/adobe-fonts/source-code-pro");
 	item->fontface = 1;
 	item->size.x = 140;
 	widget_child_add(w, item);
@@ -1455,14 +1460,14 @@ void menu_fullscreen(widget *w)
 
 void menu_glsl(widget *w)
 {
-	use_glsl = !use_glsl;
+//	use_glsl = !use_glsl;
 }
 
 
 void menu_texdraw(widget *w)
 {
-	extern int texdraw;
-	texdraw = !texdraw;
+//	extern int texdraw;
+//	texdraw = !texdraw;
 }
 
 
@@ -1520,19 +1525,19 @@ int gui_init(int argc, char *argv[])
 	w->draw = widget_menu_bool_draw;
 	w->data2 = &fullscreen;
 
-	w = widget_menu_item_add(item, "     GLSL Renderer", &menu_glsl);
-	w->draw = widget_menu_bool_draw;
-	w->data2 = &use_glsl;
+//	w = widget_menu_item_add(item, "     GLSL Renderer", &menu_glsl);
+//	w->draw = widget_menu_bool_draw;
+//	w->data2 = &use_glsl;
 
-	w = widget_menu_item_add(item, "     Draw 3D Texture", menu_texdraw);
-	w->draw = widget_menu_bool_draw;
-	extern int texdraw;
-	w->data2 = &texdraw;
+//	w = widget_menu_item_add(item, "     Draw 3D Texture", menu_texdraw);
+//	w->draw = widget_menu_bool_draw;
+//	extern int texdraw;
+//	w->data2 = &texdraw;
 
 	widget_menu_item_add(item, "GPU Information", spawn_gpuinfo);
 	widget_menu_separator_add(item);
-	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
-	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
+//	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
+//	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
 
 	item = widget_menu_add(menu, "Input");
 	w = widget_menu_item_add(item, "     Accepting Tablets",
@@ -1678,6 +1683,7 @@ void gui_draw(void)
 	char tempstr[50];
 	sprintf(tempstr, "%4.1fHz", fps);
 	sth_draw_text(stash, 3, 30, vid_width-90, -26, tempstr, 0);
+#ifndef __APPLE__
 	int i;
 	for(i=0; i< nvml_device_count; i++)
 	{
@@ -1689,7 +1695,7 @@ void gui_draw(void)
 		sprintf(tempstr, "%d°C", adl_gputemp[j]);
 		sth_draw_text(stash, 3, 30, vid_width-70, -(50+(i+j)*50), tempstr, 0);
 	}
-
+#endif
 	sth_end_draw(stash);
 
 	gui_http_draw();

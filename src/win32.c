@@ -22,28 +22,26 @@ freely, subject to the following restrictions:
 */
 
 #include <windows.h>
-//#include <Xinput.h>
-
+#include <Xinput.h>
 #include <GL/glew.h>
-
 #include <stdio.h>
 
+///////////////////////////////////////////////////////////////////////////////
+//////// Public Interface to the rest of the program
+///////////////////////////////////////////////////////////////////////////////
+
 #include "keyboard.h"
-
-
 
 int killme=0;
 int sys_width  = 1980;	/* dimensions of default screen */
 int sys_height = 1200;
 int vid_width  = 1280;	/* dimensions of our part of the screen */
 int vid_height = 720;
-int win_width  = 0;		/* used for switching from fullscreen back to window */
-int win_height = 0;
 int mouse_x = 0;
 int mouse_y = 0;
 int mickey_x = 0;
 int mickey_y = 0;
-char mouse[] = {0,0,0};
+char mouse[] = {0,0,0,0,0,0,0,0};
 #define KEYMAX 512
 char keys[KEYMAX];
 
@@ -57,20 +55,42 @@ void main_end(void);
 const int sys_ticksecond = 1000;
 long long sys_time(void)
 {
-    return timeGetTime();
+	return timeGetTime();
 }
 
 void shell_browser(char *url)
 {
-    ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
 }
 
+struct fvec2
+{
+	float x, y;
+};
+
+typedef struct joystick
+{
+	int connected;
+	struct fvec2 l, r;
+	float lt, rt;
+	int button[15];
+	int fflarge, ffsmall;
+} joystick;
+
+joystick joy[4];
+
+///////////////////////////////////////////////////////////////////////////////
+//////// Windows OpenGL window setup
+///////////////////////////////////////////////////////////////////////////////
 
 HINSTANCE hInst;
 HWND hWnd;
 int CmdShow;
 HDC hDC;
 HGLRC hGLRC;
+
+int win_width  = 0;	/* used for switching from fullscreen back to window */
+int win_height = 0;
 
 int window_maximized = 0;
 int focus = 1;
@@ -79,449 +99,377 @@ int sys_bpp = 24;
 
 static void fail(const char * string)
 {
-    int err;
-    char errStr[1000];
-    err = GetLastError();
-    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0,
-            errStr, 1000, 0);
-    printf("%s: %s", string, errStr);
+	int err;
+	char errStr[1000];
+	err = GetLastError();
+	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0,
+		errStr, 1000, 0);
+	printf("%s: %s", string, errStr);
 }
 
-
-#ifdef XBOX360PAD
-
-#define THUMB XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
-#define TRIGGER XINPUT_GAMEPAD_TRIGGER_THRESHOLD
-#define CAP 32767
 static void sys_input(void)
 {
+ 	DWORD result;
+ 	XINPUT_STATE state;
 
-    float x, l, r, mag, normx;
-    int i;
-    DWORD result;
-    XINPUT_STATE state;
+	for(int i=0; i<4; i++)
+	{
+		ZeroMemory( &state, sizeof(XINPUT_STATE) );
+		result = XInputGetState( i, &state );
+		if( result != ERROR_SUCCESS )
+		{
+			joy[i].connected = 0;
+			continue;
+		}
+		joy[i].connected = 1;
 
-    memset(&pin1, 0, sizeof(playerstate));
+		joy[i].l.x = state.Gamepad.sThumbLX;
+		joy[i].l.y = state.Gamepad.sThumbLY;
+		joy[i].r.x = state.Gamepad.sThumbRX;
+		joy[i].r.y = state.Gamepad.sThumbRY;
+		joy[i].lt = state.Gamepad.bLeftTrigger;
+		joy[i].rt = state.Gamepad.bRightTrigger;
 
-    for(i=0; i<1; i++)
-    {
-        ZeroMemory( &state, sizeof(XINPUT_STATE) );
-        result = XInputGetState( i, &state );
-        if( result != ERROR_SUCCESS ) continue;
+		joy[i].button[1] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_A);
+		joy[i].button[2] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_B);
+		joy[i].button[3] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_X);
+		joy[i].button[4] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_Y);
+		joy[i].button[5] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+		joy[i].button[6] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+		joy[i].button[7] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB);
+		joy[i].button[8] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB);
+		joy[i].button[9] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_START);
+		joy[i].button[10] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK);
+		joy[i].button[11] = 0;
+		joy[i].button[12] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
+		joy[i].button[13] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+		joy[i].button[14] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+		joy[i].button[15] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
-        x = state.Gamepad.sThumbLX;
-        if( x > 0.0 )
-        {
-            if( x < THUMB ) x = 0.0;
-            else
-            {
-                if( x > CAP ) x = CAP;
-                x -= THUMB;
-            }
-        }
-        else
-        {
-            if( x > -THUMB ) x = 0.0;
-            else
-            {
-                if( x < -CAP ) x = -CAP;
-                x += THUMB;
-            }
-        }
-        x = x / (CAP - THUMB);
-
-//		x = x * x * x;
-
-        l = state.Gamepad.bLeftTrigger;
-        if(l > 255) l = 255;
-        l -= TRIGGER;
-        if( l < 0.0 ) l = 0.0;
-        l = l / (255 - TRIGGER);
-
-        r = state.Gamepad.bRightTrigger;
-        if(r > 255) r = 255;
-        r -= TRIGGER;
-        if( r < 0.0 ) r = 0.0;
-        r = r / (255 - TRIGGER);
-
-        pin1.steering = x;
-        pin1.throttle = r;
-        pin1.brake = l;
-
-        if( state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT )
-            pin1.steering = -1.0;
-        if( state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT )
-            pin1.steering = 1.0;
-        if( state.Gamepad.wButtons & XINPUT_GAMEPAD_A )
-            pin1.throttle = 1.0;
-        if( state.Gamepad.wButtons & XINPUT_GAMEPAD_B )
-            pin1.brake = 1.0;
-    }
-
-    if(keys[KEY_UP]) pin1.throttle = 1.0;
-    if(keys[KEY_DOWN]) pin1.brake = 1.0;
-    if(keys[KEY_LEFT] && !keys[KEY_RIGHT])pin1.steering = -1.0;
-    if(keys[KEY_RIGHT] && !keys[KEY_LEFT])pin1.steering = 1.0;
-
-    if(keys[27])killme = 1;
-
+		XINPUT_VIBRATION vib;
+		vib.wLeftMotorSpeed = joy[i].fflarge * 255;
+		vib.wRightMotorSpeed = joy[i].ffsmall * 255;
+		XInputSetState(i, &vib);
+	}
 }
-#endif
+
 
 static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    // PAINTSTRUCT: temporary variable for painting to the window
-    static PAINTSTRUCT ps;
-    int code;
+	int code;
+	int bit=0;
+	switch(uMsg) {
+	case WM_SIZING:
+	case WM_SIZE:
+		vid_width = LOWORD(lParam);
+		vid_height = HIWORD(lParam);
+		glViewport(0, 0, vid_width, vid_height);
+		PostMessage(hWndProc, WM_PAINT, 0, 0);
+		return 0;
 
-    switch(uMsg)
-    {
-        case WM_PAINT:
-            if(GetUpdateRect(hWndProc, NULL, 0))
-            {
-                BeginPaint(hWndProc, &ps);
-//				DrawLoop(0);
-                EndPaint(hWndProc, &ps);
-            }
-            return 0;
+	case WM_KEYDOWN:
+		bit = 1;
+	case WM_KEYUP:
+		code = (HIWORD(lParam)) & 511;
+		if(code < KEYMAX)keys[code]=bit;
+		if(code == KEY_F11 && bit == 0)
+			fullscreen_toggle = 1;
+		return 0;
 
-        case WM_SYSCOMMAND:
-            switch(wParam & 0xFFF0)
-            {
-                case SC_MAXIMIZE:
-                    window_maximized = 1;
-                    break;
-                case SC_RESTORE:
-                    window_maximized = 0;
-                    break;
-                default:
-                    break;
-            }
-            break;
+	case WM_LBUTTONDOWN:
+		bit = 1;
+	case WM_LBUTTONUP:
+		mouse[0]=bit;
+		return 0;
 
-        case WM_SIZING:
-        case WM_SIZE:
-            vid_width = LOWORD(lParam);
-            vid_height = HIWORD(lParam);
-            glViewport(0, 0, vid_width, vid_height);
-            PostMessage(hWndProc, WM_PAINT, 0, 0);
-            return 0;
+	case WM_MBUTTONDOWN:
+		bit = 1;
+	case WM_MBUTTONUP:
+		mouse[1]=bit;
+		return 0;
 
-        case WM_KEYDOWN:
-            code = (HIWORD(lParam)) & 511;
-            if(code < KEYMAX)
-                keys[code]=1;
-            return 0;
-        case WM_KEYUP:
-            code = HIWORD(lParam) & 511;
-            if(code < KEYMAX)
-                keys[code]=0;
-            if(code == KEY_F11)
-                fullscreen_toggle = 1;
-            return 0;
+	case WM_RBUTTONDOWN:
+		bit = 1;
+	case WM_RBUTTONUP:
+		mouse[2]=bit;
+		return 0;
 
-        case WM_LBUTTONDOWN:
-            mouse[0]=1;
-            break;
-        case WM_LBUTTONUP:
-            mouse[0]=0;
-            break;
-        case WM_MBUTTONDOWN:
-            mouse[1]=1;
-            break;
-        case WM_MBUTTONUP:
-            mouse[1]=0;
-            break;
-        case WM_RBUTTONDOWN:
-            mouse[2]=1;
-            break;
-        case WM_RBUTTONUP:
-            mouse[2]=0;
-            break;
+	case WM_XBUTTONDOWN:
+		bit = 1;
+	case WM_XBUTTONUP:
+		switch(GET_XBUTTON_WPARAM(wParam)) {
+		case XBUTTON1:
+			mouse[3]=bit;
+			break;
+		case XBUTTON2:
+			mouse[4]=bit;
+			break;
+		default:
+			break;
+		}
+		return 0;
 
-        case WM_MOUSEMOVE:
-            mickey_x += mouse_x - LOWORD(lParam);
-            mickey_y += mouse_y - HIWORD(lParam);
-            mouse_x = LOWORD(lParam);
-            mouse_y = HIWORD(lParam);
-//			msg("Mouse %d, %d\n", mickey_x, mickey_y);
-            break;
+	case WM_MOUSEMOVE:
+		mickey_x += mouse_x - LOWORD(lParam);
+		mickey_y += mouse_y - HIWORD(lParam);
+		mouse_x = LOWORD(lParam);
+		mouse_y = HIWORD(lParam);
+		break;
 
-        case WM_SETCURSOR:
-            switch(LOWORD(lParam))
-            {
-                case HTCLIENT:
-                    if(!menu)
-                        while(ShowCursor(FALSE) >= 0);
-                    SetCursor(LoadCursor(NULL, IDC_ARROW));
-                    return 0;
-                default:
-                    while(ShowCursor(TRUE) < 0);
-                    SetCursor(LoadCursor(NULL, IDC_ARROW));
-                    break;
-            }
-            break;
+	case WM_SETCURSOR:
+		switch(LOWORD(lParam))
+		{
+		case HTCLIENT:
+			if(!menu)
+				while(ShowCursor(FALSE) >= 0);
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
+			return 0;
+		default:
+			while(ShowCursor(TRUE) < 0);
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
+			break;
+		}
+		break;
 
-        case WM_CLOSE:
-            killme=1;
-            return 0;
-
-    }
-
-    return DefWindowProc(hWndProc, uMsg, wParam, lParam);
+	case WM_CLOSE:
+		killme=1;
+		return 0;
+	}
+	return DefWindowProc(hWndProc, uMsg, wParam, lParam);
 }
 
 void win_pixelformat(void)
 {
-    unsigned char bpp = 24;
-    PIXELFORMATDESCRIPTOR pfd = {
-        sizeof(PIXELFORMATDESCRIPTOR),
-        1,						// version number
-        PFD_DRAW_TO_WINDOW |
-        PFD_SUPPORT_OPENGL |
-        PFD_DOUBLEBUFFER |
-        PFD_STEREO_DONTCARE,
-        PFD_TYPE_RGBA,
-        bpp,
-        0, 0, 0, 0, 0, 0,		// color bits ignored
-        0,						// no alpha buffer
-        0,						// shift bit ignored
-        0,						// no accumulation buffer
-        0, 0, 0, 0,				// accum bits ignored
-        bpp,		// 32-bit z-buffer
-        0,						// no stencil buffer
-        0,						// no auxiliary buffer
-        PFD_MAIN_PLANE,			// main layer
-        0,						// reserved
-        0, 0, 0					// layer masks ignored
-    };
+	unsigned char bpp = 24;
+	PIXELFORMATDESCRIPTOR pfd = {
+		sizeof(PIXELFORMATDESCRIPTOR),
+		1,				// version number
+		PFD_DRAW_TO_WINDOW |
+		PFD_SUPPORT_OPENGL |
+		PFD_DOUBLEBUFFER |
+		PFD_STEREO_DONTCARE,
+		PFD_TYPE_RGBA,
+		bpp,
+		0, 0, 0, 0, 0, 0,		// color bits ignored
+		0,				// no alpha buffer
+		0,				// shift bit ignored
+		0,				// no accumulation buffer
+		0, 0, 0, 0,			// accum bits ignored
+		bpp,				// 32-bit z-buffer
+		0,				// no stencil buffer
+		0,				// no auxiliary buffer
+		PFD_MAIN_PLANE,			// main layer
+		0,				// reserved
+		0, 0, 0				// layer masks ignored
+	};
 
-    int pf = ChoosePixelFormat(hDC, &pfd);
-    if(!pf)
-    {
-        fail("ChoosePixelFormat() failed");
-        return;
-    }
+	int pf = ChoosePixelFormat(hDC, &pfd);
+	if(!pf)
+	{
+		fail("ChoosePixelFormat() failed");
+		return;
+	}
 
-    if(!SetPixelFormat(hDC, pf, &pfd))
-    {
-        fail("SetPixelFormat() failed");
-        return;
-    }
+	if(!SetPixelFormat(hDC, pf, &pfd))
+	{
+		fail("SetPixelFormat() failed");
+		return;
+	}
 
-    if(!DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd))
-    {
-        fail("DescribePixelFormat() failed");
-        return;
-    }
+	if(!DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd))
+	{
+		fail("DescribePixelFormat() failed");
+		return;
+	}
 }
 
 static void win_toggle(void)
 {
+	if(wglGetCurrentContext())
+		wglMakeCurrent(NULL, NULL);
 
-    if(wglGetCurrentContext())
-        wglMakeCurrent(NULL, NULL);
+	DestroyWindow(hWnd);
 
-    DestroyWindow(hWnd);
+	if(!fullscreen)
+	{
+		win_width = vid_width;
+		win_height = vid_height;
+		vid_width = GetSystemMetrics(SM_CXSCREEN);
+		vid_height = GetSystemMetrics(SM_CYSCREEN);
 
-    if(!fullscreen)
-    {
-        win_width = vid_width;
-        win_height = vid_height;
-        vid_width = GetSystemMetrics(SM_CXSCREEN);
-        vid_height = GetSystemMetrics(SM_CYSCREEN);
+		hWnd = CreateWindowEx(0, "Kittens", "Kittens",
+		WS_POPUP, //|WS_CLIPSIBLINGS|WS_CLIPCHILDREN,
+		0,0,vid_width,vid_height,NULL,NULL,hInst,NULL);
+		ShowCursor(FALSE);
+	}
+	else
+	{
+		vid_width = win_width;
+		vid_height = win_height;
+		hWnd = CreateWindowEx(0, "Kittens", "Kittens",
+		WS_TILEDWINDOW, //|WS_CLIPSIBLINGS|WS_CLIPCHILDREN,
+		50,50,vid_width,vid_height,NULL,NULL,hInst,NULL);
+		ShowCursor(TRUE);
+	}
 
-        hWnd = CreateWindowEx(0, "Kittens", "Kittens",
-        WS_POPUP, //|WS_CLIPSIBLINGS|WS_CLIPCHILDREN,
-        0,0,vid_width,vid_height,NULL,NULL,hInst,NULL);
-        ShowCursor(FALSE);
-    }
-    else
-    {
-        vid_width = win_width;
-        vid_height = win_height;
-        hWnd = CreateWindowEx(0, "Kittens", "Kittens",
-        WS_TILEDWINDOW, //|WS_CLIPSIBLINGS|WS_CLIPCHILDREN,
-        50,50,vid_width,vid_height,NULL,NULL,hInst,NULL);
-        ShowCursor(TRUE);
-    }
+	fullscreen_toggle = 0;
+	fullscreen = !fullscreen;
 
-    fullscreen_toggle = 0;
-    fullscreen = !fullscreen;
+	hDC = GetDC(hWnd);
+	win_pixelformat();
+	wglMakeCurrent(hDC, hGLRC);
+	ReleaseDC(hWnd, hDC);
 
-    hDC = GetDC(hWnd);
-    win_pixelformat();
-    wglMakeCurrent(hDC, hGLRC);
-    ReleaseDC(hWnd, hDC);
-
-    glViewport(0,0,vid_width, vid_height);
-    ShowWindow(hWnd, CmdShow);
-    UpdateWindow(hWnd);
+	glViewport(0,0,vid_width, vid_height);
+	ShowWindow(hWnd, CmdShow);
+	UpdateWindow(hWnd);
 }
 
 char *winClassName = "Kittens";
 static void win_init(void)
 {
-    memset(keys, 0, KEYMAX);
+	memset(keys, 0, KEYMAX);
+	memset(joy, 0, sizeof(joystick)*4);
 
-    WNDCLASSEX wc;
-    wc.cbSize			= sizeof(WNDCLASSEX);
-    wc.style			= CS_OWNDC;
-    wc.lpfnWndProc		= (WNDPROC)wProc;
-    wc.cbClsExtra		= 0;
-    wc.cbWndExtra		= 0;
-    wc.hInstance		= hInst;
-    wc.hIcon			= LoadIcon(hInst, MAKEINTRESOURCE(0));
-    wc.hIconSm			= NULL; //LoadIcon(hInst, IDI_APPLICAITON);
-    wc.hCursor			= LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground	= NULL;
-    wc.lpszMenuName		= NULL;
-    wc.lpszClassName	= winClassName;
+	WNDCLASSEX wc;
+	wc.cbSize	= sizeof(WNDCLASSEX);
+	wc.style	= CS_OWNDC;
+	wc.lpfnWndProc	= (WNDPROC)wProc;
+	wc.cbClsExtra	= 0;
+	wc.cbWndExtra	= 0;
+	wc.hInstance	= hInst;
+	wc.hIcon	= LoadIcon(hInst, MAKEINTRESOURCE(0));
+	wc.hIconSm	= NULL; //LoadIcon(hInst, IDI_APPLICAITON);
+	wc.hCursor	= LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground= NULL;
+	wc.lpszMenuName	= NULL;
+	wc.lpszClassName= winClassName;
 
-    if(!RegisterClassEx(&wc))
-    {
-        printf("RegisterClassEx() failed\n");
-        return;
-    }
+	if(!RegisterClassEx(&wc))
+	{
+		printf("RegisterClassEx() failed\n");
+		return;
+	}
 
-    hWnd = CreateWindowEx(0, "Kittens", "Kittens",
-        WS_TILEDWINDOW, //|WS_CLIPSIBLINGS|WS_CLIPCHILDREN,
-        50,50,vid_width,vid_height,NULL,NULL,hInst,NULL);
+	hWnd = CreateWindowEx(0, "Kittens", "Kittens",
+		WS_TILEDWINDOW, //|WS_CLIPSIBLINGS|WS_CLIPCHILDREN,
+		50,50,vid_width,vid_height,NULL,NULL,hInst,NULL);
 
-    hDC = GetDC(hWnd);
-    if(!hWnd)
-    {
-        printf("CreateWindowEx() failed\n");
-        return;
-    }
-    ShowWindow(hWnd, CmdShow);
-    UpdateWindow(hWnd);
+	hDC = GetDC(hWnd);
+	if(!hWnd)
+	{
+		printf("CreateWindowEx() failed\n");
+		return;
+	}
+	ShowWindow(hWnd, CmdShow);
+	UpdateWindow(hWnd);
 
-    win_pixelformat();
+	win_pixelformat();
 
-    hGLRC = wglCreateContext(hDC);
-    if(!hGLRC)
-    {
-        fail("wglCreateContext() failed");
-        return;
-    }
-    if(!wglMakeCurrent(hDC, hGLRC))
-    {
-        fail("wglMakeCurrent() failed");
-        return;
-    }
+	hGLRC = wglCreateContext(hDC);
+	if(!hGLRC)
+	{
+		fail("wglCreateContext() failed");
+		return;
+	}
+	if(!wglMakeCurrent(hDC, hGLRC))
+	{
+		fail("wglMakeCurrent() failed");
+		return;
+	}
 
-    ReleaseDC(hWnd, hDC);
+	ReleaseDC(hWnd, hDC);
 }
 
 static void win_end(void)
 {
-    if(fullscreen)ShowCursor(TRUE);
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(hGLRC);
-    DestroyWindow(hWnd);
-    UnregisterClass(winClassName, hInst);
+	if(fullscreen)ShowCursor(TRUE);
+	wglMakeCurrent(NULL, NULL);
+	wglDeleteContext(hGLRC);
+	DestroyWindow(hWnd);
+	UnregisterClass(winClassName, hInst);
 }
 
-void handle_events(void)
+static void handle_events(void)
 {
-    MSG mesg;
-    mickey_x = mickey_y = 0;
-    int ret;
-    switch(WaitForInputIdle(GetCurrentProcess() , 10))
-    {
-        case 0:
-            break;
-        case WAIT_TIMEOUT:
-//				msg("Wait timed out");
-            break;
-        case 0xFFFFFFFF:
-            ret = GetLastError();
-//				if(lastError)
-//					msg("Wait Error:%s", strerror(lastError));
-            break;
-        default:
-//				msg("Wait unexpected retval");
-            break;
-    }
+	MSG mesg;
+	mickey_x = mickey_y = 0;
+	sys_input();
 
-    while(PeekMessage(&mesg, NULL, 0, 0, PM_REMOVE))
-    {
-        if(mesg.message == WM_QUIT)
-            killme=TRUE;
-        if(mesg.hwnd == hWnd)
-        {
-            wProc(mesg.hwnd, mesg.message, mesg.wParam, mesg.lParam );
-        }
-        else
-        {
-            TranslateMessage(&mesg);
-            DispatchMessage(&mesg);
-        }
-    }
+	while(PeekMessage(&mesg, NULL, 0, 0, PM_REMOVE))
+	{
+		if(mesg.message == WM_QUIT)
+			killme=TRUE;
+		if(mesg.hwnd == hWnd)
+		{
+			wProc(mesg.hwnd,mesg.message,mesg.wParam,mesg.lParam);
+		}
+		else
+		{
+			TranslateMessage(&mesg);
+			DispatchMessage(&mesg);
+		}
+	}
 
-    if(fullscreen_toggle)
-    {
-        win_toggle();
-    }
+	if(fullscreen_toggle)
+	{
+		win_toggle();
+	}
 }
 
 
 int APIENTRY WinMain(HINSTANCE hCurrentInst, HINSTANCE hPrev,
-            LPSTR lpszCmdLine, int nCmdShow)
+	    LPSTR lpszCmdLine, int nCmdShow)
 {
-    hInst = hCurrentInst;
-    CmdShow = nCmdShow;
+	hInst = hCurrentInst;
+	CmdShow = nCmdShow;
 
-    /* Convert win32 style arguments to standard format */
+	/* Convert win32 style arguments to standard format */
 #define ARGC_MAX 10
-    int last=0;
-    int escape=0;
-    int argc=1;
-    char *argv[ARGC_MAX];
-    argv[0] = NULL;
-    for(int i=0; i<1000; i++)
-    {
-        if(ARGC_MAX <= argc)break;
-        if(lpszCmdLine[i] == '"')escape = !escape;
-        if(lpszCmdLine[i]==0 || (!escape && lpszCmdLine[i] == ' '))
-        {
-            int size = i - last;
-            char *arg = malloc(size+1);
-            memcpy(arg, lpszCmdLine+last, size);
-            arg[size]=0;
-            argv[argc]=arg;
-            argc++;
-            while(lpszCmdLine[i]==' ')i++;
-            last = i;
-            if(lpszCmdLine[i]==0)break;
-        }
-    }
+	int last=0;
+	int escape=0;
+	int argc=1;
+	char *argv[ARGC_MAX];
+	argv[0] = NULL;
+	for(int i=0; i<1000; i++)
+	{
+		if(ARGC_MAX <= argc)break;
+		if(lpszCmdLine[i] == '"')escape = !escape;
+		if(lpszCmdLine[i]==0 || (!escape && lpszCmdLine[i] == ' '))
+		{
+			int size = i - last;
+			char *arg = malloc(size+1);
+			memcpy(arg, lpszCmdLine+last, size);
+			arg[size]=0;
+			argv[argc]=arg;
+			argc++;
+			while(lpszCmdLine[i]==' ')i++;
+			last = i;
+			if(lpszCmdLine[i]==0)break;
+		}
+	}
 #undef ARGC_MAX
 
-    win_init();
-    glewInit();
-    int ret = main_init(argc, argv);
-    for(int i=0; i<argc; i++)free(argv[i]); /* delete args */
-    if(ret)
-    {
-        win_end();
-        return ret;
-    }
+	win_init();
+	glewInit();
+	int ret = main_init(argc, argv);
+	for(int i=0; i<argc; i++)free(argv[i]); /* delete args */
+	if(ret)
+	{
+		win_end();
+		return ret;
+	}
 
-    while(!killme)
-    {
-        handle_events();
-        main_loop();
-        SwapBuffers(hDC);
-    }
+	while(!killme)
+	{
+		handle_events();
+		main_loop();
+		SwapBuffers(hDC);
+	}
 
-    main_end();
-    win_end();
-    return 0;
+	main_end();
+	win_end();
+	return 0;
 }
-
-
-
 
 

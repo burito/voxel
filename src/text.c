@@ -21,13 +21,18 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/glew.h>
+#endif
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <sys/stat.h>
-
-#include <GL/glew.h>
 
 
 /* Produces a string from the glGetError() return value */
