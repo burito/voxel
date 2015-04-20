@@ -39,16 +39,15 @@ WCC = x86_64-w64-mingw32-gcc
 WINDRES = x86_64-w64-mingw32-windres
 #WCC = i686-w64-mingw32-gcc
 #WINDRES = i686-w64-mingw32-windres
-endif
-ifeq ($(UNAME), MINGW32_NT-6.1)
+else
+ifeq ($(UNAME), Darwin)
+default: gui.app
+else
 WCC = gcc
 WINDRES = windres
 default: gui.exe
-endif
-ifeq ($(UNAME), Darwin)
-default: gui.app
 endif 
-
+endif
 
 $(WDIR)/Icon.ico: $(SDIR)/Icon.png
 	convert -resize 256x256 $^ $@
