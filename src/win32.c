@@ -36,6 +36,7 @@ freely, subject to the following restrictions:
 int killme=0;
 int sys_width  = 1980;	/* dimensions of default screen */
 int sys_height = 1200;
+float sys_dpi = 1.0;
 int vid_width  = 1280;	/* dimensions of our part of the screen */
 int vid_height = 720;
 int mouse_x = 0;
@@ -232,6 +233,16 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 
+	case 0x02E0:	// WM_DPICHANGED
+		sys_dpi =(float)LOWORD(wParam) / 96.0; // dpi-X
+//		sys_dpi = HIWORD(wParam);	// dpi-Y
+		RECT *r = (RECT*)lParam;
+		SetWindowPos(hWnd, HWND_TOP, 0, 0,
+			r->left - r->right,
+			r->top - r->bottom,
+			SWP_NOMOVE);
+		return 0;
+
 	case WM_CLOSE:
 		killme=1;
 		return 0;
@@ -332,6 +343,24 @@ static void win_init(void)
 {
 	memset(keys, 0, KEYMAX);
 	memset(joy, 0, sizeof(joystick)*4);
+
+	HMODULE l = LoadLibrary("shcore.dll");
+	if(NULL != l)
+	{
+		void (*SetProcessDpiAwareness)() =
+			(void(*)())GetProcAddress(l, "SetProcessDpiAwareness");
+
+		void (*GetDpiForMonitor)() =
+			(void(*)())GetProcAddress(l, "GetDpiForMonitor");
+
+		SetProcessDpiAwareness(2);// 2 = Process_Per_Monitor_DPI_Aware
+		int dpi_x=0, dpi_y=0;
+		POINT p = {1, 1};
+		HMONITOR hmon = MonitorFromPoint(p, MONITOR_DEFAULTTOPRIMARY);
+		GetDpiForMonitor(hmon, 0, &dpi_x, &dpi_y);
+		FreeLibrary(l);
+		sys_dpi = (float)dpi_x / 96.0;
+	}
 
 	WNDCLASSEX wc;
 	wc.cbSize	= sizeof(WNDCLASSEX);
