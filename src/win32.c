@@ -24,6 +24,7 @@ freely, subject to the following restrictions:
 #include <windows.h>
 #include <Xinput.h>
 #include <GL/glew.h>
+#include <GL/wglew.h>
 #include <stdio.h>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -325,6 +326,7 @@ static void win_toggle(void)
 	UpdateWindow(hWnd);
 }
 
+
 char *winClassName = "Kittens";
 static void win_init(void)
 {
@@ -366,19 +368,37 @@ static void win_init(void)
 
 	win_pixelformat();
 
-	hGLRC = wglCreateContext(hDC);
-	if(!hGLRC)
+	HGLRC tmpGLRC;
+
+	tmpGLRC = wglCreateContext(hDC);
+	if(!tmpGLRC)
 	{
 		fail("wglCreateContext() failed");
 		return;
 	}
-	if(!wglMakeCurrent(hDC, hGLRC))
+	if(!wglMakeCurrent(hDC, tmpGLRC))
 	{
 		fail("wglMakeCurrent() failed");
 		return;
 	}
+	glewInit();
+	GLint glattrib[] = {
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+//		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
+		0 };
 
-	ReleaseDC(hWnd, hDC);
+	if(1 == wglewIsSupported("WGL_ARB_create_context"))
+	{
+		hGLRC = wglCreateContextAttribsARB(hDC, 0, glattrib);
+		wglMakeCurrent(NULL, NULL);
+		wglDeleteContext(tmpGLRC);
+		wglMakeCurrent(hDC, hGLRC);
+	}
+	else hGLRC = tmpGLRC;
+//	ReleaseDC(hWnd, hDC);
 }
 
 static void win_end(void)
@@ -451,7 +471,6 @@ int APIENTRY WinMain(HINSTANCE hCurrentInst, HINSTANCE hPrev,
 #undef ARGC_MAX
 
 	win_init();
-	glewInit();
 	int ret = main_init(argc, argv);
 	for(int i=0; i<argc; i++)free(argv[i]); /* delete args */
 	if(ret)

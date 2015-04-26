@@ -73,6 +73,11 @@ int main_init(int argc, char *argv[])
 	printf("GL Version : %s\n", glGetString(GL_VERSION) );
 	printf("SL Version : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION) );
 
+	int glver[2];
+	glGetIntegerv(GL_MAJOR_VERSION, &glver[0]);
+	glGetIntegerv(GL_MINOR_VERSION, &glver[1]);
+	printf("GL3 Version: %d.%d\n", glver[0], glver[1]);
+	
 #ifndef __APPLE__
 	if(!GLEW_VERSION_4_3)
 	{
