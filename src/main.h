@@ -25,6 +25,7 @@ freely, subject to the following restrictions:
 extern int killme;		/* global killswitch */
 extern int sys_width;	/* dimensions of default screen */
 extern int sys_height;
+extern float sys_dpi;	/* Factor to scale UI elements according to OS */
 extern int vid_width;	/* dimensions of our part of the screen */
 extern int vid_height;
 extern int mouse_x;	/* position */

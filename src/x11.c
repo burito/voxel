@@ -50,6 +50,7 @@ freely, subject to the following restrictions:
 int killme = 0;
 int sys_width  = 1980;	/* dimensions of default screen */
 int sys_height = 1200;
+int sys_dpi = 1.0;
 int vid_width  = 1280;	/* dimensions of our part of the screen */
 int vid_height = 720;
 int win_width  = 0;		/* used for switching from fullscreen back to window */
