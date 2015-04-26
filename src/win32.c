@@ -97,7 +97,7 @@ int win_height = 0;
 int window_maximized = 0;
 int focus = 1;
 int menu = 1;
-int sys_bpp = 24;
+int sys_bpp = 32;
 
 static void fail(const char * string)
 {
@@ -252,7 +252,7 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void win_pixelformat(void)
 {
-	unsigned char bpp = 24;
+	unsigned char bpp = 32;
 	PIXELFORMATDESCRIPTOR pfd = {
 		sizeof(PIXELFORMATDESCRIPTOR),
 		1,				// version number
