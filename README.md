@@ -8,7 +8,7 @@ Build Environment
 Windows
 -------
 * Install [mingw-w64-install.exe](http://sourceforge.net/projects/mingw-w64/files/)
-* Install http://msysgit.github.io/
+* Install https://git-for-windows.github.io/
 * Put their ``/bin`` directories in your ``PATH``.
 * Mingw will now link directly against DLL's, no more library required.
 * Source the [OpenCL header files](https://github.com/KhronosGroup/OpenCL-Headers), give them to your compiler.
@@ -17,7 +17,6 @@ Windows
 Mac OS X Yosemite
 -----------------
 * Install [XCode](https://developer.apple.com/xcode/downloads/)
-
 
 Debian & Ubuntu
 ---------------
