@@ -25,16 +25,16 @@ If cross compiling, copy the OpenCL library and headers from the Windows setup t
 
 Build Instructions
 ------------------
-    git clone git@github.com:burito/voxel.git		# if you're using ssh
+    git clone git@github.com:burito/voxel.git
     cd voxel
-    make -j8		# if you have 8 threads
+    make -j8	# if you have 8 threads
 
 By default, it will build the binary native for your platform.
 
-    make gui		# builds the default linux binary
+    make gui	# builds the default linux binary
     make gui.exe	# builds the default windows binary
     make gui.app	# builds the default OSX binary
-    make voxel.zip  # builds the distributable
+    make voxel.zip	# builds the distributable
 
 Usage
 -----

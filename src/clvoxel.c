@@ -883,7 +883,7 @@ void voxel_loop(void)
 		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[3], CL_TRUE, 16, 16,
 			&angle, 0, NULL, NULL);
 		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
-	//	clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
+		clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
 
 		ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);	// brick buffer
 		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));

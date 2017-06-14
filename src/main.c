@@ -99,7 +99,7 @@ int main_init(int argc, char *argv[])
 
 	time_start = sys_time();
 	http_init();
-//	voxel_init();
+	voxel_init();
 
 	return gui_init(argc, argv);
 }
@@ -195,7 +195,7 @@ void main_loop(void)
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	gui_input();
-//	voxel_loop();
+	voxel_loop();
 	ocl_loop();
 	gui_draw();
 	http_loop();
@@ -206,7 +206,7 @@ void main_end(void)
 #ifndef __APPLE__
 	gpuinfo_end();
 #endif
-//	voxel_end();
+	voxel_end();
 	ocl_end();
 	gui_end();
 	http_end();

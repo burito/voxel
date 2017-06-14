@@ -97,7 +97,7 @@ float slab_exit(float3 p, float3 in, float4 box)
 	float3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * in;
 	nearfar[1] = (box.xyz+box.w - p) * in;
-	int3 ind = convert_int3(step(0.0, in));
+	int3 ind = convert_int3(step((float3)0.0, in));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -110,7 +110,7 @@ float slab_enter(float3 p, float3 in, float4 box)
 	float3 ret, nearfar[2];
 	nearfar[0] = (box.xyz - p) * in;
 	nearfar[1] = (box.xyz+box.w - p) * in;
-	int3 ind = convert_int3(step(0.0, -in));
+	int3 ind = convert_int3(step((float3)0.0, -in));
 	ret.x = nearfar[ind.x].x;
 	ret.y = nearfar[ind.y].y;
 	ret.z = nearfar[ind.z].z;
@@ -244,8 +244,8 @@ void brick_ray(
 		float3 sample_loc = mix(near, far, pos)*iCount;
 		float4 voxeln = read_imagef(bricks, brSamp, (float4)(sample_loc+brick_pos, 0));
 		float4 voxelc = read_imagef(bricks_colour, brSamp, (float4)(sample_loc+brick_pos, 0));
-		retnorm.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxeln.xyz)/(1.0 - retnorm.xyz * voxeln.xyz);
-		retcol.xyz += ((1.0-retcol.w)*(1.0-retcol.w) * voxelc.xyz)/(1.0 - retcol.xyz * voxelc.xyz);
+		retnorm.xyz += ((float3)((1.0-retcol.w)*(1.0-retcol.w)) * voxeln.xyz)/((float3)1.0 - retnorm.xyz * voxeln.xyz);
+		retcol.xyz += ((float3)((1.0-retcol.w)*(1.0-retcol.w)) * voxelc.xyz)/((float3)1.0 - retcol.xyz * voxelc.xyz);
 		retnorm.w = retnorm.w + (1.0-retnorm.w) * voxeln.w;
 		retcol.w = retcol.w + (1.0-retcol.w) * voxelc.w;
 		if(retcol.w > 1.0)break;
@@ -317,7 +317,7 @@ __kernel void Render(
 	n.z = t.x * s.y - t.z * c.y;
 
 	n = normalize(n);
-	float3 invnorm = 1.0 / n;
+	float3 invnorm = (float3)1.0 / n;
 	float3 normsign = sign(n);
 
 	// Are we inside the Octtree?
@@ -361,7 +361,7 @@ __kernel void Render(
 		else steprem = 0;
 
 
-		float3 tmp = far + axis*(box.w * 0.1);
+		float3 tmp = far + axis*(box.w * (float3)0.1);
 		if(!inside(tmp, (float4)(0,0,0,1)))break;
 		brick_id = find_brick(NodeNode, NodeBrick, NodeUseTime,
 			NodeReqTime, BrickReqTime, BrickUseTime, tmp, &box, psize, time);

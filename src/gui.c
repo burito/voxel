@@ -923,10 +923,10 @@ widget* spawn_voxobj(char* filename)
 {
 //	widget *w = widget_window_new(100, 100, filename);
 	WF_OBJ *m = wf_load(filename);
-//	extern WF_OBJ *vobj;
-//	if(vobj)wf_free(vobj);
-//	vobj = m;
-//	voxel_open();
+	extern WF_OBJ *vobj;
+	if(vobj)wf_free(vobj);
+	vobj = m;
+	voxel_open();
 
 //	w->data2 = m;
 //	w->draw = widget_window_obj_draw;

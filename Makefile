@@ -5,7 +5,7 @@ LIBRARIES = -lm
 SDIR = src
 
 OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
-	http.o ocl.o
+	http.o ocl.o clvoxel.o
 
 
 # Build rules
