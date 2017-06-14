@@ -1,7 +1,7 @@
 CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
 
 PLATFORM = stb_image.o stb_truetype.o fontstash.o image.o
-LIBRARIES = -lm -lOpenCL
+LIBRARIES = -lm
 SDIR = src
 
 OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
@@ -12,7 +12,7 @@ OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
 WDIR = build/win
 _WOBJS = $(OBJS) gpuinfo.o GL/glew.o win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 -lOpenCL -lxinput9_1_0
+WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 `which opencl.dll` -lxinput9_1_0
 #	-L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"
 #	-L"C:\Program Files (x86)\AMD APP SDK\3.0-0-Beta\lib\x86_64"
 
@@ -20,7 +20,7 @@ LDIR = build/lin
 LCC = gcc
 _LOBJS = $(OBJS) gpuinfo.o GL/glew.o x11.o
 LOBJS = $(patsubst %,$(LDIR)/%,$(_LOBJS))
-LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl
+LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl -lOpenCL
 
 MDIR = build/mac
 MCC = clang
