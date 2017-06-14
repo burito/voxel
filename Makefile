@@ -50,7 +50,7 @@ endif
 endif
 
 $(WDIR)/Icon.ico: $(SDIR)/Icon.png
-	convert -resize 256x256 $^ $@
+	magick convert -resize 256x256 $^ $@
 $(WDIR)/win32.res: $(SDIR)/win32.rc $(WDIR)/Icon.ico
 	$(WINDRES) -I $(WDIR) -O coff src/win32.rc -o $@
 $(WDIR)/%.o: $(SDIR)/%.c
