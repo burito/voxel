@@ -8,7 +8,7 @@ endef
 CFLAGS = -std=c11 -Ilib/include
 VPATH = src lib
 
-OBJS = stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
+OBJS = version.o stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
 	http.o ocl.o clvoxel.o gpuinfo.o
 DEBUG = -g
 #DEBUG =
@@ -171,6 +171,9 @@ all: default
 $(shell	mkdir -p build/lin/GL build/win/GL build/mac/AppIcon.iconset)
 
 # create the version info
-$(shell echo "#define GIT_REV \"`git rev-parse --short HEAD`\"" > src/version.h)
-$(shell echo "#define GIT_TAG \"`git name-rev --tags --name-only \`git rev-parse HEAD\``\"" >> src/version.h)
-
+GIT_VERSION:=$(shell git describe --dirty --always --tags)
+VERSION:=const char git_version[] = "$(GIT_VERSION)";
+SRC_VERSION:=$(shell cat src/version.c 2>/dev/null)
+ifneq ($(SRC_VERSION),$(VERSION))
+$(shell echo '$(VERSION)' > src/version.c)
+endif

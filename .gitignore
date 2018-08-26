@@ -18,6 +18,6 @@ build
 data/textures
 
 # version
-src/version.h
+src/version.c
 
 
