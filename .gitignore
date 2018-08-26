@@ -1,6 +1,4 @@
-
 # compiler output
-
 gui.exe
 gui
 gui.bin
@@ -8,6 +6,7 @@ gui.app
 build
 
 # trash
+.vscode
 .*.swp
 *~
 .DS_Store
@@ -16,6 +15,9 @@ build
 *.msh
 *.obj
 *.mtl
+data/textures
 
 # version
 src/version.h
+
+
