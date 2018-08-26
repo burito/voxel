@@ -156,7 +156,7 @@ voxel.zip: gui.exe
 
 # Housekeeping
 clean:
-	@rm -rf build gui gui.exe gui.bin gui.app opengl.zip src/version.h gui.pdb gui.ilk
+	@rm -rf build gui gui.exe gui.bin gui.app opengl.zip src/version.c gui.pdb gui.ilk
 
 help:
 	echo Possible targets are...
