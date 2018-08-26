@@ -99,9 +99,7 @@ $(WDIR)/win32.res: win32.rc $(WDIR)/Icon.ico
 	$(WINDRES) -I $(WDIR) -O coff src/win32.rc -o $@
 $(WDIR)/%.o: %.c
 	$(WCC) $(DEBUG) $(CFLAGS) $(INCLUDES)-c $< -o $@
-openvr_api.dll:
-	cp lib/win/openvr_api.dll .
-gui.exe: openvr_api.dll $(WOBJS)
+gui.exe: $(WOBJS)
 	$(WCC) $(DEBUG) $(WOBJS) $(WLIBS) -o $@
 
 # crazy stuff to get icons on x11
@@ -158,7 +156,7 @@ voxel.zip: gui.exe
 
 # Housekeeping
 clean:
-	@rm -rf build gui gui.exe gui.bin gui.app opengl.zip src/version.h openvr_api.dll libopenvr_api.so gui.pdb gui.ilk
+	@rm -rf build gui gui.exe gui.bin gui.app opengl.zip src/version.h gui.pdb gui.ilk
 
 help:
 	echo Possible targets are...
