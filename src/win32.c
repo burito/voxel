@@ -132,21 +132,21 @@ static void sys_input(void)
 		joy[i].lt = state.Gamepad.bLeftTrigger;
 		joy[i].rt = state.Gamepad.bRightTrigger;
 
-		joy[i].button[1] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_A);
-		joy[i].button[2] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_B);
-		joy[i].button[3] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_X);
-		joy[i].button[4] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_Y);
-		joy[i].button[5] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-		joy[i].button[6] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-		joy[i].button[7] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB);
-		joy[i].button[8] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB);
-		joy[i].button[9] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_START);
-		joy[i].button[10] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK);
-		joy[i].button[11] = 0;
-		joy[i].button[12] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
-		joy[i].button[13] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-		joy[i].button[14] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-		joy[i].button[15] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+		joy[i].button[0] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_A);
+		joy[i].button[1] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_B);
+		joy[i].button[2] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_X);
+		joy[i].button[3] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_Y);
+		joy[i].button[4] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+		joy[i].button[5] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+		joy[i].button[6] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB);
+		joy[i].button[7] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB);
+		joy[i].button[8] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_START);
+		joy[i].button[9] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK);
+		joy[i].button[10] = 0;
+		joy[i].button[11] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP);
+		joy[i].button[12] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+		joy[i].button[13] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+		joy[i].button[14] = !!(state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
 		XINPUT_VIBRATION vib;
 		vib.wLeftMotorSpeed = joy[i].fflarge * 255;
@@ -156,11 +156,41 @@ static void sys_input(void)
 }
 
 
+int w32_moving = 0;
+int w32_delta_x = 0;
+int w32_delta_y = 0;
+
 static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	int code;
 	int bit=0;
 	switch(uMsg) {
+	case WM_SYSCOMMAND:
+//		printf("WM_SYSCOMMAND\n");
+		switch(wParam & 0xFFF0) {
+		case SC_SIZE:
+//			printf("SC_SIZE\n");
+			break;
+			return 0;
+		case SC_MOVE:	// Moving the window locks the app, so implement it manually
+			w32_moving = 1;
+			POINT p;
+			GetCursorPos(&p);
+			RECT r;
+			GetWindowRect(hWnd,&r);
+			w32_delta_x = p.x - r.left;
+			w32_delta_y = p.y - r.top;
+			SetCapture(hWnd);
+			return 0;
+		default:
+			break;
+		}
+		break;
+		return 0;
+//	case WM_EXITSIZEMOVE:
+//		printf("WM_EXITSIZEMOVE\n");
+//		return 0;
+
 	case WM_SIZING:
 	case WM_SIZE:
 		vid_width = LOWORD(lParam);
@@ -182,6 +212,11 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		bit = 1;
 	case WM_LBUTTONUP:
 		mouse[0]=bit;
+		if(w32_moving)
+		{
+			w32_moving = 0;
+			ReleaseCapture();
+		}
 		return 0;
 
 	case WM_MBUTTONDOWN:
@@ -216,6 +251,23 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		mickey_y += mouse_y - HIWORD(lParam);
 		mouse_x = LOWORD(lParam);
 		mouse_y = HIWORD(lParam);
+		if(w32_moving)
+		{
+			RECT r;
+			int win_width, win_height;
+			GetWindowRect(hWnd,&r);
+			win_height = r.bottom - r.top;
+			win_width = r.right - r.left;
+			POINT p;
+			GetCursorPos(&p);
+			MoveWindow(hWnd, p.x - w32_delta_x,
+					 p.y - w32_delta_y,
+					 win_width, win_height, TRUE);
+		}
+		else
+		{
+
+		}
 		break;
 
 	case WM_SETCURSOR:
@@ -416,6 +468,7 @@ static void win_init(void)
 		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
 //		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+//		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
 		0 };
 
@@ -428,6 +481,12 @@ static void win_init(void)
 	}
 	else hGLRC = tmpGLRC;
 //	ReleaseDC(hWnd, hDC);
+
+	int gl_major_version = 0;
+	int gl_minor_version = 0;
+	glGetIntegerv(GL_MAJOR_VERSION, &gl_major_version);
+	glGetIntegerv(GL_MAJOR_VERSION, &gl_minor_version);
+	printf("OpenGL version = %d.%d\n", gl_major_version, gl_minor_version);
 }
 
 static void win_end(void)

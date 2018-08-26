@@ -21,7 +21,7 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #ifndef _MSC_VER
 typedef int socklen_t;
@@ -89,7 +89,7 @@ int http_accepting_new_clients=0;
 int http_init(void)
 {
 	int ret;
-#ifdef WIN32
+#ifdef _WIN32
 	WSADATA wsaData;
 	if(WSAStartup(MAKEWORD(2,2),&wsaData))
 	{
@@ -167,7 +167,7 @@ void http_loop(void)
 		ret = select(s+1, &set, NULL, NULL, &timeout);
 		if(-1 == ret)
 		{
-#ifdef WIN32
+#ifdef _WIN32
 			printf("WSAGetLastError() = %d\n", WSAGetLastError());
 
 #endif

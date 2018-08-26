@@ -25,7 +25,7 @@ freely, subject to the following restrictions:
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <dlfcn.h>
@@ -187,7 +187,7 @@ void gpuinfo_tick(void)
 }
 
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #define EvilMacro(L, T, N, NS) \
 	N = (T)GetProcAddress(L, NS); \
@@ -203,7 +203,7 @@ void gpuinfo_tick(void)
 
 void gpuinfo_init(void)
 {
-#ifdef WIN32
+#ifdef _WIN32
 	char nvmlpath[] = "/NVIDIA Corporation/NVSMI/nvml.dll";
 	char dllpath[MAX_PATH];
 	memset(dllpath, 0, MAX_PATH);
@@ -316,7 +316,7 @@ void gpuinfo_init(void)
 	gpuinfo_tick();
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 #define dlclose FreeLibrary
 #endif
 

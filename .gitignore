@@ -1,8 +1,7 @@
 
 # compiler output
-*.o
-*.exe
-*.res
+
+gui.exe
 gui
 gui.bin
 gui.app
@@ -17,4 +16,6 @@ build
 *.msh
 *.obj
 *.mtl
-*.oct
+
+# version
+src/version.h

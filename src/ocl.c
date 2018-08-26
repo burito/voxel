@@ -33,22 +33,27 @@ CGLContextObj CGLGetCurrentContext (void);
 #include <GL/glew.h>
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
 #include <GL/glx.h>
 #endif
 
-#define _MSC_VER 1
-#include <CL/cl_gl.h>
+//#define _MSC_VER 1
 
-#include <CL/cl.h>
+
+//#include <CL/cl.h>
 
 #endif /* __APPLE__ */
 
-#include "3dmaths.h"
 #include "ocl.h"
+
+#ifdef _WIN32
+#include <CL/cl_gl.h>
+#endif
+
+#include "3dmaths.h"
 #include "main.h"
 
 #include <stdio.h>
@@ -264,7 +269,7 @@ int ocl_init(void)
 #ifdef __APPLE__
 CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)CGLGetShareGroup(CGLGetCurrentContext()),
 
-#elif WIN32
+#elif _WIN32
 		CL_GL_CONTEXT_KHR,		(cl_context_properties)wglGetCurrentContext(),
 		CL_WGL_HDC_KHR,			(cl_context_properties)wglGetCurrentDC(),
 #else

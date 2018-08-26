@@ -52,6 +52,24 @@ System Requirements
 
 The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
 
+
+
+Credits
+-------
+
+* ```lib/*stb*``` - Sean Barret https://github.com/nothings/stb
+    * stb_image 2.19
+    * stb_truetype 1.19
+* ```lib/*fontstash*``` - https://github.com/memononen/fontstash
+    * a very old version
+* ```lib/fast_atof.c``` - Tom Van Baak http://www.leapsecond.com/
+* ```lib/include/invert4x4_sse.h``` - https://github.com/niswegmann/small-matrix-inverse
+* ```lib/*gl*``` - GLEW 2.1.0 http://glew.sourceforge.net/
+    * Add ```#define GLEW_STATIC``` to the top of glew.h
+* ```lib/include/CL/*``` - https://github.com/KhronosGroup/OpenCL-Headers
+
+For everything else, I am to blame.
+
 Afterword
 ---------
 It's a tech demo, don't expect it to work fast or at all.

@@ -1,113 +1,170 @@
-CFLAGS = -g -std=c99 -Wall -pedantic -Isrc
+define GET_HELP
 
-PLATFORM = stb_image.o stb_truetype.o fontstash.o image.o
-LIBRARIES = -lm
-SDIR = src
+Please read the instructions at...
+	http://danpburke.blogspot.com.au/2017/06/fresh-system-install.html
+...for help
+endef
 
-OBJS = $(PLATFORM) main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
-	http.o ocl.o clvoxel.o
+CFLAGS = -std=c11 -Ilib/include
+VPATH = src lib
 
+OBJS = stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
+	http.o ocl.o clvoxel.o gpuinfo.o
+DEBUG = -g
+#DEBUG =
 
 # Build rules
 WDIR = build/win
-_WOBJS = $(OBJS) gpuinfo.o GL/glew.o win32.o win32.res
+_WOBJS = $(OBJS) glew.o win32.o win32.res
 WOBJS = $(patsubst %,$(WDIR)/%,$(_WOBJS))
-WLIBS = $(LIBRARIES) -lgdi32 -lopengl32 -lwinmm -lws2_32 `which opencl.dll` -lxinput9_1_0
-#	-L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"
-#	-L"C:\Program Files (x86)\AMD APP SDK\3.0-0-Beta\lib\x86_64"
+WINLIBS = -lshell32 -luser32 -lgdi32 -lopengl32 -lwinmm -lws2_32 -lxinput9_1_0 `which opencl.dll`
+
 
 LDIR = build/lin
-LCC = gcc
-_LOBJS = $(OBJS) gpuinfo.o GL/glew.o x11.o
+LCC = clang
+_LOBJS = $(OBJS) glew.o x11.o 
 LOBJS = $(patsubst %,$(LDIR)/%,$(_LOBJS))
-LLIBS = $(LIBRARIES) -lGL -lX11 -lGLU -lXi -ldl -lOpenCL
+LLIBS = -lm -lGL -lX11 -lGLU -lXi -ldl -lOpenCL
 
 MDIR = build/mac
 MCC = clang
-_MOBJS = $(OBJS)
+_MOBJS = $(OBJS) osx.o
 MFLAGS = -Wall
 MOBJS = $(patsubst %,$(MDIR)/%,$(_MOBJS))
-MLIBS = -F/System/Library/Frameworks -framework OpenGL -framework CoreVideo -framework Cocoa -framework OpenCL -framework IOKit -framework ForceFeedback
-
+MLIBS = -F/System/Library/Frameworks -F. -framework OpenGL -framework CoreVideo -framework Cocoa -framework IOKit -framework OpenCL -framework ForceFeedback
 
 
 # Evil platform detection magic
 UNAME := $(shell uname)
-ifeq ($(UNAME), Linux)
-default: gui
-WCC = x86_64-w64-mingw32-gcc
-WINDRES = x86_64-w64-mingw32-windres
-#WCC = i686-w64-mingw32-gcc
-#WINDRES = i686-w64-mingw32-windres
-else
-ifeq ($(UNAME), Darwin)
+ifeq ($(UNAME), Darwin)	# if Apple
 default: gui.app
 else
-WCC = gcc
+# Windows & Linux need ImageMagick, lets check for it
+ifeq (magick,$(findstring magick, $(shell which magick 2>&1))) # current ImageMagick looks like this
+MAGICK = magick convert
+else
+	ifeq (convert,$(findstring convert, $(shell which convert 2>&1))) # Ubuntu ships a very old ImageMagick that looks like this
+MAGICK = convert
+	else
+$(error Can't find ImageMagick installation $(GET_HELP))	
+	endif
+endif # ImageMagick check done!
+
+ifeq ($(UNAME), Linux)	# if Linux
+default: gui
+# this entry is for building windows binaries on linux with mingw64
+WCC = x86_64-w64-mingw32-gcc
+WINDRES = x86_64-w64-mingw32-windres
+WLIBS = $(LOCAL_DLL) $(WINLIBS)
+#WCC = i686-w64-mingw32-gcc
+#WINDRES = i686-w64-mingw32-windres
+else	# if Windows
+
+ifdef WCC	# allow user to override compiler choice
+$(info "$(WCC)")
+	ifeq (clang,$(WCC))
+$(info this was called)
+WCC := clang -target x86_64-pc-windows-gnu
+	else
+	WCC = $(WCC)
+	endif
+	WLIBS = $(LOCAL_DLL) $(WINLIBS)
+else
+	ifdef VS120COMNTOOLS # we have MSVC 2017 installed
+		WLIBS = $(LOCAL_LIB) $(WINLIBS)
+		WCC = clang -target x86_64-pc-windows-gnu
+	else
+		WLIBS = $(LOCAL_DLL) $(WINLIBS)
+		ifeq (,$(findstring which, $(shell which clang 2>&1))) # clang present?
+			WCC = clang -target x86_64-pc-windows-gnu
+		else
+			ifeq (,$(findstring which, $(shell which gcc 2>&1))) # gcc present?
+				WCC = gcc
+			else
+$(error Can't find a compiler. $(GET_HELP))
+			endif
+		endif
+	endif
+endif
+# end compiler detection
 WINDRES = windres
 default: gui.exe
-endif 
+endif
 endif
 
-$(WDIR)/Icon.ico: $(SDIR)/Icon.png
-	magick convert -resize 256x256 $^ $@
-$(WDIR)/win32.res: $(SDIR)/win32.rc $(WDIR)/Icon.ico
+
+$(WDIR)/Icon.ico: Icon.png
+	$(MAGICK) -resize 256x256 $^ $@
+$(WDIR)/win32.res: win32.rc $(WDIR)/Icon.ico
 	$(WINDRES) -I $(WDIR) -O coff src/win32.rc -o $@
-$(WDIR)/%.o: $(SDIR)/%.c
-	$(WCC) $(CFLAGS) -DWIN32 $(INCLUDES)-c $< -o $@
-gui.exe: $(WOBJS)
-	$(WCC) $^ $(WLIBS) -o $@
+$(WDIR)/%.o: %.c
+	$(WCC) $(DEBUG) $(CFLAGS) $(INCLUDES)-c $< -o $@
+openvr_api.dll:
+	cp lib/win/openvr_api.dll .
+gui.exe: openvr_api.dll $(WOBJS)
+	$(WCC) $(DEBUG) $(WOBJS) $(WLIBS) -o $@
 
 # crazy stuff to get icons on x11
-$(LDIR)/x11icon: $(SDIR)/x11icon.c
+$(LDIR)/x11icon: x11icon.c
 	$(LCC) $^ -o $@
-$(LDIR)/icon.rgba: $(SDIR)/Icon.png
-	convert -resize 256x256 $^ $@
+$(LDIR)/icon.rgba: Icon.png
+	$(MAGICK) -resize 256x256 $^ $@
+#	magick convert -resize 256x256 $^ $@
 $(LDIR)/icon.argb: $(LDIR)/icon.rgba $(LDIR)/x11icon
 	./build/lin/x11icon < $(LDIR)/icon.rgba > $@
 $(LDIR)/icon.h: $(LDIR)/icon.argb
 	bin2h 13 < $^ > $@
-$(LDIR)/x11.o: $(SDIR)/x11.c $(LDIR)/icon.h
+$(LDIR)/x11.o: x11.c $(LDIR)/icon.h
 	$(LCC) $(CFLAGS) $(INCLUDES) -I$(LDIR) -c $< -o $@
-$(LDIR)/%.o: $(SDIR)/%.c
-	$(LCC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(LDIR)/%.o: %.c
+	$(LCC) $(DEBUG) $(CFLAGS) $(INCLUDES) -c $< -o $@
 gui: $(LOBJS)
-	$(LCC) $^ $(LLIBS) -o $@
+	$(LCC) $(DEBUG) $^ $(LLIBS) -o $@
 
 
 # generate the Apple Icon file from src/Icon.png
-$(MDIR)/AppIcon.iconset/icon_512x512@2x.png: src/Icon.png
+$(MDIR)/AppIcon.iconset/icon_512x512@2x.png: Icon.png
 	cp $^ $@
-$(MDIR)/AppIcon.iconset/icon_512x512.png: src/Icon.png
+$(MDIR)/AppIcon.iconset/icon_512x512.png: Icon.png
 	cp $^ $@
 	sips -Z 512 $@
 $(MDIR)/AppIcon.icns: $(MDIR)/AppIcon.iconset/icon_512x512@2x.png $(MDIR)/AppIcon.iconset/icon_512x512.png
 	iconutil -c icns $(MDIR)/AppIcon.iconset
 # build the Apple binary
-$(MDIR)/osx.o: $(SDIR)/osx.m
+$(MDIR)/%.o: %.m
 	$(MCC) $(MFLAGS) -c $< -o $@
-$(MDIR)/%.o: $(SDIR)/%.c
-	$(MCC) $(CFLAGS) $(INCLUDES)-c $< -o $@
+$(MDIR)/%.o: %.c
+	$(MCC) $(DEBUG) $(CFLAGS) $(INCLUDES)-c $< -o $@
 gui.bin: $(MOBJS) $(MDIR)/osx.o
-	$(MCC) $^ $(MLIBS) -o $@
+# the library has to have it's path before the executable is linked
+	install_name_tool -id @executable_path/../Frameworks/OpenVR.framework/Versions/A/OpenVR lib/mac/OpenVR
+	$(MCC) $(DEBUG) $^ $(MLIBS) -rpath @loader_path/ -o $@
+#	$(MCC) $^ $(MLIBS) -rpath @loader_path/../Frameworks -o $@
 # generate the Apple .app file
 gui.app/Contents/_CodeSignature/CodeResources: gui.bin src/Info.plist $(MDIR)/AppIcon.icns
 	rm -rf gui.app
-	mkdir -p gui.app/Contents/MacOS
-	mkdir gui.app/Contents/Resources
-	cp gui.bin gui.app/Contents/MacOS/gui
+	mkdir -p gui.app/Contents
 	cp src/Info.plist gui.app/Contents
+	mkdir gui.app/Contents/MacOS
+	cp gui.bin gui.app/Contents/MacOS/gui
+	mkdir gui.app/Contents/Resources
 	cp $(MDIR)/AppIcon.icns gui.app/Contents/Resources
-	codesign --force --sign - gui.app
+	codesign --force --deep --sign - gui.app
 gui.app: gui.app/Contents/_CodeSignature/CodeResources
 
 # build a zip of the windows exe
 voxel.zip: gui.exe
-	zip voxel.zip gui.exe README.md LICENSE data/shaders/* data/gui/* data/stanford-bunny.obj
+	zip opengl.zip gui.exe README.md LICENSE
 
 # Housekeeping
 clean:
-	@rm -rf build gui gui.exe gui.bin gui.app voxel.zip src/version.h
+	@rm -rf build gui gui.exe gui.bin gui.app opengl.zip src/version.h openvr_api.dll libopenvr_api.so gui.pdb gui.ilk
+
+help:
+	echo Possible targets are...
+	echo 	make 		# build the default target for the current platform
+	echo 	make clean	# remove intermediate build files
+	echo 	make help	# display this message
 
 # for QtCreator
 all: default

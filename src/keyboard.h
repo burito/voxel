@@ -31,7 +31,7 @@ freely, subject to the following restrictions:
 
 #ifdef __APPLE__
 #define KEY_EVIL(OSX, WVK, WIN, X11, STR) OSX
-#elif WIN32
+#elif _WIN32
 #define KEY_EVIL(OSX, WVK, WIN, X11, STR) WIN
 #else
 #define KEY_EVIL(OSX, WVK, WIN, X11, STR) X11

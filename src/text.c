@@ -21,12 +21,9 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#else
-#include <GL/glew.h>
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
 #endif
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,35 +31,6 @@ freely, subject to the following restrictions:
 #include <string.h>
 #include <sys/stat.h>
 
-
-/* Produces a string from the glGetError() return value */
-// http://www.opengl.org/sdk/docs/man4/xhtml/glGetError.xml
-char* glError(int error)
-{
-	switch(error)
-	{
-		case GL_NO_ERROR:
-			return "GL_NO_ERROR";
-		case GL_INVALID_ENUM:
-			return "GL_INVALID_ENUM";
-		case GL_INVALID_VALUE:
-			return "GL_INVALID_VALUE";
-		case GL_INVALID_OPERATION:
-			return "GL_INVALID_OPERATION";
-		case GL_INVALID_FRAMEBUFFER_OPERATION:
-			return "GL_INVALID_FRAMEBUFFER_OPERATION";
-		case GL_OUT_OF_MEMORY:
-			return "GL_OUT_OF_MEMORY";
-		case GL_STACK_UNDERFLOW:
-			return "GL_STACK_UNDERFLOW";
-		case GL_STACK_OVERFLOW:
-			return "GL_STACK_OVERFLOW";
-		case GL_TABLE_TOO_LARGE: // defined where?
-			return "GL_TABLE_TOO_LARGE";
-		default:
-			return "Unknown Error!";
-	}
-}
 
 void tailchomp(char *string)
 {
@@ -155,6 +123,4 @@ char* loadTextFile(char *filename)
 	fclose(fptr);
 	return buf;
 }
-
-#include "fast_atof.c"
 

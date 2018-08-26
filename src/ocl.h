@@ -21,11 +21,15 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
 #else
+#define CL_TARGET_OPENCL_VERSION 120
 #include <CL/cl.h>
 #endif
+
+#include "3dmaths.h"
 
 typedef struct OCLPROGRAM
 {

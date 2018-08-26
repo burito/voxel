@@ -27,9 +27,6 @@ freely, subject to the following restrictions:
 #else
 #include <GL/glew.h>
 
-#define _MSC_VER 1
-#include <CL/cl_gl.h>
-#include <CL/cl.h>
 #endif
 
 #include <stdio.h>

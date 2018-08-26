@@ -32,6 +32,7 @@ freely, subject to the following restrictions:
 #include "3dmaths.h"
 #include "mesh.h"
 #include "text.h"
+#include "shader.h"
 
 #define BUF_LEN 1024
 
