@@ -41,6 +41,8 @@ freely, subject to the following restrictions:
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "log.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 //////// Public Interface to the rest of the program
 ///////////////////////////////////////////////////////////////////////////////
@@ -172,7 +174,7 @@ static void dev_all(void)
 		if(j < 4)	// we already have it
 		{
 			close(fd);
-//			printf("already have it\n");
+//			log_debug("already have it");
 			continue;
 		}
 		for(j=0; j<4; j++)
@@ -181,11 +183,11 @@ static void dev_all(void)
 			{
 				struct input_id id;
 				ioctl(fd, EVIOCGID, &id);
-				printf("vend:%x, prod:%x, ver:%d\n",
+				log_debug("xbox?: vend:%x, prod:%x, ver:%d",
 					id.vendor, id.product, id.version);
 				char buf[32];
 				ioctl(fd, EVIOCGNAME(sizeof(buf)), buf);
-				printf("name = %s\n", buf);
+				log_debug("name = %s", buf);
 
 				lin_joy[j].fd = fd;
 				lin_joy[j].id = i;
@@ -197,7 +199,7 @@ static void dev_all(void)
 		if(j == 4)
 		{
 			close(fd);
-			printf("too many joysticks\n");
+			log_warning("too many joysticks");
 			return;
 		}
 	}
@@ -226,7 +228,7 @@ static void x11_input(void)
 		int ret = select(lin_joy[i].fd+1, &set, NULL, NULL, &tv);
 		if(-1 == ret)
 		{
-			printf("select error\n");
+			log_warning("select() error");
 			continue;
 		}
 		while(ret > 0)
@@ -234,14 +236,14 @@ static void x11_input(void)
 			int ret2 = read(lin_joy[i].fd, &event, sizeof(event));
 			if(-1 == ret2)
 			{
-			//	printf("Joystick disconnected\n");
+			//	log_verbose("Joystick disconnected");
 				joy[i].connected = 0;
 				close(lin_joy[i].fd);
 				break;
 			}
 			if(0 == ret2)
 			{
-				printf("EOF\n");
+				log_trace("EOF");
 			}
 			switch(event.type) {
 			case EV_ABS:	// axis
@@ -295,7 +297,7 @@ static void x11_input(void)
 					}
 					break;
 				default:
-					printf("axis e: %d, v:%d\n", event.code, event.value);
+					log_trace("axis e: %d, v:%d", event.code, event.value);
 				}
 				break;
 
@@ -332,7 +334,7 @@ static void x11_input(void)
 				case 705:	// Dpad Right on New Wireless pad
 					joy[i].button[14] = event.value; break;
 				default:
-					printf("butt e: %d, v:%d\n", event.code, event.value);
+					log_trace("butt e: %d, v:%d", event.code, event.value);
 				}
 				break;
 			default:
@@ -452,7 +454,7 @@ static void x11_window(void)
 	glXMakeCurrent(display, window, glx_context);
 	glViewport(0, 0, vid_width, vid_height);
 	if(!glXIsDirect(display, glx_context))
-		printf("DRI did not respond to hails.\n");
+		log_error("DRI did not respond to hails.");
 }
 
 
@@ -473,9 +475,11 @@ static void x11_init(void)
 	xvis = glXChooseVisual(display, screen_id, xAttrList);
 	if(!xvis)
 	{
-		printf("glXChooseVisual() failed.\n");
+		log_fatal("glXChooseVisual() failed");
 		exit(1);
 	}
+	log_info("If it crashes here, your video drivers are broken.\n"
+	"\t\x1b[37;1mHave you just updated and not restarted yet?\x1b[0m");
 	glx_context = glXCreateContext(display, xvis, 0, GL_TRUE);
 
 	memset(&xwin_attr, 0, sizeof(XSetWindowAttributes));
@@ -498,7 +502,7 @@ static void x11_init(void)
 	int event, error;
 	if(!XQueryExtension(display,"XInputExtension", &opcode, &event, &error))
 	{
-		printf("X Input extension not available.\n");
+		log_fatal("X Input extension not available");
 		return;
 	}
 #ifdef ASD
@@ -506,7 +510,7 @@ static void x11_init(void)
 	int major = 2, minor = 0;
 	if (XIQueryVersion(display, &major, &minor) == BadRequest)
 	{
-		printf("XI2 not available. You have %d.%d\n", major, minor);
+		log_fatal("XI2 not available. You have %d.%d", major, minor);
 		return;
 	}
 
@@ -591,14 +595,14 @@ static void handle_events(void)
 				if(XIMaskIsSet(e->valuators.mask, i))
 				{
 					value = e->valuators.values[pos];
-					printf("%d -- %f --\n",pos, value);
+					log_trace("%d -- %f --",pos, value);
 					switch(i){
 					case 0:
 						if(value > 1.0)
 						{
 							x=value;
 							pos++;
-							printf("%#+f\n",x);
+							log_trace("%#+f",x);
 						}
 						break;
 					case 1:
@@ -606,16 +610,16 @@ static void handle_events(void)
 						{
 							y=value;
 							pos++;
-							printf("\t\t%f\n",y);
+							log_trace("\t\t%f",y);
 						}
 						break;
 					default:
-						printf("%d -- %f --\n",pos, value);
+						log_trace("%d -- %f --",pos, value);
 						break;
 					}
 				}
 
-				printf("%f\t%f\t--\n",x, y);
+				log_trace("%f\t%f\t--",x, y);
 				break;
 			default:
 				break;
@@ -642,7 +646,7 @@ static void handle_events(void)
 			case 2:	mouse[1]=1; break;
 			case 3:	mouse[2]=1; break;
 			}
-//			printf("mouse[] %d, @ %d\n", foo, (int)event.xbutton.time);
+//			log_trace("mouse[] %d, @ %d", foo, (int)event.xbutton.time);
 			break;
 		case ButtonRelease:
 			switch(event.xbutton.button) {
@@ -653,7 +657,7 @@ static void handle_events(void)
 			break;
 
 		case MotionNotify:
-//			printf("x=%d, y=%d\n", event.xmotion.x_root,
+//			log_trace("x=%d, y=%d", event.xmotion.x_root,
 //				 event.xmotion.y_root);
 			if(ignore_mouse)
 			if(event.xmotion.x == vid_width/2)
@@ -671,7 +675,7 @@ static void handle_events(void)
 
 /* keyboard */
 		case KeyPress:
-//			printf("keyd[%d] @ %d\n", event.xkey.keycode, (int)event.xkey.time);
+//			log_trace("keyd[%d] @ %d", event.xkey.keycode, (int)event.xkey.time);
 			if(event.xkey.keycode < KEYMAX)
 				keys[event.xkey.keycode] = 1;
 			break;

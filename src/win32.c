@@ -431,7 +431,7 @@ static void win_init(void)
 
 	if(!RegisterClassEx(&wc))
 	{
-		log_fatal("RegisterClassEx() failed\n");
+		log_fatal("RegisterClassEx()");
 		return;
 	}
 
@@ -442,7 +442,7 @@ static void win_init(void)
 	hDC = GetDC(hWnd);
 	if(!hWnd)
 	{
-		log_fatal("CreateWindowEx() failed\n");
+		log_fatal("CreateWindowEx()");
 		return;
 	}
 	ShowWindow(hWnd, CmdShow);

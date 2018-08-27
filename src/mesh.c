@@ -470,7 +470,7 @@ static void wf_vertex_normals(WF_OBJ *w)
 		if(vect_magnitude(&t)>0.1)
 		{
 //			if(vect_magnitude(&w->vn[i])>0.1)
-//				log_trace("Vertex copy required\n");
+//				log_trace("Vertex copy required");
 			vect_norm(&w->vn[i], &t);
 		}
 
@@ -808,7 +808,7 @@ WF_OBJ* wf_parse(char *filename)
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.z = tmp;
-//					log_trace("%d\n", g->f[g->nf].z);
+//					log_trace("%d", g->f[g->nf].z);
 				w->f[fi].s = si;
 				w->f[fi].m = lastmat;
 				w->f[fi].g = gi;
@@ -871,7 +871,7 @@ WF_OBJ* wf_parse(char *filename)
 				if(tmp < 0)tmp += w->nt;
 				else tmp--;
 				w->f[fi].t.z = tmp;
-//					log_trace("%d\n", g->f[g->nf].z);
+//					log_trace("%d", g->f[g->nf].z);
 				w->f[fi].s = si;
 				w->f[fi].m = lastmat;
 				w->f[fi].g = gi;

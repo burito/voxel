@@ -1475,7 +1475,7 @@ void menu_texdraw(widget *w)
 void font_load(int i, char *path)
 {
 	int ret = sth_add_font(stash, path);
-	if(!ret)log_fatal("Failed to load font %d:\"%s\"\n", i, path);
+	if(!ret)log_fatal("Failed to load font %d:\"%s\"", i, path);
 }
 
 
@@ -1505,7 +1505,7 @@ int gui_init(int argc, char *argv[])
 	stash = sth_create(512,512);
 	if (!stash)
 	{
-		log_fatal("Could not create stash.\n");
+		log_fatal("Could not create stash");
 		return -1;
 	}
 	font_load(0,"data/gui/SourceCodePro-Regular.ttf");

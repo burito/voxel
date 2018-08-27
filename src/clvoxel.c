@@ -131,7 +131,7 @@ GLuint vox_3Dtex(int3 size, int format, int interp)
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage3D(GL_TEXTURE_3D, 0, format, size.x, size.y, size.z, 0,
 			glBaseFormat(format), glBaseType(format), NULL);
-//	log_trace("Error = \"%s\"\n", glError(glGetError()));
+//	log_trace("Error = \"%s\"", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 	ocl_gltex3d(clVox, id);
 	return id;
@@ -214,12 +214,12 @@ void voxel_3dtexdraw(void)
 	if(keys[KEY_M])
 	{
 		if(texdepth < 511.0/512.0) texdepth += 1.0 / 512;
-		printf("%d\n", (int)(texdepth*512.0));
+		log_trace("%d", (int)(texdepth*512.0));
 	}
 	if(keys[KEY_N])
 	{
 		if(texdepth > 0.0) texdepth -= 1.0 / 512;
-		printf("%d\n", (int)(texdepth*512.0));
+		log_trace("%d", (int)(texdepth*512.0));
 	}
 
 	glActiveTexture(GL_TEXTURE0);
@@ -614,7 +614,7 @@ void print_balloc(void)
 	{
 		if(p[i])countb++;
 	}
-	printf("Allocated b=%d, n=%d\n", countb, countn);
+	log_debug("Allocated b=%d, n=%d", countb, countn);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -728,7 +728,7 @@ void voxel_init(void)
 	err = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(err != GL_FRAMEBUFFER_COMPLETE)
 	{
-		printf("Creating Empty Framebuffer failed %s\n", glError(err));
+		log_error("Creating Empty Framebuffer failed %s", glError(err));
 
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -744,7 +744,7 @@ void print_atoms(void)
 	GLuint atm[2];
 	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 8, atm);
 
-	printf("Atomics %d, %d\n", atm[0], atm[1]);
+	log_debug("Atomics %d, %d", atm[0], atm[1]);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 }
@@ -761,9 +761,9 @@ int2 get_atoms(void)
 	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 8, (GLuint*)&atm);
 
 //	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-//	printf("glUnmapBuffer(ssb)-%s\n", glError(glGetError()));
+//	log_error("glUnmapBuffer(ssb)-%s", glError(glGetError()));
 //	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-//	printf("glUnmapBuffer(atomic)-%s\n", glError(glGetError()));
+//	log_Error("glUnmapBuffer(atomic)-%s", glError(glGetError()));
 
 	return atm;
 }
@@ -782,13 +782,13 @@ void voxel_loop(void)
 	{
 		keys[KEY_V] = 0;
 		if(tree_depth > 1)tree_depth--;
-		printf("tree depth=%d\n", tree_depth);
+		log_verbose("tree depth=%d", tree_depth);
 	}
 	if(keys[KEY_B])
 	{
 		keys[KEY_B] = 0;
 		if(tree_depth < 20)tree_depth++;
-		printf("tree depth=%d\n", tree_depth);
+		log_verbose("tree depth=%d", tree_depth);
 	}
 
 	if(keys[KEY_Z])
@@ -1056,7 +1056,7 @@ void voxel_loop(void)
 //	glBindTexture(GL_TEXTURE_3D, 0);
 
 	glActiveTexture(GL_TEXTURE0);
-//	log_trace("Nodes = %d, Bricks = %d\n", used_nodes, used_bricks);
+//	log_trace("Nodes = %d, Bricks = %d", used_nodes, used_bricks);
 
 	if(texdraw)voxel_3dtexdraw();
 

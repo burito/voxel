@@ -156,7 +156,7 @@ void gpuinfo_tick(void)
 			int ret = nvmlDeviceGetTemperature(nvml_devices[i], 0,
 				&nvml_gputemp[i]);
 			if(ret)log_error("nvmlDeviceGetTemperature(%d) = %d", i, ret);
-//			log_info("Temperature[%d] is %d\n", i, temp);
+//			log_info("Temperature[%d] is %d", i, temp);
 		}
 
 	}
@@ -220,7 +220,7 @@ void gpuinfo_init(void)
 	adl = dlopen("libatiadlxx.so", RTLD_LAZY);
 #endif
 
-	log_info("GPU Temp   : %s %s", nvml? "NVML": "", adl? "ADL": "");
+	log_info("GPU Temp   : %s %s", nvml? "NVML ": "", adl? "ADL": "");
 
 	if(nvml)
 	{

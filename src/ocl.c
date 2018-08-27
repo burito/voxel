@@ -72,15 +72,15 @@ static void ocl_allocmem(OCLPROGRAM *p)
 	void *tmp;
 	p->num_mem++;
 	tmp = realloc(p->GLid, sizeof(GLuint)*p->num_mem);
-	if(!tmp){printf("ocl_realloc(GLid) fail\n");return;}
+	if(!tmp){log_fatal("ocl_realloc(GLid)");return;}
 	p->GLid = tmp;
 
 	tmp = realloc(p->GLtype, sizeof(GLuint)*p->num_mem);
-	if(!tmp){printf("ocl_realloc(GLtype) fail\n");return;}
+	if(!tmp){log_fatal("ocl_realloc(GLtype)");return;}
 	p->GLtype = tmp;
 
 	tmp = realloc(p->CLmem, sizeof(cl_mem)*p->num_mem);
-	if(!tmp){printf("ocl_realloc(GLtype) fail\n");return;}
+	if(!tmp){log_fatal("ocl_realloc(GLtype)");return;}
 	p->CLmem = tmp;
 }
 
@@ -103,7 +103,7 @@ void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format)
 		GL_TEXTURE_2D, 0, id, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("clCreateFromGLTexture2D():%s\n", clStrError(ret));
+		log_fatal("clCreateFromGLTexture2D():%s", clStrError(ret));
 //		glDeleteTextures(1, &id);
 	}
 
@@ -121,7 +121,7 @@ void ocl_gltex3d(OCLPROGRAM *p, GLuint id)
 		GL_TEXTURE_3D, 0, id, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("clCreateFromGLTexture3D():%s\n", clStrError(ret));
+		log_fatal("clCreateFromGLTexture3D():%s", clStrError(ret));
 //		glDeleteTextures(1, &id);
 	}
 
@@ -138,7 +138,7 @@ void ocl_glbuf(OCLPROGRAM *p, GLuint buf)
 	cl_mem mem = clCreateFromGLBuffer(OpenCL->c, CL_MEM_READ_WRITE, buf, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("glbuf():%s\n", clStrError(ret));
+		log_fatal("glbuf():%s", clStrError(ret));
 //		glDeleteBuffers(1, &buf);
 	}
 	ocl_allocmem(p);
@@ -153,7 +153,7 @@ void ocl_acquire(OCLPROGRAM *p)
 	cl_int ret;
 	ret = clEnqueueAcquireGLObjects(OpenCL->q, p->num_mem, p->CLmem, 0, 0, 0);
 	if(ret != CL_SUCCESS)
-		printf("clEnqueueAcquireGLObject():%s\n",	clStrError(ret));
+		log_fatal("clEnqueueAcquireGLObject():%s",	clStrError(ret));
 }
 
 void ocl_release(OCLPROGRAM *p)
@@ -161,7 +161,7 @@ void ocl_release(OCLPROGRAM *p)
 	cl_int ret;
 	ret = clEnqueueReleaseGLObjects(OpenCL->q, p->num_mem, p->CLmem, 0, 0, 0);
 	if(ret != CL_SUCCESS)
-		printf("clEnqueueReleaseGLObjects():%s\n", clStrError(ret));
+		log_fatal("clEnqueueReleaseGLObjects():%s", clStrError(ret));
 }
 
 
@@ -197,8 +197,8 @@ int ocl_init(void)
 	clGetPlatformIDs(0, 0, &c->num_pid);
 	if(c->num_pid < 1)
 	{
-		printf("FATAL: There are no OpenCL platforms\n");
-		printf("Your Video Drivers are not installed correctly.\n");
+		log_fatal("There are no OpenCL platforms");
+		log_verbose("This means your Video Drivers are not installed correctly");
 		exit(1);
 	}
 	c->pid = malloc(sizeof(cl_platform_id) * c->num_pid);
@@ -234,7 +234,7 @@ int ocl_init(void)
 
 	if(ideal_pid == -1 || ideal_did == -1)
 	{
-		printf("WARNING: No CL device matching the GL Render\n");
+		log_warning("No CL device matching the GL Render");
 		ideal_pid = 0;
 		ideal_did = 0;
 	}
@@ -318,7 +318,7 @@ void ocl_add(OCLPROGRAM *p)
 	void *tmp = realloc(OpenCL->progs, sizeof(OCLPROGRAM*)*OpenCL->num_progs);
 	if(!tmp)
 	{
-		printf("ocl add failed\n");
+		log_fatal("realloc()");
 		return;
 	}
 	OpenCL->progs = tmp;
@@ -395,7 +395,7 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 	cl_program p = clCreateProgramWithSource(OpenCL->c, 1, &src, &size, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("clCreateProgram():%s\n", clStrError(ret));
+		log_error("clCreateProgram():%s", clStrError(ret));
 		error++;
 	}
 	ret = clBuildProgram(p, 1, OpenCL->d, NULL, NULL, NULL);
@@ -406,20 +406,20 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 		char *errstr = malloc(esize);
 		memset(errstr, 0, esize);
 		clGetProgramBuildInfo(p, *OpenCL->d, CL_PROGRAM_BUILD_LOG, esize,errstr,NULL);
-		printf("clBuildProgram(\"%s\")%s\n%s\n", clprog->filename, clStrError(ret), errstr);
+		log_error("clBuildProgram(\"%s\")%s:%s", clprog->filename, clStrError(ret), errstr);
 		error++;
 	}
 
 //	clGetProgramInfo(p, CL_PROGRAM_BINARY_SIZES,
 //				sizeof(size), &size, NULL);
 	// Causes a crash on OS X
-//	printf("Success: %zu bytes.\n", size);
+//	log_trace("Success: %zu bytes", size);
 
 	cl_uint nk=0;
 	clCreateKernelsInProgram(p, 0, NULL, &nk);
 	if(!nk)
 	{
-		printf("no kernels found\n");
+		log_error("no kernels found");
 		error++;
 	}
 
@@ -434,7 +434,7 @@ void ocl_rebuild(OCLPROGRAM *clprog)
 		clGetKernelInfo(k[i], CL_KERNEL_FUNCTION_NAME, 255, buf, NULL);
 		cl_uint argc = 0;
 		clGetKernelInfo(k[i], CL_KERNEL_NUM_ARGS, sizeof(cl_uint), &argc, NULL);
-		printf("Kernel[%d]:%s(%d)\n", i, buf, argc);
+		log_trace("Kernel[%d]:%s(%d)", i, buf, argc);
 	}
 */
 	clprog->pr = p;
@@ -483,7 +483,7 @@ void ocl_loop(void)
 
 		cl_kernel k = OpenCL->progs[i]->k[0];
 		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
-		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clSetKernelArg():%s", clStrError(ret));
 
 		clSetKernelArg(k, 1, sizeof(float), &time);
 
@@ -492,7 +492,7 @@ void ocl_loop(void)
 		if(ret != CL_SUCCESS)
 		{
 			p->happy = 0;
-			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+			log_fatal("clEnqueueNDRangeKernel():%s", clStrError(ret));
 		}
 
 		ocl_release(p);

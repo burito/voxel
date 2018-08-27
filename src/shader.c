@@ -52,7 +52,7 @@ static void printShaderInfoLog(GLuint obj)
 	{
 		infoLog = (char *)malloc(infologLength);
 		glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-		log_warning("%s\n",infoLog);
+		log_warning("%s",infoLog);
 		free(infoLog);
 	}
 }
@@ -70,7 +70,7 @@ static void printProgramInfoLog(GLuint obj)
 	{
 		infoLog = (char *)malloc(infologLength);
 		glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-		log_warning("%s\n",infoLog);
+		log_warning("%s",infoLog);
 		free(infoLog);
 	}
 }
@@ -277,7 +277,7 @@ int available_vram(void)
 	}
 	else
 	{
-		log_warning("I don't know if there is VRAM available\n");
+		log_warning("I don't know if there is VRAM available");
 	}
 	return 0;
 }

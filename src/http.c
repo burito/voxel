@@ -170,7 +170,7 @@ void http_loop(void)
 		if(-1 == ret)
 		{
 #ifdef _WIN32
-			log_fatal("select(), WSAGetLastError() = %d\n", WSAGetLastError());
+			log_fatal("select(), WSAGetLastError() = %d", WSAGetLastError());
 
 #else
 			log_fatal("select() = %d", ret);

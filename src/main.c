@@ -166,12 +166,12 @@ void main_loop(void)
 	{
 		p_swim = !p_swim;
 		keys[KEY_S] = 0;
-		printf("Swimming is %s.\n", p_swim ? "engaged" : "off");
+		log_verbose("Swimming is %s.", p_swim ? "engaged" : "off");
 	}
 	if(keys[KEY_P])
 	{
-		printf("float4 pos = {%f, %f, %f, 0.0};\n", pos.x, pos.y, pos.z);
-		printf("float4 angle = {%f, %f, %f, M_PI*0.5};\n", angle.x, angle.y, angle.z);
+		log_verbose("float4 pos = {%f, %f, %f, 0.0};", pos.x, pos.y, pos.z);
+		log_verbose("float4 angle = {%f, %f, %f, M_PI*0.5};", angle.x, angle.y, angle.z);
 	}
 
 	if(p_swim)
