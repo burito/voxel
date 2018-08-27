@@ -27,6 +27,7 @@ freely, subject to the following restrictions:
 #include <GL/wglew.h>
 #include <stdio.h>
 
+#include "log.h"
 ///////////////////////////////////////////////////////////////////////////////
 //////// Public Interface to the rest of the program
 ///////////////////////////////////////////////////////////////////////////////
@@ -106,7 +107,7 @@ static void fail(const char * string)
 	err = GetLastError();
 	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0,
 		errStr, 1000, 0);
-	printf("%s: %s", string, errStr);
+	log_fatal("%s: %s", string, errStr);
 }
 
 static void sys_input(void)
@@ -166,10 +167,10 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	int bit=0;
 	switch(uMsg) {
 	case WM_SYSCOMMAND:
-//		printf("WM_SYSCOMMAND\n");
+//		log_debug("WM_SYSCOMMAND");
 		switch(wParam & 0xFFF0) {
 		case SC_SIZE:
-//			printf("SC_SIZE\n");
+//			log_debug("SC_SIZE");
 			break;
 			return 0;
 		case SC_MOVE:	// Moving the window locks the app, so implement it manually
@@ -188,7 +189,7 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 		return 0;
 //	case WM_EXITSIZEMOVE:
-//		printf("WM_EXITSIZEMOVE\n");
+//		log_debug("WM_EXITSIZEMOVE");
 //		return 0;
 
 	case WM_SIZING:
@@ -430,7 +431,7 @@ static void win_init(void)
 
 	if(!RegisterClassEx(&wc))
 	{
-		printf("RegisterClassEx() failed\n");
+		log_fatal("RegisterClassEx() failed\n");
 		return;
 	}
 
@@ -441,7 +442,7 @@ static void win_init(void)
 	hDC = GetDC(hWnd);
 	if(!hWnd)
 	{
-		printf("CreateWindowEx() failed\n");
+		log_fatal("CreateWindowEx() failed\n");
 		return;
 	}
 	ShowWindow(hWnd, CmdShow);
@@ -482,11 +483,6 @@ static void win_init(void)
 	else hGLRC = tmpGLRC;
 //	ReleaseDC(hWnd, hDC);
 
-	int gl_major_version = 0;
-	int gl_minor_version = 0;
-	glGetIntegerv(GL_MAJOR_VERSION, &gl_major_version);
-	glGetIntegerv(GL_MAJOR_VERSION, &gl_minor_version);
-	printf("OpenGL version = %d.%d\n", gl_major_version, gl_minor_version);
 }
 
 static void win_end(void)

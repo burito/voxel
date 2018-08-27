@@ -35,6 +35,7 @@ freely, subject to the following restrictions:
 #include <unistd.h>
 #include <dirent.h>
 
+#include "log.h"
 
 #include "3dmaths.h"
 #include "image.h"
@@ -60,7 +61,7 @@ widget* widget_new(int2 pos, int2 size)
 	ret = malloc(sizeof(widget));
 	if(!ret)
 	{
-		printf("malloc fail\n");
+		log_fatal("malloc()");
 		return 0;
 	}
 
@@ -763,7 +764,7 @@ void widget_list_click(widget *w)
 		if(offset > w->count)return;
 		w->selected = offset;
 //		char **file = w->data;
-//		printf("this one %s\n", file[offset]);
+//		log_debug("this one %s", file[offset]);
 
 	}
 }
@@ -1057,7 +1058,7 @@ void spawn_open(widget *x)
 		{
 			if(dcnt == dmax)
 			{
-				printf("dont forget to malloc some more\n");
+				log_fatal("dont forget to malloc some more");
 				return;
 			}
 			dirs[dcnt++] = hcopy(ent->d_name);
@@ -1066,7 +1067,7 @@ void spawn_open(widget *x)
 		{
 			if(fcnt == fmax)
 			{
-				printf("dont forget to malloc some more\n");
+				log_fatal("dont forget to malloc some more");
 				return;
 			}
 			if(x)
@@ -1082,7 +1083,7 @@ void spawn_open(widget *x)
 					files[fcnt++] = hcopy(ent->d_name);
 			}
 		}
-		else printf("Unexpected Filetype= %d \"%s\"\n", s.st_mode, ent->d_name);
+		else log_error("Unexpected Filetype= %d \"%s\"", s.st_mode, ent->d_name);
 
 
 	}
@@ -1474,7 +1475,7 @@ void menu_texdraw(widget *w)
 void font_load(int i, char *path)
 {
 	int ret = sth_add_font(stash, path);
-	if(!ret)printf("Failed to load font %d:\"%s\"\n", i, path);
+	if(!ret)log_fatal("Failed to load font %d:\"%s\"\n", i, path);
 }
 
 
@@ -1504,7 +1505,7 @@ int gui_init(int argc, char *argv[])
 	stash = sth_create(512,512);
 	if (!stash)
 	{
-		printf("Could not create stash.\n");
+		log_fatal("Could not create stash.\n");
 		return -1;
 	}
 	font_load(0,"data/gui/SourceCodePro-Regular.ttf");

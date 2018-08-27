@@ -31,6 +31,8 @@ freely, subject to the following restrictions:
 #include <string.h>
 #include <stdlib.h>
 
+#include "log.h"
+
 #include "stb_image.h"
 
 #include "image.h"
@@ -88,7 +90,7 @@ void img_free(IMG *img)
 
 IMG* img_load(const char * filename)
 {
-	printf("Loading Image(\"%s\")\n", filename);
+	log_info("Loading Image(\"%s\")", filename);
 	const int size = sizeof(IMG);
 	IMG *i = malloc(size);
 	if(!i)return 0;

@@ -37,7 +37,7 @@ freely, subject to the following restrictions:
 #include "http.h"
 
 #include "ocl.h"
-
+#include "log.h"
 
 typedef struct LOADING
 {
@@ -67,21 +67,22 @@ extern const char git_version[];
 
 int main_init(int argc, char *argv[])
 {
-	printf("Version    : %s\n", git_version);
-	printf("GL Vendor  : %s\n", glGetString(GL_VENDOR) );
-	printf("GL Renderer: %s\n", glGetString(GL_RENDERER) );
-	printf("GL Version : %s\n", glGetString(GL_VERSION) );
-	printf("SL Version : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION) );
+	log_init();
+	log_info("Version    : %s", git_version);
+	log_info("GL Vendor  : %s", glGetString(GL_VENDOR) );
+	log_info("GL Renderer: %s", glGetString(GL_RENDERER) );
+	log_info("GL Driver  : %s", glGetString(GL_VERSION) );
+	log_info("SL Version : %s", glGetString(GL_SHADING_LANGUAGE_VERSION) );
 
 	int glver[2];
 	glGetIntegerv(GL_MAJOR_VERSION, &glver[0]);
 	glGetIntegerv(GL_MINOR_VERSION, &glver[1]);
-	printf("GL3 Version: %d.%d\n", glver[0], glver[1]);
+	log_info("GL Version : %d.%d", glver[0], glver[1]);
 	
 #ifndef __APPLE__
 	if(!GLEW_VERSION_4_3)
 	{
-		printf("Fatal: OpenGL 4.3 Required.\n");
+		log_fatal("OpenGL 4.3 Required");
 		return 1;
 	}
 	gpuinfo_init();

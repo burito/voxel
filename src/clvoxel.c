@@ -29,6 +29,8 @@ freely, subject to the following restrictions:
 
 #endif
 
+#include "log.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -129,7 +131,7 @@ GLuint vox_3Dtex(int3 size, int format, int interp)
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage3D(GL_TEXTURE_3D, 0, format, size.x, size.y, size.z, 0,
 			glBaseFormat(format), glBaseType(format), NULL);
-//	printf("Error = \"%s\"\n", glError(glGetError()));
+//	log_trace("Error = \"%s\"\n", glError(glGetError()));
 	glBindTexture(GL_TEXTURE_3D, 0);
 	ocl_gltex3d(clVox, id);
 	return id;
@@ -184,7 +186,7 @@ static void clvox_ResetTime(void)
 	if(ret != CL_SUCCESS)
 	{
 		clVox->happy = 0;
-		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+		log_fatal("clEnqueueNDRangeKernel() = %s", clStrError(ret));
 	}
 
 	// Tell the GPU to reset the brick time
@@ -199,7 +201,7 @@ static void clvox_ResetTime(void)
 	if(ret != CL_SUCCESS)
 	{
 		clVox->happy = 0;
-		printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+		log_fatal("clEnqueueNDRangeKernel() = %s", clStrError(ret));
 	}
 	ocl_release(clVox);
 }
@@ -636,7 +638,7 @@ void voxel_init(void)
 	int b_edge = 64;
 	int b_size = 8;
 
-	printf("Total VRAM : %dk\n", total_vram);
+	log_info("Total VRAM : %dk", total_vram);
 
 	if(total_vram > 1200000) // 1.2gb of vram?
 	{
@@ -872,26 +874,26 @@ void voxel_loop(void)
 */
 		cl_kernel k = p->k[Knl_Render];
 		ret = clSetKernelArg(k, 0, sizeof(cl_mem), &p->CLmem[0]);
-		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clSetKernelArg():%s", clStrError(ret));
 
 		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[3], CL_TRUE, 0, 16,
 			&pos, 0, NULL, NULL);
-		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clEnqueueWriteBuffer():%s",	clStrError(ret));
 		ret = clEnqueueWriteBuffer(OpenCL->q, p->CLmem[3], CL_TRUE, 16, 16,
 			&angle, 0, NULL, NULL);
-		if(ret != CL_SUCCESS)printf("clEnqueueWriteBuffer():%s\n",	clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clEnqueueWriteBuffer():%s",	clStrError(ret));
 		clEnqueueWriteBuffer(OpenCL->q, p->CLmem[2], CL_TRUE, 0, sizeof(float)*4, &angle, 0, NULL, NULL);
 
 		ret = clSetKernelArg(k, 1, sizeof(cl_mem), &p->CLmem[1]);	// brick buffer
-		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clSetKernelArg():%s", clStrError(ret));
 		ret = clSetKernelArg(k, 2, sizeof(cl_mem), &p->CLmem[2]);	// brick colour buffer
-		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clSetKernelArg():%s", clStrError(ret));
 
 		ret = clSetKernelArg(k, 3, sizeof(cl_mem), &p->CLmem[3]);	// camera position buffer
-		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clSetKernelArg():%s", clStrError(ret));
 
 		ret = clSetKernelArg(k, 4, sizeof(GLint), &frame);		// time
-		if(ret != CL_SUCCESS)printf("clSetKernelArg():%s\n", clStrError(ret));
+		if(ret != CL_SUCCESS)log_fatal("clSetKernelArg():%s", clStrError(ret));
 		clSetKernelArg(k, 5, sizeof(cl_mem), &p->CLmem[4]);
 		clSetKernelArg(k, 6, sizeof(cl_mem), &p->CLmem[6]);
 		clSetKernelArg(k, 7, sizeof(cl_mem), &p->CLmem[7]);
@@ -905,7 +907,7 @@ void voxel_loop(void)
 		if(ret != CL_SUCCESS)
 		{
 			p->happy = 0;
-			printf("clEnqueueNDRangeKernel():%s\n", clStrError(ret));
+			log_fatal("clEnqueueNDRangeKernel():%s", clStrError(ret));
 		}
 
 		ocl_release(p);
@@ -1054,7 +1056,7 @@ void voxel_loop(void)
 //	glBindTexture(GL_TEXTURE_3D, 0);
 
 	glActiveTexture(GL_TEXTURE0);
-//	printf("Nodes = %d, Bricks = %d\n", used_nodes, used_bricks);
+//	log_trace("Nodes = %d, Bricks = %d\n", used_nodes, used_bricks);
 
 	if(texdraw)voxel_3dtexdraw();
 

@@ -32,6 +32,8 @@ freely, subject to the following restrictions:
 #define HMODULE void*
 #endif
 
+#include "log.h"
+
 //#include "gpu/adl_sdk.h"
 
 
@@ -153,8 +155,8 @@ void gpuinfo_tick(void)
 		{
 			int ret = nvmlDeviceGetTemperature(nvml_devices[i], 0,
 				&nvml_gputemp[i]);
-			if(ret)printf("nvmlDeviceGetTemperature(%d) = %d\n", i, ret);
-//			printf("Temperature[%d] is %d\n", i, temp);
+			if(ret)log_error("nvmlDeviceGetTemperature(%d) = %d", i, ret);
+//			log_info("Temperature[%d] is %d\n", i, temp);
 		}
 
 	}
@@ -169,7 +171,7 @@ void gpuinfo_tick(void)
 			ret = ADL_Overdrive6_Temperature_Get(
 					adl_devid[i], &adl_gputemp[i]);
 			adl_gputemp[i] /= 1000;
-			if(ret)printf("ADL_Overdrive6_Temperature_Get(%d) = %d\n", i, ret);
+			if(ret)log_error("ADL_Overdrive6_Temperature_Get(%d) = %d", i, ret);
 			break;
 		case 5:
 			adlTmp.iSize = sizeof(ADLTemperature);
@@ -177,7 +179,7 @@ void gpuinfo_tick(void)
 			ret = ADL_Overdrive5_Temperature_Get(
 					adl_devid[i], adl_domain_id[i], &adlTmp);
 			adl_gputemp[i] = adlTmp.iTemperature / 1000;
-			if(ret)printf("ADL_Overdrive5_Temperature_Get(%d) = %d\n", i, ret);
+			if(ret)log_error("ADL_Overdrive5_Temperature_Get(%d) = %d", i, ret);
 
 			break;
 		default:
@@ -191,13 +193,13 @@ void gpuinfo_tick(void)
 
 #define EvilMacro(L, T, N, NS) \
 	N = (T)GetProcAddress(L, NS); \
-	if(!N)printf("GetProcAddress(\"N\") failed\n")
+	if(!N)log_fatal("GetProcAddress(\"N\")")
 
 #else
 
 #define EvilMacro(L, T, N, NS) \
 	*(void **)(&N) = dlsym(L, NS); \
-	if(!N)printf("dlsym(\"N\") failed\n")
+	if(!N)log_fatal("dlsym(\"N\")")
 
 #endif
 
@@ -217,7 +219,9 @@ void gpuinfo_init(void)
 	nvml = dlopen("libnvidia-ml.so", RTLD_LAZY);
 	adl = dlopen("libatiadlxx.so", RTLD_LAZY);
 #endif
-	printf("GPU Temp   : ");
+
+	log_info("GPU Temp   : %s %s", nvml? "NVML": "", adl? "ADL": "");
+
 	if(nvml)
 	{
 		EvilMacro(nvml, NVI, nvmlInit, "nvmlInit");
@@ -229,10 +233,10 @@ void gpuinfo_init(void)
 			"nvmlDeviceGetTemperature");
 
 		int ret = nvmlInit();
-		if(ret)printf("nvmlInit = %d\n", ret);
+		if(ret)log_error("nvmlInit() = %d", ret);
 
 		ret = nvmlDeviceGetCount(&nvml_device_count);
-		if(ret)printf("nvmlDeviceGetCount = %d\n", ret);
+		if(ret)log_error("nvmlDeviceGetCount() = %d", ret);
 
 		nvml_devices = malloc(sizeof(nvmlDevice_t)*nvml_device_count);
 		nvml_gputemp = malloc(sizeof(int)*nvml_device_count);
@@ -240,9 +244,8 @@ void gpuinfo_init(void)
 		{
 			nvml_gputemp[i]=0;
 			ret = nvmlDeviceGetHandleByIndex(i, &nvml_devices[i]);
-			if(ret)printf("nvmlDeviceGetHandleByIndex(%d) = %d\n", i, ret);
+			if(ret)log_error("nvmlDeviceGetHandleByIndex(%d) = %d", i, ret);
 		}
-		printf("NVML ");
 
 	}
 	if(adl)
@@ -266,9 +269,9 @@ void gpuinfo_init(void)
 			ADL_Overdrive6_Temperature_Get, "ADL_Overdrive6_Temperature_Get");
 
 		int ret = ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 1);
-		if(ret)printf("ADL_Main_Control_Create = %d\n", ret);
+		if(ret)log_error("ADL_Main_Control_Create = %d", ret);
 		ret = ADL_Adapter_NumberOfAdapters_Get(&adl_device_count);
-		if(ret)printf("ADL_Adapter_NumberOfAdapters_Get = %d\n", ret);
+		if(ret)log_error("ADL_Adapter_NumberOfAdapters_Get = %d", ret);
 
 		adl_odver = malloc(sizeof(int)*adl_device_count);
 		adl_domain_id = malloc(sizeof(int)*adl_device_count);
@@ -288,7 +291,7 @@ void gpuinfo_init(void)
 			adl_odver[i] = 0;
 			int odsup=0, oden=0;
 			ret = ADL_Overdrive_Caps(adl_devid[i],&odsup,&oden,&adl_odver[i]);
-			if(ret)printf("ADL_Overdrive_Caps(%d) = %d\n", i, ret);
+			if(ret)log_error("ADL_Overdrive_Caps(%d) = %d", i, ret);
 			if(5 == adl_odver[i])
 			{
 				int j;
@@ -306,13 +309,9 @@ void gpuinfo_init(void)
 			}
 		}
 		free(adl_inf);
-		printf("ADL ");
+
 	}
 
-	if(!nvml && !adl)
-		printf("None.");
-
-	printf("\n");
 	gpuinfo_tick();
 }
 
@@ -337,7 +336,7 @@ void gpuinfo_end(void)
 		free(adl_devid);
 		free(adl_gputemp);
 		int ret = ADL_Main_Control_Destroy();
-		if(ret)printf("ADL_Main_Control_Destroy = %d\n", ret);
+		if(ret)log_error("ADL_Main_Control_Destroy = %d", ret);
 
 		dlclose(adl);
 	}

@@ -40,6 +40,8 @@ typedef int socklen_t;
 #include <arpa/inet.h>
 #endif
 
+#include "log.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,7 +104,7 @@ int http_init(void)
 	s = socket(PF_INET, SOCK_STREAM, 0);
 	if(-1 == s)
 	{
-		printf("socket() failed %d\n", s);
+		log_fatal("socket() failed %d", s);
 		return 2;
 	}
 
@@ -110,7 +112,7 @@ int http_init(void)
 	ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 	if(-1 == ret)
 	{
-		printf("setsockopt\n");
+		log_fatal("setsockopt()");
 		return 3;
 	}
 
@@ -124,16 +126,16 @@ int http_init(void)
 
 	if(-1 == ret)
 	{
-		printf("Failed to bind() socket %d\n", HTTP_PORT);
+		log_fatal("bind() = %d", HTTP_PORT);
 	}
 
 	ret = listen(s, 5);
 	if(-1 == ret)
 	{
-		printf("listen\n");
+		log_fatal("listen() = %d", ret);
 	}
 
-	printf("HTTP Host  : OK\n");
+	log_info("HTTP Host  : OK");
 	memset(http_authorised_clients, 0, sizeof(http_auth)*HTTP_MAX_CLIENTS);
 	http_num_auth = 0;
 	memset(http_pending_requests, 0, sizeof(http_pending)*HTTP_MAX_CLIENTS);
@@ -168,10 +170,11 @@ void http_loop(void)
 		if(-1 == ret)
 		{
 #ifdef _WIN32
-			printf("WSAGetLastError() = %d\n", WSAGetLastError());
+			log_fatal("select(), WSAGetLastError() = %d\n", WSAGetLastError());
 
+#else
+			log_fatal("select() = %d", ret);
 #endif
-			printf("select error\n");
 			return;
 		}
 		if(!ret)return; // no pending requests
@@ -187,7 +190,7 @@ void http_loop(void)
 			if(http_clients[i].addr.sin_addr.s_addr == addr.sin_addr.s_addr)
 			{
 				// this is an authorised client
-				printf("welcome back\n");
+				log_debug("welcome back");
 				break;
 			}
 		}
@@ -198,13 +201,13 @@ void http_loop(void)
 		
 	//	inet_ntop(addr.sin_family, &addr.sin_addr, buf, 3000);
 
-	//	printf("%s - ", buf);
+	//	log_debug("%s - ", buf);
 
 		memset(buf, 0, 3000);
 		ret = read(client, buf, 3000);
 		if(-1 == ret)
 		{
-			printf("read()\n");
+			log_fatal("read()");
 			return;
 		}
 
@@ -245,7 +248,6 @@ void http_loop(void)
 					}
 				}
 			}
-printf("1\n");
 
 			if(!found)
 			{
@@ -261,16 +263,13 @@ printf("1\n");
 					http_pending_requests[http_num_pending].favicon = 0;
 					http_pending_requests[http_num_pending].authorised = 0;
 
-printf("2\n");
 					// get the requested URL
 					memset(http_pending_requests[http_num_pending].get, 0, MAX_LEN);
-printf("2a\n");
 					int getlen = strstr(buf+4, "\n") - (buf+4);
 					if(getlen > MAX_LEN) getlen = MAX_LEN;
 					memcpy(http_pending_requests[http_num_pending].get, buf+4,
 						getlen);
 
-printf("3\n");
 					int papers_in_order = 0;
 					// get the reported client name
 					char* name_off = strstr(buf, "(");
@@ -289,14 +288,12 @@ printf("3\n");
 					if(name_len > MAX_LEN)name_len = MAX_LEN;
 					if(name_len > 5)papers_in_order = 1;
 
-printf("4\n");
 					memset(http_pending_requests[http_num_pending].name, 0,
 						MAX_LEN);
 					memcpy(http_pending_requests[http_num_pending].name,
 						&name_off[i], name_len);
 					http_pending_requests[http_num_pending].name[name_len]=0;
 
-printf("5\n");
 					if(papers_in_order)
 					{	// take a seat...
 						write(client, pending, strlen(pending));

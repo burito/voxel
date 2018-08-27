@@ -26,6 +26,8 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 #endif
 
+#include "log.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -50,7 +52,7 @@ static void printShaderInfoLog(GLuint obj)
 	{
 		infoLog = (char *)malloc(infologLength);
 		glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-		printf("%s\n",infoLog);
+		log_warning("%s\n",infoLog);
 		free(infoLog);
 	}
 }
@@ -68,7 +70,7 @@ static void printProgramInfoLog(GLuint obj)
 	{
 		infoLog = (char *)malloc(infologLength);
 		glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-		printf("%s\n",infoLog);
+		log_warning("%s\n",infoLog);
 		free(infoLog);
 	}
 }
@@ -91,7 +93,7 @@ static GLuint shader_fileload(int type, char * filename, char *header)
 	glGetShaderiv(x, GL_COMPILE_STATUS, &param);
 	if(param == GL_FALSE)
 	{
-		printf("*** Shader compile of \"%s\" went as expected.\n", filename);
+		log_error("Shader compile of \"%s\" went as expected", filename);
 		printShaderInfoLog(x);
 		glDeleteShader(x);
 		x = 0;
@@ -108,7 +110,7 @@ static void shader_unifind(GLSLSHADER *s)
 		s->unif[i] = glGetUniformLocation(s->prog, s->unif_name[i]);
 		if(-1 == s->unif[i])
 		{
-			printf("Shader(\"%s\")uniform(\"%s\"):Not Found\n",
+			log_warning("\x1b[1m%s:\x1b[0m uniform \"%s\" not found",
 				s->fragfile, s->unif_name[i]);
 		}
 	}
@@ -125,7 +127,7 @@ static void shader_buffind(GLSLSHADER *s)
 		glUniformBlockBinding(s->prog, s->buf[i], i);
 		if(-1 == s->buf[i])
 		{
-			printf("Shader(\"%s\")block(\"%s\"):Not Found\n",
+			log_warning("Shader(\"%s\")block(\"%s\"):Not Found",
 				s->fragfile, s->buf_name[i]);
 		}
 	}
@@ -164,7 +166,7 @@ void shader_rebuild(GLSLSHADER *s)
 	glGetProgramiv(s->prog, GL_LINK_STATUS, &param);
 	if(param == GL_FALSE)
 	{
-		printf("*** Shader linking went as expected.\n");
+		log_error("Shader linking went as expected");
 		printProgramInfoLog(s->prog);
 	}
 	else
@@ -212,18 +214,18 @@ void shader_uniform(GLSLSHADER *s, char *name)
 	void* tmp;
 	// Realloc the name array
 	tmp = realloc(s->unif_name, sizeof(char*)*s->unif_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(!tmp)log_fatal("realloc()");
 	s->unif_name = tmp;
 	s->unif_name[i] = hcopy(name);
 	// realloc the uniform location id array
 	tmp = realloc(s->unif, sizeof(GLint)*s->unif_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(!tmp)log_fatal("realloc()");
 	s->unif = tmp;
 	s->unif[i] = glGetUniformLocation(s->prog, name);
 	// Check if we found the uniform
 	if(-1 == s->unif[i])
 	{
-		printf("Shader(\"%s\")uniform(\"%s\"):Not Found\n",
+		log_warning("\x1b[1m%s:\x1b[0m uniform \"%s\" not found",
 				s->fragfile, s->unif_name[i]);
 	}
 }
@@ -236,18 +238,18 @@ void shader_buffer(GLSLSHADER *s, char *name)
 	void* tmp;
 	// Realloc the name array
 	tmp = realloc(s->buf_name, sizeof(char*)*s->buf_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(!tmp)log_fatal("realloc()");
 	s->buf_name = tmp;
 	s->buf_name[i] = hcopy(name);
 	// realloc the uniform location id array
 	tmp = realloc(s->buf, sizeof(GLint)*s->buf_num);
-	if(!tmp)printf("Realloc() failed\n");
+	if(!tmp)log_fatal("realloc()");
 	s->buf = tmp;
 	s->buf[i] = glGetUniformBlockIndex(s->prog, name);
 	// Check if we found the uniform
 	if(-1 == s->buf[i])
 	{
-		printf("Shader(\"%s\")buffer(\"%s\"):Not Found\n",
+		log_error("Shader(\"%s\")buffer(\"%s\"):Not Found",
 				s->fragfile, s->buf_name[i]);
 	}
 	else
@@ -275,7 +277,7 @@ int available_vram(void)
 	}
 	else
 	{
-		printf("I don't know if there is VRAM available\n");
+		log_warning("I don't know if there is VRAM available\n");
 	}
 	return 0;
 }

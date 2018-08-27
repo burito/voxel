@@ -53,6 +53,8 @@ CGLContextObj CGLGetCurrentContext (void);
 #include <CL/cl_gl.h>
 #endif
 
+#include "log.h"
+
 #include "3dmaths.h"
 #include "main.h"
 
@@ -246,23 +248,23 @@ int ocl_init(void)
 	// Tell me about the selected platform
 	bs = _bs;
 	clGetPlatformInfo( *c->p, CL_PLATFORM_VENDOR, bs, b, &bs);
-	printf("CL Vendor  : %s\n", b);
+	log_info("CL Vendor  : %s", b);
 	bs = _bs;
 	clGetPlatformInfo( *c->p, CL_PLATFORM_NAME, bs, b, &bs);
-	printf("CL Platform: %s\n", b);
+	log_info("CL Platform: %s", b);
 	bs = _bs;
 	clGetPlatformInfo( *c->p, CL_PLATFORM_VERSION, bs, b, &bs);
-	printf("CL Version : %s\n", b);
+	log_info("CL Version : %s", b);
 	// Tell me about the selected device
 	bs = _bs;
 	clGetDeviceInfo(*c->d, CL_DEVICE_NAME, bs, b, &bs);
-	printf("CL Dev Name: %s\n", b);
+	log_info("CL Dev Name: %s", b);
 	bs = _bs;
 	clGetDeviceInfo(*c->d, CL_DEVICE_VERSION, bs, b, &bs);
-	printf("CL Dev Ver : %s\n", b);
+	log_info("CL Dev Ver : %s", b);
 	bs = _bs;
 	clGetDeviceInfo(*c->d, CL_DRIVER_VERSION, bs, b, &bs);
-	printf("CL Driv Ver: %s\n", b);
+	log_info("CL Driv Ver: %s", b);
 
 	// create the context
 	cl_context_properties properties[] = {
@@ -281,7 +283,7 @@ CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)CGLGetShare
 	c->c = clCreateContext(properties, 1, c->d, NULL, NULL, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("clCreateContext():%s\n", clStrError(ret));
+		log_fatal("clCreateContext() = %s", clStrError(ret));
 		return 1;
 	}
 
@@ -289,7 +291,7 @@ CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)CGLGetShare
 	c->q = clCreateCommandQueue(c->c, *c->d, 0, &ret);
 	if(ret != CL_SUCCESS)
 	{
-		printf("failed: clCreateCommandQueue() = %s\n", clStrError(ret));
+		log_fatal("clCreateCommandQueue() = %s", clStrError(ret));
 		return 2;
 	}
 	OpenCL->happy = 1;
