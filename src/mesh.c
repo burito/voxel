@@ -34,6 +34,8 @@ freely, subject to the following restrictions:
 #include "text.h"
 #include "shader.h"
 
+#include "log.h"
+
 #define BUF_LEN 1024
 
 #ifndef STATIC_TEST
@@ -191,7 +193,7 @@ static void mtl_load(WF_OBJ *w, char *filename)
 	if(!filename)return;
 	if(!w->filename)return;
 	char *filepath = repath(w->filename, filename);
-	printf("Loading Wavefront MTL(\"%s\");\n", filepath);
+	log_verbose("Loading Wavefront MTL(\"%s\")", filepath);
 	FILE *fptr = fopen(filepath, "r");
 	if(!fptr)
 	{
@@ -266,7 +268,7 @@ static void wf_bound(WF_OBJ *w)
 		F3ADDS(v[i], v[i], (1.0 / 14.0));
 	}
 
-	printf("Volume = (%f, %f, %f)\n", size.x, size.y, size.z);
+	log_trace("Volume = (%f, %f, %f)", size.x, size.y, size.z);
 }
 
 void wf_buffer_drawarray(WF_OBJ *w)
@@ -275,7 +277,7 @@ void wf_buffer_drawarray(WF_OBJ *w)
 	WF_ARRAY *p = malloc(size);
 	memset(p, 0, size);
 
-	printf("At init we have %d/%d/%d\n", w->nv, w->nn, w->nt);
+	log_trace("At init we have %d/%d/%d", w->nv, w->nn, w->nt);
 
 	WF_MTL *m = w->m;
 	int o=0;
@@ -304,7 +306,7 @@ void wf_buffer_drawarray(WF_OBJ *w)
 			m->nf++;
 		}
 	}
-	printf("At nomtl we have %d/%d-%d\n", w->nv, o, w->nf);
+	log_trace("At nomtl we have %d/%d-%d", w->nv, o, w->nf);
 	
 	if(o < w->nf)
 	for(int i=0; i<w->nf; i++)
@@ -328,14 +330,14 @@ void wf_buffer_drawarray(WF_OBJ *w)
 		o++;
 	}
 	w->p = (float*)p;
-	printf("Interleaved faces ok!\n");
+	log_trace("Interleaved faces ok!");
 }
 
 
 void wf_interleave(WF_OBJ *w)
 {
 	if(!w)return;
-	printf("At interleave we have %d/%d/%d\n", w->nv, w->nn, w->nt);
+	log_trace("At interleave we have %d/%d/%d", w->nv, w->nn, w->nt);
 	if(!w->nv)return;
 	float *p = malloc(w->nv * 32);
 	if(!p)return;
@@ -364,7 +366,7 @@ void wf_interleave(WF_OBJ *w)
 
 		}
 	}
-	printf("Interleaved ok!\n");
+	log_trace("Interleaved ok!");
 	w->p = p;
 
 	// now store the faces, per material for fast rendering
@@ -387,7 +389,7 @@ void wf_interleave(WF_OBJ *w)
 	if(w->f[i].m == 0)
 		f[o++] = w->f[i].f;
 	w->vf = f;
-	printf("Interleaved faces ok!\n");
+	log_trace("Interleaved faces ok!");
 //	free(w->v); w->v = 0;
 //	free(w->vn); w->vn = 0;
 }
@@ -468,7 +470,7 @@ static void wf_vertex_normals(WF_OBJ *w)
 		if(vect_magnitude(&t)>0.1)
 		{
 //			if(vect_magnitude(&w->vn[i])>0.1)
-//				printf("Vertex copy required\n");
+//				log_trace("Vertex copy required\n");
 			vect_norm(&w->vn[i], &t);
 		}
 
@@ -514,7 +516,7 @@ static void wf_texcoords(WF_OBJ *w)
 		F2COPY(w->uv[w->f[i].f.y], w->vt[w->f[i].t.y]);
 		F2COPY(w->uv[w->f[i].f.z], w->vt[w->f[i].t.z]);
 	}
-	printf("UV's copied, wanted %d verts.\n", uvcopy);
+	log_trace("UV's copied, wanted %d verts", uvcopy);
 }
 
 
@@ -529,20 +531,20 @@ static void wf_vbo_load(WF_OBJ *w)
 	{
 		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*32, w->p, GL_STATIC_DRAW);
 		glBindBufferARB(GL_ARRAY_BUFFER, 0);
-		printf("faces too\n");
+		log_debug("faces too");
 	}
 	else
 	{
 		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*12, w->v, GL_STATIC_DRAW);
 		glBindBufferARB(GL_ARRAY_BUFFER, 0);
-		printf("verts only\n");
+		log_debug("verts only");
 		return;
 	}
 
 	glGenBuffersARB(1, &w->ebo);
-	if(!w->ebo)printf("glGenBuffers failed\n");
+	if(!w->ebo)log_fatal("glGenBuffers()");
 	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER, w->ebo);
-	printf("w->nf*12 = %d\n", w->nf*12);
+	log_trace("w->nf*12 = %d", w->nf*12);
 	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER, w->nf*12, 0, GL_STATIC_DRAW);
 	int *p = glMapBufferARB(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
 	if(p)
@@ -551,8 +553,7 @@ static void wf_vbo_load(WF_OBJ *w)
 	}
 	else
 	{
-		printf("glMapBuffer() failed\n");
-		printf("%s\n", glError(glGetError()));
+		log_fatal("glMapBuffer() = %s", glError(glGetError()));
 	}
 	glUnmapBufferARB(GL_ELEMENT_ARRAY_BUFFER);
 }
@@ -643,7 +644,7 @@ void wf_drawelements(WF_OBJ *w)
 
 WF_OBJ* wf_parse(char *filename)
 {
-	printf("Loading Wavefront OBJ(\"%s\");\n", filename);
+	log_verbose("Loading Wavefront OBJ(\"%s\")", filename);
 	FILE *fptr = fopen(filename, "r");
 	if(!fptr)return 0;
 
@@ -655,7 +656,7 @@ WF_OBJ* wf_parse(char *filename)
 	if(!w)
 	{
 		fclose(fptr);
-		printf("wf_parse() malloc failed\n");
+		log_fatal("malloc()");
 		return 0;
 	}
 	memset(w, 0, sizeof(WF_OBJ));
@@ -711,7 +712,7 @@ WF_OBJ* wf_parse(char *filename)
 	if(w->ng)w->groups = malloc(sizeof(char*)*w->ng);
 	if(w->ns)w->sgroups = malloc(sizeof(int)*w->ns);
 
-	printf("Counted v=%d,t=%d,n=%d,f=%d,g=%d,s=%d,m=%d\n",
+	log_debug("Counted v=%d,t=%d,n=%d,f=%d,g=%d,s=%d,m=%d",
 			w->nv, w->nt, w->nn, w->nf, w->ng, w->ns, w->nm);
 	int vi=0, ti=0, ni=0, fi=0, gi=0, si=0;
 	WF_MTL *mi=0;
@@ -728,7 +729,7 @@ WF_OBJ* wf_parse(char *filename)
 	{
 		tailchomp(buf);
 		int i=2;
-//		printf("%s\n", buf);
+//		log_trace("%s", buf);
 		switch(buf[0]) {
 		case 'v':
 
@@ -795,19 +796,19 @@ WF_OBJ* wf_parse(char *filename)
 				else tmp--;
 				w->f[fi].f.x = tmp;
 
-//					printf("%d/", g->f[g->nf].x);
+//					log_trace("%d/", g->f[g->nf].x);
 				while(' '!=buf[i])i++; i++;	//find next space
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.y = tmp;
-//					printf("%d/", g->f[g->nf].y);
+//					log_trace("%d/", g->f[g->nf].y);
 				while(' '!=buf[i])i++; i++;
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.z = tmp;
-//					printf("%d\n", g->f[g->nf].z);
+//					log_trace("%d\n", g->f[g->nf].z);
 				w->f[fi].s = si;
 				w->f[fi].m = lastmat;
 				w->f[fi].g = gi;
@@ -848,7 +849,7 @@ WF_OBJ* wf_parse(char *filename)
 				else tmp--;
 				w->f[fi].t.x = tmp;
 
-//					printf("%d/", g->f[g->nf].x);
+//					log_trace("%d/", g->f[g->nf].x);
 				while(' '!=buf[i])i++; i++;	//find next space
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
@@ -859,7 +860,7 @@ WF_OBJ* wf_parse(char *filename)
 				if(tmp < 0)tmp += w->nt;
 				else tmp--;
 				w->f[fi].t.y = tmp;
-//					printf("%d/", g->f[g->nf].y);
+//					log_trace("%d/", g->f[g->nf].y);
 				while(' '!=buf[i])i++; i++;
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
@@ -870,7 +871,7 @@ WF_OBJ* wf_parse(char *filename)
 				if(tmp < 0)tmp += w->nt;
 				else tmp--;
 				w->f[fi].t.z = tmp;
-//					printf("%d\n", g->f[g->nf].z);
+//					log_trace("%d\n", g->f[g->nf].z);
 				w->f[fi].s = si;
 				w->f[fi].m = lastmat;
 				w->f[fi].g = gi;
@@ -968,11 +969,11 @@ WF_OBJ* wf_parse(char *filename)
 			break;	// line type break
 		}
 	}
-	printf("Read    v=%d,t=%d,n=%d,f=%d,g=%d,s=%d\n",
+	log_debug("Read    v=%d,t=%d,n=%d,f=%d,g=%d,s=%d",
 			vi, ti, ni, fi, gi, si);
 
 	fclose(fptr);
-	printf("At fclose we have %d/%d/%d\n", w->nv, w->nt, w->nn);
+	log_debug("At fclose we have %d/%d/%d", w->nv, w->nt, w->nn);
 	return w;
 }
 
@@ -994,7 +995,7 @@ WF_OBJ* wf_load(char * filename)
 		glBindBufferARB(GL_ARRAY_BUFFER, w->vbo);
 		glBufferDataARB(GL_ARRAY_BUFFER, w->nv*12, w->v, GL_STATIC_DRAW);
 		glBindBufferARB(GL_ARRAY_BUFFER, 0);
-		printf("verts only\n");
+		log_trace("verts only");
 	}
 	else
 
@@ -1017,7 +1018,7 @@ WF_OBJ* wf_load(char * filename)
 		glBindBufferARB(GL_ARRAY_BUFFER, 0);
 	}
 #endif
-	printf("All done.\n");
+	log_trace("wf_load() = All done");
 	return w;
 }
 

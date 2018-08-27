@@ -90,7 +90,7 @@ void img_free(IMG *img)
 
 IMG* img_load(const char * filename)
 {
-	log_info("Loading Image(\"%s\")", filename);
+	log_verbose("Loading Image(\"%s\")", filename);
 	const int size = sizeof(IMG);
 	IMG *i = malloc(size);
 	if(!i)return 0;
