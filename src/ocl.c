@@ -49,9 +49,7 @@ CGLContextObj CGLGetCurrentContext (void);
 
 #include "ocl.h"
 
-#ifdef _WIN32
 #include <CL/cl_gl.h>
-#endif
 
 #include "log.h"
 
