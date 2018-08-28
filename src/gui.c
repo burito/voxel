@@ -26,6 +26,8 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 #endif
 
+#include "log.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -35,7 +37,6 @@ freely, subject to the following restrictions:
 #include <unistd.h>
 #include <dirent.h>
 
-#include "log.h"
 
 #include "3dmaths.h"
 #include "image.h"
@@ -43,13 +44,22 @@ freely, subject to the following restrictions:
 #include "main.h"
 #include "mesh.h"
 #include "gui.h"
-#include "fontstash.h"
 #include "ocl.h"
 #include "clvoxel.h"
 #include "gpuinfo.h"
 #include "http.h"
 
-struct sth_stash* stash = 0;
+
+#include "fontstash.h"
+#include "glfontstash.h"
+
+static FONScontext* fs = NULL;
+
+static int fontFixed = FONS_INVALID;
+static int fontFixedBold = FONS_INVALID;
+static int fontSans = FONS_INVALID;
+static int fontSansBold = FONS_INVALID;
+
 
 
 widget *widget_root = 0;
@@ -59,9 +69,9 @@ widget* widget_new(int2 pos, int2 size)
 {
 	widget *ret = 0;
 	ret = malloc(sizeof(widget));
-	if(!ret)
+	if(ret == NULL)
 	{
-		log_fatal("malloc()");
+		log_fatal("malloc() failed\n");
 		return 0;
 	}
 
@@ -69,7 +79,7 @@ widget* widget_new(int2 pos, int2 size)
 	ret->pos = pos;
 	ret->size = size;
 	ret->fontsize = 20.0f;
-	ret->fontface = 3;
+	ret->fontface = fontSansBold;
 	return ret;
 }
 
@@ -168,12 +178,10 @@ void widget_remove(widget *w)
 void widget_text_draw(widget *w)
 {
 	if(!w)return;
-	float dx = 0.0f;
 	glColor4f(1,1,1,1);
-	sth_begin_draw(stash);
-	sth_draw_text(stash, w->fontface, w->fontsize, 10, 10, w->data, &dx);
-	sth_end_draw(stash);
-//	sth_vmetrics(stash, 1,24, NULL,NULL,&height);
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsDrawText(fs, 10, 10, w->data, NULL);
 }
 
 
@@ -233,10 +241,10 @@ void widget_button_draw(widget *w)
 	glColor4f(colour, colour, colour, 0.4f);
 	draw_rect(w->size.x, w->size.y);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	sth_begin_draw(stash);
-	sth_draw_text(stash, w->fontface, w->fontsize,
-			10, -(w->size.y/2+5), w->data, 0);
-	sth_end_draw(stash);
+
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsDrawText(fs, 10, -(w->size.y/2+5), w->data, NULL);
 }
 
 
@@ -270,11 +278,15 @@ void widget_button_free(widget *w)
 }
 
 
-widget* widget_button_new(int x, int y, char* label)
+widget* widget_button_new(int x, int y, const char* label)
 {
 	int2 p = {x, y}, s = {200 ,30};
 	widget *w = widget_new(p, s);
-	w->data = label;
+	if(!w)
+	{
+		printf("widget_new() failed\n");
+	}
+	w->data = hcopy(label);
 	w->draw = widget_button_draw;
 	w->onclick = widget_button_onclick;
 	w->release = widget_button_release;
@@ -301,17 +313,17 @@ void widget_window_draw(widget *w)
 	glColor4f(colour, colour, colour, 1.0f);
 	glTranslatef(0, -5, 0);
 	draw_rect(w->size.x, -3);
-
-//	glTranslatef(0, -30, 0);
-
 	glTranslatef(0, -25, 0);
-
 	glColor4f(1,1,1,1);
-	sth_begin_draw(stash);
-	sth_draw_text(stash, 2,24.0f, 20, 7, w->data, 0);
-	sth_draw_text(stash, 1,14.0f, w->size.x - 35, 10, "END", 0);
-	sth_end_draw(stash);
-//	glTranslatef(0, 0, 0);
+
+	fonsSetSize(fs, 24.0f);
+	fonsSetFont(fs, fontSans);
+	fonsDrawText(fs, 20, 7, w->data, NULL);
+
+	fonsSetSize(fs, 14.0f);
+	fonsSetFont(fs, fontFixedBold);
+	fonsDrawText(fs, w->size.x - 35, 10, "END", NULL);
+
 	glColor4f(colour, colour, colour, 1.0f);
 	draw_rect(w->size.x, -2);
 	glTranslatef(0, 30, 0);
@@ -518,10 +530,10 @@ void widget_menu_draw(widget *w)
 	glColor4f(colour, colour, colour, 0.4f);
 	draw_rect(w->parent->size.x, w->size.y);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	sth_begin_draw(stash);
-	sth_draw_text(stash, w->fontface, w->fontsize,
-			10, -(w->size.y/2+5), w->data, 0);
-	sth_end_draw(stash);
+
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsDrawText(fs, 10, -(w->size.y/2+5), w->data, NULL);
 }
 
 void widget_menu_separator_draw(widget *w)
@@ -570,9 +582,10 @@ void widget_window_ocl_draw(widget *w)
 	float top=-40, bottom = -w->size.y + 10;
 
 	glColor4f(1,1,1,1);
-	sth_begin_draw(stash);
-	sth_draw_text(stash, 3, 20.0f, 6, -20, "\u2211", 0);
-	sth_end_draw(stash);
+
+	fonsSetSize(fs, 20.0f);
+	fonsSetFont(fs, fontSansBold);
+	fonsDrawText(fs, 6, -20, "\u2211", NULL);
 
 	if(w->clicked == 10)
 	{
@@ -657,7 +670,9 @@ void widget_list_draw(widget *w)
 	if(!w)return;
 	float height = 0.0f;
 	float fascend=0, fdescend=0;
-	sth_vmetrics(stash, w->fontface, w->fontsize, &fascend, &fdescend, &height);
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsVertMetrics(fs, &fascend, &fdescend, &height);
 	float hoff = -fascend;
 	float fullheight = (float)w->count * height;
 	float totalheight = (fullheight - (float)w->size.y) / fullheight;
@@ -670,7 +685,6 @@ void widget_list_draw(widget *w)
 
 
 	glColor4f(1,1,1,1);
-	sth_begin_draw(stash);
 	if( fullheight < w->size.y )
 	{	// scrollbar not needed
 		for(int i=0; i<w->count; i++)
@@ -683,10 +697,9 @@ void widget_list_draw(widget *w)
 				glTranslatef(0, -y, 0);
 			}
 			glColor4f(1,1,1,1);
-			sth_draw_text(stash, w->fontface, w->fontsize, 10, y+hoff, names[i], 0);
+			fonsDrawText(fs, 10, y+hoff, names[i], NULL);
 			y -= height;
 		}
-		sth_end_draw(stash);
 	}
 	else
 	{
@@ -705,12 +718,11 @@ void widget_list_draw(widget *w)
 				glTranslatef(0, -(y+ysmooth), 0);
 			}
 			glColor4f(1,1,1,1);
-			sth_draw_text(stash, w->fontface, w->fontsize, 10, y+hoff+ysmooth, names[i], 0);
+			fonsDrawText(fs, 10, y+hoff+ysmooth, names[i], NULL);
 			y -= height;
 			if( -y > w->size.y)
 				break;
 		}
-		sth_end_draw(stash);
 		glColor4f(0,0,0,0.5);
 		glTranslatef(w->size.x - 20, 0, 0);
 		draw_rect(20, w->size.y);
@@ -732,7 +744,9 @@ void widget_list_click(widget *w)
 {
 	if(!w)return;
 	float height = 0.0f;
-	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsVertMetrics(fs, NULL, NULL, &height);
 	int2 click;
 	click.x = mouse_x - w->delta.x - w->pos.x;
 	click.y = mouse_y - w->delta.y - w->pos.y;
@@ -764,7 +778,7 @@ void widget_list_click(widget *w)
 		if(offset > w->count)return;
 		w->selected = offset;
 //		char **file = w->data;
-//		log_debug("this one %s", file[offset]);
+//		printf("this one %s\n", file[offset]);
 
 	}
 }
@@ -773,7 +787,9 @@ void widget_list_onclick(widget *w)
 {
 	if(!w)return;
 	float height = 0.0f;
-	sth_vmetrics(stash, w->fontface, w->fontsize, NULL,NULL,&height);
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsVertMetrics(fs, NULL, NULL, &height);
 	int2 click;
 	click.x = mouse_x - w->delta.x - w->pos.x;
 	click.y = mouse_y - w->delta.y - w->pos.y;
@@ -1058,7 +1074,7 @@ void spawn_open(widget *x)
 		{
 			if(dcnt == dmax)
 			{
-				log_fatal("dont forget to malloc some more");
+				printf("dont forget to malloc some more\n");
 				return;
 			}
 			dirs[dcnt++] = hcopy(ent->d_name);
@@ -1067,7 +1083,7 @@ void spawn_open(widget *x)
 		{
 			if(fcnt == fmax)
 			{
-				log_fatal("dont forget to malloc some more");
+				printf("dont forget to malloc some more\n");
 				return;
 			}
 			if(x)
@@ -1083,7 +1099,7 @@ void spawn_open(widget *x)
 					files[fcnt++] = hcopy(ent->d_name);
 			}
 		}
-		else log_error("Unexpected Filetype= %d \"%s\"", s.st_mode, ent->d_name);
+		else printf("Unexpected Filetype= %d \"%s\"\n", s.st_mode, ent->d_name);
 
 
 	}
@@ -1122,10 +1138,15 @@ widget* widget_menu_new(void)
 	return w;
 }
 
-widget* widget_menu_add(widget *w, char* label)
+widget* widget_menu_add(widget *w, const char* label)
 {
 	if(!w)return 0;
 	widget *ret = widget_button_new(0, 0, label);
+
+	if(!ret)
+	{
+		log_fatal("widget_button_new()");
+	}
 	ret->onclick = widget_menu_onclick;
 	ret->release = widget_menu_release;
 	ret->parent = w;
@@ -1136,9 +1157,13 @@ widget* widget_menu_add(widget *w, char* label)
 		w->child->prev = ret;
 	}
 	w->child = ret;
-	float x1, x2, y1, y2;
-	sth_dim_text(stash, w->fontface, w->fontsize, label, &x1, &y1, &x2, &y2);
-	ret->size.x = 20+ x2 - x1;
+
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+
+	float width;
+	width = fonsTextBounds(fs, 0, 0, label, NULL, NULL);
+	ret->size.x = 20+ width;
 
 	return ret;
 }
@@ -1168,10 +1193,11 @@ widget* widget_menu_item_add(widget *w, char* label, void (*action)(widget*))
 	ret->next = wdata->child;
 	wdata->child = ret;
 
-	float x1, x2, y1, y2;
-	sth_dim_text(stash, ret->fontface, ret->fontsize,
-			label, &x1, &y1, &x2, &y2);
-	ret->size.x = 20+ x2 - x1;
+	fonsSetSize(fs, ret->fontsize);
+	fonsSetFont(fs, ret->fontface);
+	float width;
+	width = fonsTextBounds(fs, 0, 0, label, NULL, NULL);
+	ret->size.x = 20+ width;
 	if(wdata->size.x < ret->size.x)wdata->size.x = ret->size.x;
 
 	return ret;
@@ -1199,7 +1225,7 @@ void spawn_gpuinfo(widget *x)
 	widget *item, *w = widget_window_new(100, 100, "GPU Information");
 	item = widget_text_new(10, 65, "OpenGL");
 	item->fontsize = 30.0f;
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_text_new(20, 90, hcopy(
 		(const char*)glGetString(GL_VENDOR) ));
@@ -1216,7 +1242,7 @@ void spawn_gpuinfo(widget *x)
 
 	item = widget_text_new(10, 175, "OpenCL");
 	item->fontsize = 30.0f;
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 
 	int count = 0;
@@ -1252,7 +1278,7 @@ void spawn_http_auth(widget *x)
 	widget *item, *w = widget_window_new(100, 100, "Authorised Devices");
 	item = widget_text_new(10, 65, "OpenGL");
 	item->fontsize = 30.0f;
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_text_new(20, 90, hcopy(
 		(const char*)glGetString(GL_VENDOR) ));
@@ -1278,7 +1304,7 @@ void spawn_http_pend(widget *x)
 	widget *item, *w = widget_window_new(100, 100, "Pending Devices");
 	item = widget_text_new(10, 65, "OpenGL");
 	item->fontsize = 30.0f;
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_text_new(20, 90, hcopy(
 		(const char*)glGetString(GL_VENDOR) ));
@@ -1305,7 +1331,7 @@ void spawn_about(widget *x)
 	widget_child_add(w, item);
 	item = widget_text_new(20, 80, "VOXEL TEST");
 	item->fontsize = 40.0f;
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_url_new(20, 120, "WWW",
 			"http://danpburke.blogspot.com.au");
@@ -1330,13 +1356,13 @@ void spawn_credits(widget *x)
 	widget *item, *w = widget_window_new(100, 100, "CREDITS");
 	item = widget_text_new(20, 80, "3RD PARTY");
 	item->fontsize = 40.0f;
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_text_new(30, 120, "LIBRARIES");
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_text_new(190, 120, "FONTS");
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
 	item = widget_url_new(20, 120, "GLEW",
 			"http://glew.sourceforge.net");
@@ -1364,7 +1390,7 @@ void spawn_credits(widget *x)
 	widget_child_add(w, item);
 	item = widget_url_new(180, 160, "SourceCodePro",
 			"https://github.com/adobe-fonts/source-code-pro");
-	item->fontface = 1;
+	item->fontface = fontFixedBold;
 	item->size.x = 140;
 	widget_child_add(w, item);
 //	item = widget_url_new(180, 200, "",
@@ -1387,35 +1413,35 @@ void spawn_license(widget *x)
 	widget *w = widget_window_new(100, 100, "LICENSE");
 	widget *item;
 	item = widget_text_new(20, 70, "Copyright (c) 2012 Daniel Burke");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 95, "This software is provided 'as-is', without any express or implied");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 110, "warranty. In no event will the authors be held liable for any damages");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 125, "arising from the use of this software.");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 155, "Permission is granted to anyone to use this software for any purpose,");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 170, "including commercial applications, and to alter it and redistribute it");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 185, "freely, subject to the following restrictions:");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 210, "	1. The origin of this software must not be misrepresented; you must not");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 225, "	claim that you wrote the original software. If you use this software");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 240, "	in a product, an acknowledgment in the product documentation would be");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 255, "	appreciated but is not required.");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 280, "	2. Altered source versions must be plainly marked as such, and must not be");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 295, "	misrepresented as being the original software.");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 320, "	3. This notice may not be removed or altered from any source");
-	item->fontface = 1;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixedBold;	item->fontsize = 14.0f; widget_child_add(w, item);
 	item = widget_text_new(20, 335, "	distribution.");
-	item->fontface = 0;	item->fontsize = 14.0f; widget_child_add(w, item);
+	item->fontface = fontFixed;	item->fontsize = 14.0f; widget_child_add(w, item);
 	w->size.x = 570;
 	w->size.y = 360;
 	w->pos.x = 20;
@@ -1438,12 +1464,11 @@ void widget_menu_bool_draw(widget *w)
 	glColor4f(colour, colour, colour, 0.4f);
 	draw_rect(w->parent->size.x, w->size.y);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	sth_begin_draw(stash);
-	sth_draw_text(stash, w->fontface, w->fontsize,
-			10, -(w->size.y/2+5), (*(int*)w->data2 ? "\u2611":"\u2610"), 0);
-	sth_draw_text(stash, w->fontface, w->fontsize,
-			10, -(w->size.y/2+5), w->data, 0);
-	sth_end_draw(stash);
+
+	fonsSetSize(fs, w->fontsize);
+	fonsSetFont(fs, w->fontface);
+	fonsDrawText(fs, 10, -(w->size.y/2+5), (*(int*)w->data2 ? "\u2611":"\u2610"), NULL);
+	fonsDrawText(fs, 10, -(w->size.y/2+5), w->data, NULL);
 }
 
 
@@ -1472,13 +1497,6 @@ void menu_texdraw(widget *w)
 }
 
 
-void font_load(int i, char *path)
-{
-	int ret = sth_add_font(stash, path);
-	if(!ret)log_fatal("Failed to load font %d:\"%s\"", i, path);
-}
-
-
 widget* widget_menu_separator_add(widget *item)
 {
 	widget *w = widget_menu_item_add(item, "", 0);
@@ -1502,16 +1520,37 @@ long long last_time;
 int gui_init(int argc, char *argv[])
 {
 	memset(frame_time, 0, sizeof(long)*MAX_FRAMES);
-	stash = sth_create(512,512);
-	if (!stash)
+	fs = glfonsCreate(512, 512, FONS_ZERO_BOTTOMLEFT);
+	if (!fs)
 	{
-		log_fatal("Could not create stash");
+		printf("Could not create stash.\n");
 		return -1;
 	}
-	font_load(0,"data/gui/SourceCodePro-Regular.ttf");
-	font_load(1,"data/gui/SourceCodePro-Bold.ttf");
-	font_load(2,"data/gui/SourceSansPro-Regular.ttf");
-	font_load(3,"data/gui/SourceSansPro-Bold.ttf");
+
+	fontFixed	= fonsAddFont(fs, "fixed",	"data/gui/SourceCodePro-Regular.ttf");
+	if(FONS_INVALID == fontFixed)
+	{
+		printf("Failed to load Fixed Font\n");
+		return 1;
+	}
+	fontFixedBold	= fonsAddFont(fs, "fixed-bold",	"data/gui/SourceCodePro-Regular.ttf");
+	if(FONS_INVALID == fontFixedBold)
+	{
+		printf("Failed to load Fixed Bold Font\n");
+		return 1;
+	}
+	fontSans	= fonsAddFont(fs, "sans",	"data/gui/SourceSansPro-Regular.ttf");
+	if(FONS_INVALID == fontSans)
+	{
+		printf("Failed to load Sans Font\n");
+		return 1;
+	}
+	fontSansBold	= fonsAddFont(fs, "sans-bold",	"data/gui/SourceSansPro-Regular.ttf");
+	if(FONS_INVALID == fontSansBold)
+	{
+		printf("Failed to load Sans Bold Font\n");
+		return 1;
+	}
 
 	widget *w;
 	widget *menu = widget_menu_new();
@@ -1578,23 +1617,21 @@ void gui_http_draw(void)
 
 	char stop[] = "Stop accepting connections";
 
-	float x1, x2, y1, y2;
-	sth_dim_text(stash, 3, 20.0f, stop, &x1, &y1, &x2, &y2);
+	fonsSetSize(fs, 20.0f);
+	fonsSetFont(fs, fontSansBold);
+	float width;
+	width = fonsTextBounds(fs, 0, 0, stop, NULL, NULL);
 
-	min_w = x2 - x1;
+	min_w = width;
 
 
 	for(int i=0; i< http_num_pending; i++)
 	{
-		sth_dim_text(stash, 3, 20.0f,
-			http_get_name_pending(i), &x1, &y1, &x2, &y2);
+		width = fonsTextBounds(fs, 0, 0, http_get_name_pending(i), NULL, NULL);
 
-		int tmp_w = x2 - x1;
+		int tmp_w = width;
 
 		if(min_w < tmp_w)min_w = tmp_w;
-
-
-
 	}
 
 	min_w += 20;
@@ -1604,8 +1641,6 @@ void gui_http_draw(void)
 
 	draw_rect( min_w+20, 40 * (http_num_pending+1) + 20);
 	glTranslatef(10, -10, 0);
-
-
 
 	for(int i=0; i<= http_num_pending; i++)
 	{
@@ -1617,15 +1652,13 @@ void gui_http_draw(void)
 	glTranslatef(x, y, 0);
 
 
-	sth_begin_draw(stash);
 	glColor4f(1,1,1,1);
-	sth_draw_text(stash, 3, 20, 20, -30, stop, 0);
+	fonsDrawText(fs, 20, -30, stop, NULL);
+
 	for(int i=0; i< http_num_pending; i++)
 	{
-		sth_draw_text(stash, 3, 20, 20, -i*40-70, http_get_name_pending(i), 0);
+		fonsDrawText(fs, 20, -i*40-70, http_get_name_pending(i), NULL);
 	}
-
-	sth_end_draw(stash);
 
 	glLoadIdentity();
 
@@ -1663,6 +1696,9 @@ void gui_input(void)
 
 void gui_draw(void)
 {
+	fonsClearState(fs);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
 	widget_draw(widget_root);
 
 	long long delta_time, this_time = sys_time();
@@ -1680,28 +1716,28 @@ void gui_draw(void)
 	double fps = (double)MAX_FRAMES / ((double)fps_sum / (double)sys_ticksecond);
 
 	glColor4f(1,1,1,1);
-	sth_begin_draw(stash);
 	char tempstr[50];
 	sprintf(tempstr, "%4.1fHz", fps);
-	sth_draw_text(stash, 3, 30, vid_width-90, -26, tempstr, 0);
+
+	fonsSetSize(fs, 30.0f);
+	fonsSetFont(fs, fontSansBold);
+	fonsDrawText(fs, vid_width-90, -26, tempstr, NULL);
+
 #ifndef __APPLE__
 	int i;
 	for(i=0; i< nvml_device_count; i++)
 	{
 		sprintf(tempstr, "%d°C", nvml_gputemp[i]);
-		sth_draw_text(stash, 3, 30, vid_width-70, -(50+i*50), tempstr, 0);
+		fonsDrawText(fs, vid_width-70, -(50+i*50), tempstr, NULL);
 	}
 	for(int j=0; j< adl_device_count; j++)
 	{
 		sprintf(tempstr, "%d°C", adl_gputemp[j]);
-		sth_draw_text(stash, 3, 30, vid_width-70, -(50+(i+j)*50), tempstr, 0);
+		fonsDrawText(fs, vid_width-70, -(50+(i+j)*50), tempstr, NULL);
 	}
 #endif
-	sth_end_draw(stash);
 
 	gui_http_draw();
-
-
 }
 
 
@@ -1709,6 +1745,6 @@ void gui_draw(void)
 
 void gui_end(void)
 {
-	if(stash)sth_delete(stash);
+	if(fs)glfonsDelete(fs);
 }
 

@@ -36,9 +36,6 @@ freely, subject to the following restrictions:
 #include "text.h"
 #include "shader.h"
 
-char *shader_header = NULL;
-char shader_empty[] = "";
-
 
 static void printShaderInfoLog(GLuint obj)
 {
@@ -76,19 +73,15 @@ static void printProgramInfoLog(GLuint obj)
 }
 
 
-static GLuint shader_fileload(int type, char * filename, char *header)
+static GLuint shader_fileload(int type, char * filename)
 {
 	GLuint x;
 	int param;
-	char *buf[2];
-	buf[0] = header;
-
-	buf[1] = loadTextFile(filename);
-	if(!buf[1])return 0;
+	char *buf = loadTextFile(filename);
 
 	x = glCreateShader(type);
-	glShaderSource(x, 2, (const GLchar**)buf, NULL);
-	free(buf[1]);
+	glShaderSource(x, 1, (const GLchar**)&buf, NULL);
+	free(buf);
 	glCompileShader(x);
 	glGetShaderiv(x, GL_COMPILE_STATUS, &param);
 	if(param == GL_FALSE)
@@ -146,8 +139,8 @@ void shader_rebuild(GLSLSHADER *s)
 	s->prog = glCreateProgram();
 	if(s->vertfile)
 	{
-		s->vert = shader_fileload(GL_VERTEX_SHADER, s->vertfile, shader_empty);
-		s->frag = shader_fileload(GL_FRAGMENT_SHADER, s->fragfile, shader_header);
+		s->vert = shader_fileload(GL_VERTEX_SHADER, s->vertfile);
+		s->frag = shader_fileload(GL_FRAGMENT_SHADER, s->fragfile);
 		if(!s->vert)return;
 		if(!s->frag)return;
 		glAttachShader(s->prog, s->vert);
@@ -156,7 +149,7 @@ void shader_rebuild(GLSLSHADER *s)
 	else
 	{
 #ifndef __APPLE__
-		s->frag = shader_fileload(GL_COMPUTE_SHADER, s->fragfile, shader_header);
+		s->frag = shader_fileload(GL_COMPUTE_SHADER, s->fragfile);
 #endif
 		if(!s->frag)return;
 		glAttachShader(s->prog, s->frag);
@@ -181,6 +174,11 @@ void shader_rebuild(GLSLSHADER *s)
 GLSLSHADER* shader_load(char *vertfile, char *fragfile)
 {
 	GLSLSHADER *s = malloc(sizeof(GLSLSHADER));
+	if(s == NULL)
+	{
+		log_fatal("malloc()");
+		return 0;
+	}
 	memset(s, 0, sizeof(GLSLSHADER));
 	s->vertfile = hcopy(vertfile);
 	s->fragfile = hcopy(fragfile);

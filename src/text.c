@@ -31,6 +31,7 @@ freely, subject to the following restrictions:
 #include <string.h>
 #include <sys/stat.h>
 
+#include "log.h"
 
 void tailchomp(char *string)
 {
@@ -77,7 +78,11 @@ char* hcopy(const char *string)
 	if(!string)return 0;
 	int len = strlen(string);
 	char * ret = malloc(len+1);
-	if(!ret)return 0;
+	if(!ret)
+	{
+		log_fatal("hcopy(), malloc()");
+		return 0;
+	}
 	memcpy(ret, string, len);
 	ret[len]=0;
 	return ret;
@@ -112,8 +117,17 @@ char* repath(const char *hostpath, const char *file)
 
 char* loadTextFile(char *filename)
 {
+	if(!filename)
+	{
+		log_error("no filename supplied");
+		return 0;
+	}
 	FILE *fptr = fopen(filename, "rb");
-	if(!fptr)return 0;
+	if(!fptr)
+	{
+		log_error("reading file \"%s\" failed");
+		return 0;
+	}
 	struct stat stbuf;
 	stat(filename, &stbuf);
 	int size = stbuf.st_size;

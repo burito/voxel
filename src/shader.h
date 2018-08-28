@@ -43,7 +43,6 @@ void shader_free(GLSLSHADER *s);
 
 char* glError(int error);
 
-extern char *shader_header;
 int available_vram(void);
 GLint glBaseFormat(GLint);
 GLint glBaseType(GLint);

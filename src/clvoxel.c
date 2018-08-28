@@ -640,18 +640,6 @@ void voxel_init(void)
 
 	log_info("Total VRAM : %dk", total_vram);
 
-	if(total_vram > 1200000) // 1.2gb of vram?
-	{
-		shader_header =
-		"#version 430\n#define B_SIZE 8\n#define B_EDGE 64\n#define NP_SIZE 100000\n";
-	}
-	else
-	{
-		shader_header =
-		"#version 430\n#define B_SIZE 8\n#define B_EDGE 48\n#define NP_SIZE 100000\n";
-		b_edge = 48;
-	}
-
 	int cs = b_size * b_edge;
 	int3 cube = {cs, cs, cs};
 	t3DBrick = vox_3Dtex(cube, GL_RGBA16F, GL_LINEAR);

@@ -11,7 +11,6 @@ Windows
 * Install https://git-for-windows.github.io/
 * Put their ``/bin`` directories in your ``PATH``.
 * Mingw will now link directly against DLL's, no more library required.
-* Source the [OpenCL header files](https://github.com/KhronosGroup/OpenCL-Headers), give them to your compiler.
 * Install [ImageMagick](http://www.imagemagick.org/script/binary-releases.php#windows)
 
 Mac OS X Yosemite
@@ -21,7 +20,6 @@ Mac OS X Yosemite
 Debian & Ubuntu
 ---------------
     sudo apt-get install a56 imagemagick git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
-If cross compiling, copy the OpenCL library and headers from the Windows setup to ``/usr/x86_64-w64-mingw32/``
 
 Build Instructions
 ------------------
@@ -57,16 +55,21 @@ The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](htt
 Credits
 -------
 
-* ```lib/*stb*``` - Sean Barret https://github.com/nothings/stb
+* ```lib/*stb*``` - Sean Barrett
+    * https://github.com/nothings/stb
     * stb_image 2.19
     * stb_truetype 1.19
-* ```lib/*fontstash*``` - https://github.com/memononen/fontstash
-    * a very old version
-* ```lib/fast_atof.c``` - Tom Van Baak http://www.leapsecond.com/
-* ```lib/include/invert4x4_sse.h``` - https://github.com/niswegmann/small-matrix-inverse
-* ```lib/*gl*``` - GLEW 2.1.0 http://glew.sourceforge.net/
+* ```lib/*fontstash*``` - Mikko Mononen
+    * https://github.com/memononen/fontstash
+* ```lib/fast_atof.c``` - Tom Van Baak
+    * http://www.leapsecond.com/
+* ```lib/include/invert4x4_sse.h``` - Nis Wegmann
+    * https://github.com/niswegmann/small-matrix-inverse
+* ```lib/*gl*``` - GLEW 2.1.0
+    * http://glew.sourceforge.net/
     * Add ```#define GLEW_STATIC``` to the top of glew.h
-* ```lib/include/CL/*``` - https://github.com/KhronosGroup/OpenCL-Headers
+* ```lib/include/CL/*``` - The Khronos Group
+    * https://github.com/KhronosGroup/OpenCL-Headers
 
 For everything else, I am to blame.
 

@@ -37,6 +37,7 @@ freely, subject to the following restrictions:
 #include "clvoxel.h"
 #include "gpuinfo.h"
 #include "http.h"
+#include "shader.h"
 
 
 #include "log.h"
@@ -63,7 +64,7 @@ long long time_start = 0;
 float time = 0;
 
 OCLCONTEXT *ocl=NULL;
-
+GLSLSHADER *shader_default=NULL;
 
 extern const char git_version[];
 
@@ -89,6 +90,9 @@ int main_init(int argc, char *argv[])
 	}
 	gpuinfo_init();
 #endif
+
+	shader_default = shader_load("data/shaders/default.vert",
+			"data/shaders/default.frag");
 
 	ocl_init();
 
@@ -196,6 +200,8 @@ void main_loop(void)
 
 	glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(shader_default->prog);
 
 	gui_input();
 	voxel_loop();
