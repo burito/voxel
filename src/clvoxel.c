@@ -34,9 +34,9 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <string.h>
 
+#include "ocl.h"
 #include "main.h"
 #include "3dmaths.h"
-#include "ocl.h"
 #include "gui.h"
 #include "clvoxel.h"
 #include "shader.h"
@@ -438,7 +438,7 @@ void voxel_Voxel(int frame)
 	if(!s_Voxel->happy)return;
 	glUseProgram(s_Voxel->prog);
 
-	extern float4 pos, angle;
+	extern vec4 pos, angle;
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bCamera);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 16, &pos);
@@ -769,8 +769,8 @@ int2 get_atoms(void)
 }
 
 
-extern float4 pos;
-extern float4 angle;
+extern vec4 pos;
+extern vec4 angle;
 
 
 void voxel_loop(void)

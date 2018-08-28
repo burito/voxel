@@ -32,24 +32,6 @@ freely, subject to the following restrictions:
 #define strtof(x,y) atof(x)
 #endif
 
-typedef struct float2
-{
-	float x;
-	float y;
-} float2;
-
-typedef struct float3 {
-	float x;
-	float y;
-	float z;
-} float3;
-
-typedef struct float4 {
-	float x;
-	float y;
-	float z;
-	float w;
-} float4;
 
 typedef struct int2 {
 	int x, y;
@@ -63,49 +45,165 @@ typedef struct byte4 {
 	unsigned char x,y,z,w;
 } byte4;
 
-#define F2COPY(D,S) D.x=S.x;D.y=S.y
-#define F2ADD(D,A,B) D.x=A.x+B.x;D.y=A.y+B.y
-
-#define F2MAG(X) X.x*X.x+X.y*X.y
-#define F3MAG(X) X.x*X.x+X.y*X.y+X.z*X.z
-
-#define F3COPY(D,S) D.x=S.x;D.y=S.y;D.z=S.z
-#define F3ADD(D,A,B) D.x=A.x+B.x;D.y=A.y+B.y;D.z=A.z+B.z
-#define F3ADDS(D,A,B) D.x=A.x+B;D.y=A.y+B;D.z=A.z+B
-#define F3SUB(D,A,B) D.x=A.x-B.x;D.y=A.y-B.y;D.z=A.z-B.z
-#define F3SUBS(D,A,B) D.x=A.x-B;D.y=A.y-B;D.z=A.z-B
-#define F3SSUB(D,B,A) D.x=B-A.x;D.y=B-A.y;D.z=B-A.z
-#define F3MUL(D,A,B) D.x=A.x*B.x;D.y=A.y*B.y;D.z=A.z*B.z
-#define F3MULS(D,A,B) D.x=A.x*B;D.y=A.y*B;D.z=A.z*B
-#define F3DIV(D,A,B) D.x=A.x/B.x;D.y=A.y/B.y;D.z=A.z/B.z
-#define F3MAX(D) ((D.x>=D.y && D.x>=D.z)?D.x:(D.y>=D.z?D.y:D.z))
-
-#define F4COPY(D,S) D.x=S.x;D.y=S.y;D.z=S.z;D.w=S.w
 
 float finvsqrt(float x);
-void vect_sdivide(float3 *result, const float3 *vect, const float scalar);
-void vect_madd(float3 *result, const float scalar,
-		const float3 *left, const float3 *right);
-void vect_smul(float3 *result, const float3 *left, const float right);
-void vect_mul(float3 *result, const float3 *left, const float3 *right);
-void vect_add(float3 *result, const float3 *left, const float3 *right);
-void vect_sadd(float3 *result, const float3 *left, const float right);
-void vect_sub(float3 *result, const float3 *left, const float3 *right);
-float vect_magnitude(const float3 *vect);
-void vect_norm(float3 *result, const float3 *vect);
-float vect_dot(const float3 *left, const float3 *right);
-void vect_cross(float3 *result, const float3 *left, const float3 *right);
 
-void quat_add(float4* result, float4* a, float4 *b);
-void quat_mul(float4* result, float4* a, float4* b);
-void quat_smul(float4* result, float4* q, float s);
-float quat_mag(float4* q);
-int quat_norm(float4* q);
-void quat_rotx(float4* q, float x);
-//void quat_rot(float3 *result, quat *a, float3 *b);
-void quat_rot(float3 *result, float3 *a, float4 *b);
-void quat_nlerp(float4* result, float4* left, float4* right, float t);
-float quat_dot(float4 *left, float4 *right);
-void quat_slerp(float4* result, float4* left, float4* right, float t);
+typedef union {
+	struct { float x, y; };
+	float f[2];
+} coord;
+
+typedef union {
+	struct { float x, y, z; };
+	struct { coord xy; float fz; };
+	struct { float fx; coord yz; };
+	float f[3];
+} vect;
+
+typedef union {
+	struct { float x, y, z, w; };
+	struct { vect xyz; float vw; };
+	float f[4];
+} vec4;
+
+typedef union {
+	float f[16];
+	float m[4][4];
+} mat4x4;
+
+// taken from Valve's OpenVR headers, don't use
+#ifndef __OPENVR_API_FLAT_H__
+typedef struct HmdMatrix34_t
+{
+	float m[3][4]; //float[3][4]
+} HmdMatrix34_t;
+
+typedef struct HmdMatrix44_t
+{
+	float m[4][4]; //float[4][4]
+} HmdMatrix44_t;
+#endif
+
+void mat4x4_print(mat4x4 m);
+mat4x4 mat4x4_invert(mat4x4 m);
+mat4x4 mat4x4_transpose(mat4x4 m);
+mat4x4 mat4x4_identity(void);
+mat4x4 mat4x4_rot_x(float t);
+mat4x4 mat4x4_rot_y(float t);
+mat4x4 mat4x4_rot_z(float t);
+mat4x4 mat4x4_translate(vect v);
+mat4x4 mat4x4_translate_float(float x, float y, float z);
+mat4x4 mat4x4_perspective(float near, float far, float width, float height);
+mat4x4 mat4x4_orthographic(float near, float far, float width, float height);
+
+
+vect vect_norm(vect v);
+float vect_dot(vect l, vect r);
+vect vect_cross(vect l, vect r);
+
+
+/*
+The following functions are to be called via the 
+_Generic() macro's mag(), max(), mov(), mul(), add() and sub()
+*/
+
+float coord_mag(coord c);
+float vect_mag(vect v);
+
+float coord_max(coord c);
+float vect_max(vect v);
+
+mat4x4 mat4x4_mov_HmdMatrix34(HmdMatrix34_t x);
+mat4x4 mat4x4_mov_HmdMatrix44(HmdMatrix44_t x);
+
+mat4x4 mat4x4_mul_mat4x4(mat4x4 l, mat4x4 r);
+vect mat4x4_mul_vect(mat4x4 l, vect r);
+mat4x4 mat4x4_mul_float(mat4x4 l, float r);
+mat4x4 mat4x4_add_mat4x4(mat4x4 l, mat4x4 r);
+mat4x4 mat4x4_add_float(mat4x4 l, float r);
+mat4x4 mat4x4_sub_mat4x4(mat4x4 l, mat4x4 r);
+
+vect vect_mul_vect(vect l, vect r);
+vect vect_mul_float(vect l, float r);
+vect vect_div_vect(vect l, vect r);
+vect vect_div_float(vect l, float r);
+vect vect_add_vect(vect l, vect r);
+vect vect_add_float(vect l, float r);
+vect vect_sub_vect(vect l, vect r);
+
+float float_mul(float l, float r);
+float float_add(float l, float r);
+float float_sub_float(float l, float r);
+vect float_sub_vect(float l, vect r);
+float float_div_float(float l, float r);
+
+int int_mul(int l, int r);
+int int_add(int l, int r);
+int int_sub(int l, int r);
+int int_div_int(int l, int r);
+
+int2 int2_add(int2 l, int2 r);
+
+
+// returns the magnitude of a vector
+#define mag(X) _Generic(X, \
+	coord: coord_mag, \
+	vect: vect_mag \
+	)(X)
+
+// returns the largest item in a vector
+#define vmax(X) _Generic(X, \
+	coord: coord_max, \
+	vect: vect_max \
+	)(X)
+
+
+#define mov(X) _Generic(X, \
+	HmdMatrix34_t: mat4x4_mov_HmdMatrix34, \
+	HmdMatrix44_t: mat4x4_mov_HmdMatrix44 \
+	)(X)
+
+
+#define mul(X,Y) _Generic(X, \
+	mat4x4: _Generic(Y, \
+		mat4x4: mat4x4_mul_mat4x4, \
+		vect: mat4x4_mul_vect, \
+		default: mat4x4_mul_float), \
+	vect: _Generic(Y, \
+		vect: vect_mul_vect,	\
+		default: vect_mul_float), \
+	float: float_mul, \
+	default: int_mul \
+	)(X,Y)
+
+#define add(X,Y) _Generic(X, \
+	mat4x4: _Generic(Y, \
+		mat4x4: mat4x4_add_mat4x4, \
+		default: mat4x4_add_float), \
+	vect: _Generic(Y, \
+		vect: vect_add_vect, \
+		default:vect_add_float), \
+	float: float_add, \
+	int2: int2_add, \
+	default: int_add \
+	)(X,Y)
+
+#define sub(X,Y) _Generic(X, \
+	mat4x4: mat4x4_sub_mat4x4, \
+	vect: vect_sub_vect,	\
+	float: _Generic(Y, \
+		vect: float_sub_vect, \
+		default:float_sub_float), \
+	default: int_sub \
+	)(X,Y)
+
+#define div(X,Y) _Generic(X, \
+	vect: _Generic(Y, \
+		vect: vect_div_vect,	\
+		default: vect_div_float), \
+	float: float_div_float, \
+	default: int_div_int \
+	)(X,Y)
+
 
 #endif /* __3DMATHS_H_ */

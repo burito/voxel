@@ -84,7 +84,7 @@ static void ocl_allocmem(OCLPROGRAM *p)
 	p->CLmem = tmp;
 }
 
-void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format)
+void ocl_gltex2d(OCLPROGRAM *p, int width, int height, GLuint type, GLuint format)
 {
 	GLuint id;
 	glGenTextures(1, &id);
@@ -94,7 +94,7 @@ void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexImage2D(GL_TEXTURE_2D, 0, type, size.x, size.y, 0,
+	glTexImage2D(GL_TEXTURE_2D, 0, type, width, height, 0,
 			type, format, NULL);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -455,7 +455,7 @@ OCLPROGRAM* ocl_build(char *filename)
 	
 	int2 size = {sys_width, sys_height};
 
-	ocl_gltex2d(clprog, size, GL_RGBA, GL_UNSIGNED_BYTE);
+	ocl_gltex2d(clprog, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE);
 	ocl_add(clprog);
 	ocl_rebuild(clprog);
 	return clprog;

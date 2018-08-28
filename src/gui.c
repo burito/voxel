@@ -110,7 +110,7 @@ void widget_item_draw(widget *w)
 	if(!w)return;
 	if(w->parent)
 	{
-		F2ADD(w->drawpos, w->pos, w->parent->drawpos);
+		w->drawpos = add(w->pos, w->parent->drawpos);
 	}
 	else w->drawpos = w->pos;
 
@@ -401,7 +401,7 @@ void widget_window_click(widget *w)
 
 	case 9:		// rotating object
 		if(!w->data3)break;
-		float3 *p = w->data3;
+		vect *p = w->data3;
 		p->y -= mickey_x;
 		p->x -= mickey_y;
 		break;
@@ -875,7 +875,7 @@ void widget_window_obj_draw(widget *w)
 
 	glScalef(scale, scale, scale);
 
-	float3 *p = w->data3;
+	vect *p = w->data3;
 	glTranslatef(0.5,0.5, 0.5f);
 	glRotatef(p->x, 1.0f, 0.0f, 0.0f);
 	glRotatef(p->y, 0.0f, 1.0f, 0.0f);
@@ -913,7 +913,7 @@ widget* spawn_obj(char* filename)
 	w->draw = widget_window_obj_draw;
 	w->free = widget_window_obj_free;
 	w->onclick = widget_window_obj_onclick;
-	float3 *p = malloc(sizeof(float3));
+	vect *p = malloc(sizeof(vect));
 	p->x = p->y = p->z = 0;
 	w->data3 = p;
 	widget_add(w);
@@ -933,7 +933,7 @@ widget* spawn_voxobj(char* filename)
 //	w->draw = widget_window_obj_draw;
 //	w->free = widget_window_obj_free;
 //	w->onclick = widget_window_obj_onclick;
-//	float3 *p = malloc(sizeof(float3));
+//	vect *p = malloc(sizeof(vect));
 //	p->x = p->y = p->z = 0;
 //	w->data3 = p;
 //	widget_add(w);

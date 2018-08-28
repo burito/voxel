@@ -29,8 +29,6 @@ freely, subject to the following restrictions:
 #include <CL/cl.h>
 #endif
 
-#include "3dmaths.h"
-
 typedef struct OCLPROGRAM
 {
 	int happy;
@@ -71,7 +69,7 @@ void ocl_rebuild(OCLPROGRAM *clprog);
 void ocl_rm(OCLPROGRAM *clprog);
 char* clStrError(cl_int error);
 
-void ocl_gltex2d(OCLPROGRAM *p, int2 size, GLuint type, GLuint format);
+void ocl_gltex2d(OCLPROGRAM *p, int width, int height, GLuint type, GLuint format);
 void ocl_gltex3d(OCLPROGRAM *p, GLuint id);
 void ocl_glbuf(OCLPROGRAM *p, GLuint buf);
 

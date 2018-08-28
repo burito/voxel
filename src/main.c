@@ -29,6 +29,8 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <math.h>
 
+#include "ocl.h"
+
 #include "main.h"
 #include "mesh.h"
 #include "gui.h"
@@ -36,7 +38,7 @@ freely, subject to the following restrictions:
 #include "gpuinfo.h"
 #include "http.h"
 
-#include "ocl.h"
+
 #include "log.h"
 
 typedef struct LOADING
@@ -108,8 +110,8 @@ int main_init(int argc, char *argv[])
 int p_swim = 0;
 
 // last digit of angle is x-fov, in radians
-float4 pos = {0.619069, 0.644001, 1.457747, 0.0};
-float4 angle = {-0.126000, -3.261001, 0.000000, M_PI*0.5};
+vec4 pos = {0.619069, 0.644001, 1.457747, 0.0};
+vec4 angle = {-0.126000, -3.261001, 0.000000, M_PI*0.5};
 
 
 void main_loop(void)
@@ -125,7 +127,7 @@ void main_loop(void)
 
 	pos.w = 0.5 / (float)vid_width;
 
-	float3 req = {0,0,0};
+	vect req = {0,0,0};
 	float nice = 0.007;
 
 	if(keys[KEY_ESCAPE])
@@ -187,7 +189,7 @@ void main_loop(void)
 	req.z = tx * sy - req.z * cy;
 
 
-	F3ADD(pos, pos, req);
+	pos.xyz = add(pos.xyz, req);
 
 
 	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;

@@ -123,7 +123,7 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 	m->name = hcopy(name);
 	char buf[BUF_LEN];
 	float *targetf;
-	float3 *targetf3;
+	vect *targetf3;
 	IMG **targeti;
 	char *path;
 
@@ -238,9 +238,9 @@ static WF_MTL* find_material(WF_MTL *m, char *name)
 static void wf_bound(WF_OBJ *w)
 {
 	if(!w)return;
-	float3 *v = w->v;
+	vect *v = w->v;
 	if(!v)return;
-	float3 min, max, size, mid;
+	vect min, max, size, mid;
 	max = min = v[0];
 	for(int i=0; i<w->nv; i++)
 	{
@@ -254,18 +254,18 @@ static void wf_bound(WF_OBJ *w)
 		if(v[i].z > max.z)max.z = v[i].z;
 	}
 
-	F3SUB(size, max, min);
-	float longest = F3MAX(size);
-	F3SSUB(mid, longest, size);
-	F3MULS(mid, mid, 0.5);
+	size = sub(max, min);
+	float longest = vmax(size);
+	mid = sub(longest, size);
+	mid = mul(mid, 0.5);
 //	longest = longest * (12.0 / 14.0);
 	for(int i=0; i<w->nv; i++)
 	{
-		F3SUB(v[i], v[i], min);
-		F3ADD(v[i], v[i], mid);
-		vect_sdivide(&v[i], &v[i], longest);
-		F3MULS(v[i], v[i], (12.0 / 14.0));
-		F3ADDS(v[i], v[i], (1.0 / 14.0));
+		v[i] = sub(v[i], min);
+		v[i] = add(v[i], mid);
+		v[i] = mul(v[i], 1.0 / longest);
+		v[i] = mul(v[i], (12.0 / 14.0));
+		v[i] = add(v[i], (1.0 / 14.0));
 	}
 
 	log_trace("Volume = (%f, %f, %f)", size.x, size.y, size.z);
@@ -399,15 +399,15 @@ static void wf_face_normals(WF_OBJ *w)
 	if(!w)return;
 	if(!w->nf)return;
 
-	float3 a, b, t;
+	vect a, b, t;
 
 	// Generate per face normals
 	for(int i=0; i<w->nf; i++)
 	{
-		vect_sub( &a, &w->v[w->f[i].f.x], &w->v[w->f[i].f.y] );
-		vect_sub( &b, &w->v[w->f[i].f.x], &w->v[w->f[i].f.z] );
-		vect_cross( &t, &b, &a );
-		vect_norm( &w->f[i].normal, &t);
+		a = sub( w->v[w->f[i].f.x], w->v[w->f[i].f.y] );
+		b = sub( w->v[w->f[i].f.x], w->v[w->f[i].f.z] );
+		t = vect_cross( a, b );
+		w->f[i].normal = vect_norm( t );
 	}
 }
 
@@ -458,21 +458,20 @@ static void wf_vertex_normals(WF_OBJ *w)
 	{
 		tmp = vert[i].next;
 		if(!tmp)continue;
-		float3 t = {0,0,0};
+		vect t = {0,0,0};
 		while(tmp)
 		{
-			vect_add( &t, &t, &w->f[tmp->face].normal);
+			t = add(t, w->f[tmp->face].normal);
 			LLIST *last = tmp;
 			tmp = tmp->next;
 			free(last);
 		}
 
-		if(vect_magnitude(&t)>0.1)
+		if((t.x*t.x + t.y*t.y + t.z*t.z )>0.1)
 		{
-//			if(vect_magnitude(&w->vn[i])>0.1)
-//				log_trace("Vertex copy required");
-			vect_norm(&w->vn[i], &t);
+			w->vn[i] = vect_norm(t);
 		}
+
 
 	}
 	free(vert);
@@ -486,8 +485,8 @@ static void wf_normals(WF_OBJ *w)
 	if(w->nv == w->nn)return;
 
 	if(w->vn)free(w->vn);
-	w->vn = malloc(sizeof(float3)*w->nv);
-	memset(w->vn, 0, sizeof(float3)*w->nv);
+	w->vn = malloc(sizeof(vect)*w->nv);
+	memset(w->vn, 0, sizeof(vect)*w->nv);
 	w->nn = w->nv;
 	
 	wf_face_normals(w);
@@ -500,7 +499,7 @@ static void wf_texcoords(WF_OBJ *w)
 {
 	if(!w)return;
 	if(!w->nt)return;
-	const int size = w->nv * sizeof(float2);
+	const int size = w->nv * sizeof(coord);
 	w->uv = malloc(size);
 	memset(w->uv, 0, size);
 
@@ -508,13 +507,13 @@ static void wf_texcoords(WF_OBJ *w)
 
 	for(int i=0; i<w->nf; i++)
 	{
-		if(F2MAG(w->uv[w->f[i].f.x]) > 0.1)
+		if(mag(w->uv[w->f[i].f.x]) > 0.1)
 		{
 			uvcopy++;
 		}
-		F2COPY(w->uv[w->f[i].f.x], w->vt[w->f[i].t.x]);
-		F2COPY(w->uv[w->f[i].f.y], w->vt[w->f[i].t.y]);
-		F2COPY(w->uv[w->f[i].f.z], w->vt[w->f[i].t.z]);
+		w->uv[w->f[i].f.x] = w->vt[w->f[i].t.x].xy;
+		w->uv[w->f[i].f.y] = w->vt[w->f[i].t.y].xy;
+		w->uv[w->f[i].f.z] = w->vt[w->f[i].t.z].xy;
 	}
 	log_trace("UV's copied, wanted %d verts", uvcopy);
 }
@@ -669,7 +668,7 @@ WF_OBJ* wf_parse(char *filename)
 	case 'm':
 		tailchomp(buf);
 		if(strstr(buf, "mtllib"))
-			mtl_load(w, buf+7);
+//			mtl_load(w, buf+7);
 		break;
 	case 'v':	// vertex data
 		switch(buf[1]) {
@@ -701,9 +700,9 @@ WF_OBJ* wf_parse(char *filename)
 	case 's': w->ns++; break;
 	}
 	// alloc the memory
-	if(w->nv)w->v = malloc(sizeof(float3)*w->nv);
-	if(w->nt)w->vt = malloc(sizeof(float3)*w->nt);
-	if(w->nn)w->vn = malloc(sizeof(float3)*w->nn);
+	if(w->nv)w->v = malloc(sizeof(vect)*w->nv);
+	if(w->nt)w->vt = malloc(sizeof(vect)*w->nt);
+	if(w->nn)w->vn = malloc(sizeof(vect)*w->nn);
 	if(w->nf)
 	{
 		w->f = malloc(sizeof(WF_FACE)*w->nf);
@@ -722,7 +721,7 @@ WF_OBJ* wf_parse(char *filename)
 	// read the verts
 	rewind(fptr);
 	int tmp;
-	float3 *target;
+	vect *target;
 
 	WF_MTL *lastmat=0;
 	while(fgets(buf, 1024, fptr))

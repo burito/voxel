@@ -307,8 +307,8 @@ void prepare_shader(void)
 //	glMakeBufferNonResidentNV(GL_ARRAY_BUFFER_ARB);
 }
 
-extern float3 pos;
-extern float3 angle;
+extern vect pos;
+extern vect angle;
 
 
 
@@ -328,7 +328,7 @@ void voxel_draw(void)
 
 //	killme=1;
 
-//	float3 pos, normal;
+//	vect pos, normal;
 
 //	pos.x = 0.5 + sin(px)*pz;
 //	pos.y = 0.5;
