@@ -635,10 +635,38 @@ void voxel_init(void)
 	if(clVox->happy)voxel_FindKernels();
 
 	size_t size = np_size*8*4;
+
 	int b_edge = 64;
 	int b_size = 8;
 
 	log_info("Total VRAM : %dk", total_vram);
+
+	if(total_vram > 1200000) // 1.2gb of vram?
+	{	// defaults
+		b_size = 8;
+		b_edge = 64;
+		np_size = 100000;
+	}
+	else
+	{	// works on 2Gb VRAM
+		b_size = 8;
+		b_edge = 48;
+		np_size = 100000;
+	}
+
+// https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_shading_language_include.txt
+
+	char include_name[] = "/voxel_data";
+	char include_string[1000];
+	sprintf(include_string,
+		"#define B_SIZE %d\n"
+		"#define B_EDGE %d\n"
+		"#define NP_SIZE %d\n",
+		b_size, b_edge, np_size );
+
+	glNamedStringARB(GL_SHADER_INCLUDE_ARB,
+		strlen(include_name), include_name,
+		strlen(include_string), include_string );
 
 	int cs = b_size * b_edge;
 	int3 cube = {cs, cs, cs};

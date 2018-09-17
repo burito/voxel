@@ -1,7 +1,6 @@
 #version 430
-#define B_SIZE 8
-#define B_EDGE 64
-#define NP_SIZE 100000
+#extension GL_ARB_shading_language_include : require
+#include "/voxel_data"
 /*
 Copyright (c) 2013 Daniel Burke
 
