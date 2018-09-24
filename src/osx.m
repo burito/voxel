@@ -21,16 +21,16 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-//#define CVDISPLAYLINK		// or use an NSTimer
-//#define MODERN_OPENGL		// or use a GL2 context
+#define CVDISPLAYLINK		// or use an NSTimer
+#define MODERN_OPENGL		// or use a GL2 context
 
 #import <Cocoa/Cocoa.h>
 #import <IOKit/pwr_mgt/IOPMLib.h>	// to disable sleep
 #import <IOKit/hid/IOHIDLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
-#include <ForceFeedback/ForceFeedback.h>
+//#include <ForceFeedback/ForceFeedback.h>
 
-#include <OpenGL/GL.h>
+#include <OpenGL/gl3.h>
 #include <sys/time.h>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ struct fvec2
 {
 	float x, y;
 };
-
+/*
 typedef struct joystick
 {
 	int connected;
@@ -93,11 +93,11 @@ typedef struct joystick
 } joystick;
 
 joystick joy[4];
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 //////// Mac OS X OpenGL window setup
 ///////////////////////////////////////////////////////////////////////////////
-
+/*
 typedef struct osx_joystick
 {
 	IOHIDDeviceRef device;
@@ -112,12 +112,14 @@ typedef struct osx_joystick
 osx_joystick osx_joy[4];
 
 void ff_set(void);
-
+*/
 static int gargc;
 static const char ** gargv;
 static NSWindow * window;
 static NSApplication * myapp;
 static int y_correction = 0;  // to correct mouse position for title bar
+
+extern char *key_names[];
 
 @interface MyOpenGLView : NSOpenGLView
 {
@@ -127,14 +129,63 @@ static int y_correction = 0;  // to correct mouse position for title bar
 	NSTimer * renderTimer;
 #endif
 }
+
+ -(BOOL)acceptsFirstResponder;
+ -(void)keyDown:(NSEvent*)theEvent;
+
 @end
 
 @implementation MyOpenGLView
+
+-(void)keyDown:(NSEvent *)theEvent
+{
+		keys[theEvent.keyCode] = 1;
+/*
+		int code = theEvent.keyCode;
+		if( code < 128 && code >= 0 )
+			printf("keydown = %s, %d\n", key_names[code], code);
+		else
+			printf("keydown unknown code=%d\n", code);
+*/
+}
+
+-(void)keyUp:(NSEvent *)theEvent
+{
+	keys[theEvent.keyCode] = 0;
+}
+
+-(void)flagsChanged:(NSEvent *)theEvent
+{
+//	printf("flagschanged\n");
+	for(int i = 0; i<24; i++)
+	{
+		int bit = !!(theEvent.modifierFlags & (1 << i));
+		switch(i) {
+		case   0: keys[KEY_LCONTROL] = bit; break;
+		case   1: keys[KEY_LSHIFT] = bit; break;
+		case   2: keys[KEY_RSHIFT] = bit; break;
+		case   3: keys[KEY_LLOGO] = bit; break;
+		case   4: keys[KEY_RLOGO] = bit; break;
+		case   5: keys[KEY_LALT] = bit; break;
+		case   6: keys[KEY_RALT] = bit; break;
+		case   8: break; // Always on?
+		case  13: keys[KEY_RCONTROL] = bit; break;
+		case  16: keys[KEY_CAPSLOCK] = bit; break;
+		case  17: break; // AllShift
+		case  18: break; // AllCtrl
+		case  19: break; // AllAlt
+		case  20: break; // AllLogo
+		case  23: keys[KEY_FN] = bit; break;
+		default: break;
+		}
+	}
+}
 
 -(BOOL)acceptsFirstResponder
 {
 	return YES;
 }
+
 
 -(void)reshape
 {
@@ -177,6 +228,8 @@ static int y_correction = 0;  // to correct mouse position for title bar
 
 }
 
+int first_frame = 1;
+
 #ifdef CVDISPLAYLINK
 // This is the CVDisplayLink callback
 static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext)
@@ -187,16 +240,23 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 
 	CGLLockContext(context);
 	[glcontext makeCurrentContext];
+	if(first_frame)
+	{
+		first_frame = 0;
+		memset(keys, 0, KEYMAX);
+		main_init(gargc, gargv);
+	}
 	main_loop();
 	[glcontext flushBuffer];
 	CGLUnlockContext(context);
-	ff_set();
+//	ff_set();
 
 	mickey_x = mickey_y = 0;
 	if(killme)
 	{
-		[NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.0];
+		[NSApp terminate:nil];
 	}
+
 
 	if(fullscreen_toggle)
 	{
@@ -217,9 +277,15 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 -(void)drawRect:(NSRect)dirtyRect
 {
 	[[self openGLContext] makeCurrentContext];
+	if(first_frame)
+	{
+		first_frame = 0;
+		memset(keys, 0, KEYMAX);
+		main_init(gargc, gargv);
+	}
 	main_loop();
 	[[self openGLContext] flushBuffer];
-	ff_set();
+//	ff_set();
 
 	mickey_x = mickey_y = 0;
 
@@ -257,10 +323,12 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	return YES;
 }
 
+
+
 -(id)init
 {
 	NSRect contentSize = NSMakeRect(100.0, 400.0, 640.0, 360.0);
-	NSUInteger windowStyleMask = NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
+	NSUInteger windowStyleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskResizable | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
 	window = [[NSWindow alloc] initWithContentRect:contentSize styleMask:windowStyleMask backing:NSBackingStoreBuffered defer:YES];
 	window.backgroundColor = [NSColor whiteColor];
 	window.title = @"Kittens";
@@ -317,7 +385,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	menuItem = [aMenu addItemWithTitle:NSLocalizedString(@"Fullscreen", nil)
 				    action:@selector(toggleFullScreen:)
 			     keyEquivalent:@"f"];
-	[menuItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSControlKeyMask];
+	[menuItem setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagControl];
 	menuItem.target = nil;
 
 	[aMenu addItem:[NSMenuItem separatorItem]];
@@ -341,13 +409,13 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	[window setAcceptsMouseMovedEvents:YES];
 	[window makeFirstResponder:window];
 
-	memset(keys, 0, KEYMAX);
-	memset(joy, 0, sizeof(joystick)*4);
-	memset(osx_joy, 0, sizeof(osx_joystick)*4);
+//	memset(keys, 0, KEYMAX);
+//	memset(joy, 0, sizeof(joystick)*4);
+//	memset(osx_joy, 0, sizeof(osx_joystick)*4);
 
-	[self setupGamepad];
+//	[self setupGamepad];
 
-	main_init(gargc, gargv);
+//	main_init(gargc, gargv);
 
 //	[window toggleFullScreen:(self)];
 }
@@ -359,7 +427,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTime
 	IOPMAssertionRelease(assertNoSleep);
 }
 
-
+/*
 void ff_init(osx_joystick* j)
 {
 	FFCreateDevice(j->iost, &j->ff);
@@ -528,6 +596,7 @@ void gamepadAction(void* inContext, IOReturn inResult,
 	}
 }
 
+
 -(void) setupGamepad {
 	hidManager = IOHIDManagerCreate( kCFAllocatorDefault, kIOHIDOptionsTypeNone);
 	NSMutableDictionary* criterion = [[NSMutableDictionary alloc] init];
@@ -540,12 +609,14 @@ void gamepadAction(void* inContext, IOReturn inResult,
 	IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone);
 	IOHIDManagerRegisterInputValueCallback(hidManager, gamepadAction, (void*)self);
 }
-
+*/
 @end
+
 
 @interface MyApp : NSApplication
 {
 }
+
 @end
 
 
@@ -559,26 +630,27 @@ static void mouse_move(NSEvent * theEvent)
 
 @implementation MyApp
 
+
 -(void)sendEvent:(NSEvent *)theEvent
 {
 // https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ApplicationKit/Classes/NSEvent_Class/#//apple_ref/c/tdef/NSEventType
 	int bit=0;
 	switch(theEvent.type) {
-	case NSLeftMouseDown:
+	case NSEventTypeLeftMouseDown:
 		bit = 1;
-	case NSLeftMouseUp:
+	case NSEventTypeLeftMouseUp:
 		mouse[0] = bit;
 		mouse_move(theEvent);
 		break;
-	case NSRightMouseDown:
+	case NSEventTypeRightMouseDown:
 		bit = 1;
-	case NSRightMouseUp:
+	case NSEventTypeRightMouseUp:
 		mouse[1] = bit;
 		mouse_move(theEvent);
 		break;
-	case NSOtherMouseDown:
+	case NSEventTypeOtherMouseDown:
 		bit = 1;
-	case NSOtherMouseUp:
+	case NSEventTypeOtherMouseUp:
 		switch(theEvent.buttonNumber) {
 		case 2: mouse[2] = bit; break;
 		case 3: mouse[3] = bit; break;
@@ -591,48 +663,17 @@ static void mouse_move(NSEvent * theEvent)
 		mouse_move(theEvent);
 		break;
 
-	case NSMouseMoved:
-	case NSLeftMouseDragged:
-	case NSRightMouseDragged:
-	case NSOtherMouseDragged:
+	case NSEventTypeMouseMoved:
+	case NSEventTypeLeftMouseDragged:
+	case NSEventTypeRightMouseDragged:
+	case NSEventTypeOtherMouseDragged:
 		mouse_move(theEvent);
 		break;
-
-	case NSKeyDown:
-		bit = 1;
-	case NSKeyUp:
-		keys[theEvent.keyCode] = bit;
-		break;
-	case NSFlagsChanged:
-		for(int i = 0; i<24; i++)
-		{
-			bit = !!(theEvent.modifierFlags & (1 << i));
-			switch(i) {
-			case   0: keys[KEY_LCONTROL] = bit; break;
-			case   1: keys[KEY_LSHIFT] = bit; break;
-			case   2: keys[KEY_RSHIFT] = bit; break;
-			case   3: keys[KEY_LLOGO] = bit; break;
-			case   4: keys[KEY_RLOGO] = bit; break;
-			case   5: keys[KEY_LALT] = bit; break;
-			case   6: keys[KEY_RALT] = bit; break;
-			case   8: break; // Always on?
-			case  13: keys[KEY_RCONTROL] = bit; break;
-			case  16: keys[KEY_CAPSLOCK] = bit; break;
-			case  17: break; // AllShift
-			case  18: break; // AllCtrl
-			case  19: break; // AllAlt
-			case  20: break; // AllLogo
-			case  23: keys[KEY_FN] = bit; break;
-			default: break;
-			}
-		}
+	case NSEventTypeScrollWheel:
 		break;
 
-	case NSScrollWheel:
-		break;
-
-	case NSMouseEntered:
-	case NSMouseExited:
+	case NSEventTypeMouseEntered:
+	case NSEventTypeMouseExited:
 		mouse[0] = 0;
 		break;
 
