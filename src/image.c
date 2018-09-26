@@ -22,6 +22,7 @@ freely, subject to the following restrictions:
 */
 
 #ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl.h>
 #else
 #include <GL/glew.h>

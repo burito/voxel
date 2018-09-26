@@ -22,6 +22,9 @@ freely, subject to the following restrictions:
 */
 
 #ifdef __APPLE__
+#define CL_SILENCE_DEPRECATION
+#define GL_SILENCE_DEPRECATION
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #include <OpenCL/cl.h>

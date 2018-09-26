@@ -21,6 +21,7 @@ freely, subject to the following restrictions:
    distribution.
 */
 #ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl.h>
 #else
 #include <GL/glew.h>
@@ -77,11 +78,13 @@ int main_init(int argc, char *argv[])
 	log_info("GL Driver  : %s", glGetString(GL_VERSION) );
 	log_info("SL Version : %s", glGetString(GL_SHADING_LANGUAGE_VERSION) );
 
+/*
 	int glver[2];
 	glGetIntegerv(GL_MAJOR_VERSION, &glver[0]);
 	glGetIntegerv(GL_MINOR_VERSION, &glver[1]);
 	log_info("GL Version : %d.%d", glver[0], glver[1]);
-	
+*/
+
 #ifndef __APPLE__
 	if(!GLEW_VERSION_4_3)
 	{

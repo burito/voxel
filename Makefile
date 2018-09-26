@@ -8,7 +8,7 @@ endef
 CFLAGS = -std=c11 -Ilib/include
 VPATH = src lib
 
-OBJS = version.o log.o stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o  shader.o \
+OBJS = version.o log.o stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o shader.o \
 	http.o ocl.o clvoxel.o gpuinfo.o
 DEBUG = -g
 #DEBUG =
