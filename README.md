@@ -55,20 +55,20 @@ The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](htt
 Credits
 -------
 
-* ```lib/*stb*``` - Sean Barrett
+* ```deps/*stb*``` - Sean Barrett
     * https://github.com/nothings/stb
     * stb_image 2.19
     * stb_truetype 1.19
-* ```lib/*fontstash*``` - Mikko Mononen
+* ```deps/*fontstash*``` - Mikko Mononen
     * https://github.com/memononen/fontstash
-* ```lib/fast_atof.c``` - Tom Van Baak
+* ```deps/fast_atof.c``` - Tom Van Baak
     * http://www.leapsecond.com/
-* ```lib/include/invert4x4_sse.h``` - Nis Wegmann
+* ```deps/include/invert4x4_sse.h``` - Nis Wegmann
     * https://github.com/niswegmann/small-matrix-inverse
-* ```lib/*gl*``` - GLEW 2.1.0
+* ```deps/*gl*``` - GLEW 2.1.0
     * http://glew.sourceforge.net/
     * Add ```#define GLEW_STATIC``` to the top of glew.h
-* ```lib/include/CL/*``` - The Khronos Group
+* ```deps/include/CL/*``` - The Khronos Group
     * https://github.com/KhronosGroup/OpenCL-Headers
 
 For everything else, I am to blame.
