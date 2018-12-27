@@ -35,12 +35,23 @@ By default, it will build the binary native for your platform.
     make voxel.zip	# builds the distributable
 
 Usage
------
+=====
+
+Keys
+----
 * ESC quits.
 * WASD keys move around.
 * CTRL goes down, SPACE goes up.
 * Holding Right Mouse aims the camera.
 * F11 toggles Fullscreen. (⌃⌘F on Mac)
+* C regenerate the voxel tree
+* V decrease the voxel tree depth
+* B increase the voxel tree depth
+
+General
+-------
+Load a Wavefront model with the "Voxel Load" option, then press C to regenerate the tree. You can increase or decrease the depth of the tree with B or V respectively, after which you'll have to press C again to see the changes. It only attempts to populate the part of the tree that is visible to the camera.
+
 
 System Requirements
 -------------------
@@ -49,7 +60,6 @@ System Requirements
 * You'll need up to date drivers. As of now that means Nvidia 347.25
 
 The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
-
 
 
 Credits
@@ -71,14 +81,16 @@ Credits
 * ```deps/include/CL/*``` - The Khronos Group
     * https://github.com/KhronosGroup/OpenCL-Headers
 
+
+* this is based losely on parts of the algorithm outlined by [Cyril Crassin](http://maverick.inria.fr/Members/Cyril.Crassin/) in his [PhD Thesis](http://maverick.inria.fr/Publications/2011/Cra11/CCrassinThesis_EN_Web.pdf).
+It is not a complete implementation, and diverges from it in a few ways. In other words, don't allow how bad this is to reflect on him.
+
 For everything else, I am to blame.
 
 Afterword
 ---------
-It's a tech demo, don't expect it to work fast or at all.
-It only works on NVidia GPU's, I'm told it works on a GT240, but I
-use a GTX680, and advise you use something faster. AMD support is almost totally
-broken. It needs a miracle from AMD's driver team, not likely.
+It's a tech demo, don't expect it to work fast or at all. It only works on NVidia GPU's, I'm told it works on a GT240, but I use a GTX680, and advise you use something faster. AMD support is almost
+totally broken. It needs a miracle from AMD's driver team, not likely.
 
 -Dan
 
