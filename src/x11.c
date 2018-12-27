@@ -135,6 +135,8 @@ int xAttrList[] = {
 
 int oldx=0, oldy=0;
 
+
+/*
 // https://www.kernel.org/doc/Documentation/input/input.txt
 
 struct lin_joystick
@@ -355,7 +357,7 @@ static void x11_input(void)
 		write(lin_joy[i].fd, &play, sizeof(play));
 	}
 }
-
+*/
 
 static void x11_down(void)
 {
@@ -464,7 +466,7 @@ static void x11_init(void)
 	memset(keys, 0, KEYMAX);
 	memset(mouse, 0, 3);
 	memset(joy, 0, sizeof(joy));
-	memset(lin_joy, 0, sizeof(lin_joy));
+//	memset(lin_joy, 0, sizeof(lin_joy));
 
 	display = XOpenDisplay(0);
 	Screen *screen = DefaultScreenOfDisplay(display);
@@ -569,7 +571,7 @@ static void handle_events(void)
 	XIDeviceEvent *e;
 	double value;
 
-	x11_input();
+//	x11_input();
 
 	mickey_x = mickey_y = 0;
 
