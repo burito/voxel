@@ -32,7 +32,7 @@ freely, subject to the following restrictions:
 
 #include "ocl.h"
 
-#include "main.h"
+#include "global.h"
 #include "mesh.h"
 #include "gui.h"
 #include "clvoxel.h"
@@ -71,12 +71,11 @@ extern const char git_version[];
 
 int main_init(int argc, char *argv[])
 {
-	log_init();
-	log_info("Version    : %s", git_version);
-	log_info("GL Vendor  : %s", glGetString(GL_VENDOR) );
-	log_info("GL Renderer: %s", glGetString(GL_RENDERER) );
-	log_info("GL Driver  : %s", glGetString(GL_VERSION) );
-	log_info("SL Version : %s", glGetString(GL_SHADING_LANGUAGE_VERSION) );
+	log_info("Version     : %s", git_version);
+	log_info("GL Vendor   : %s", glGetString(GL_VENDOR) );
+	log_info("GL Renderer : %s", glGetString(GL_RENDERER) );
+	log_info("GL Driver   : %s", glGetString(GL_VERSION) );
+	log_info("SL Version  : %s", glGetString(GL_SHADING_LANGUAGE_VERSION) );
 
 /*
 	int glver[2];
@@ -126,11 +125,6 @@ void main_loop(void)
 #ifndef __APPLE__
 	gpuinfo_tick();
 #endif
-	for(int i=0; i<4; i++)
-	{
-		joy[i].fflarge = joy[i].lt;
-		joy[i].ffsmall = joy[i].rt;
-	}
 
 	pos.w = 0.5 / (float)vid_width;
 
@@ -198,8 +192,7 @@ void main_loop(void)
 
 	pos.xyz = add(pos.xyz, req);
 
-
-	time = (float)(sys_time() - time_start)/(float)sys_ticksecond;
+	time = ((double)sys_time() / (double)sys_ticksecond);
 
 	glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);

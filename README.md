@@ -1,102 +1,74 @@
 Voxel
 =====
-This is/will be a real-time OpenGL Sparse Voxel Oct-tree Raycaster.
-It makes heavy use of GPU compute.
+This is a real-time OpenGL Sparse Voxel Oct-tree Raycaster.
+It makes heavy use of GPU compute, so much so that a GPU temperature indicator was a needed feature. If you can smell solder, or the temperature indicator gets above 80, quit the program immediately.
 
-Build Environment
-=================
-Windows
--------
-* Install [mingw-w64-install.exe](http://sourceforge.net/projects/mingw-w64/files/)
-* Install https://git-for-windows.github.io/
-* Put their ``/bin`` directories in your ``PATH``.
-* Mingw will now link directly against DLL's, no more library required.
-* Install [ImageMagick](http://www.imagemagick.org/script/binary-releases.php#windows)
-
-Mac OS X Yosemite
------------------
-* Install [XCode](https://developer.apple.com/xcode/downloads/)
-
-Debian & Ubuntu
----------------
-    sudo apt-get install a56 imagemagick git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev mingw-w64 
-
-Build Instructions
-------------------
-    git clone git@github.com:burito/voxel.git
+Quickstart
+----------
+    git clone --recurse-submodules git@github.com:burito/voxel
     cd voxel
-    make -j8	# if you have 8 threads
+    make -j8                    # build it using 8 threads
+    voxel.exe                           # windows
+    ./voxel                             # linux
+    ./voxel.bin                         # osx
+    ./voxel.app/Contents/MacOS/voxel    # osx with keyboard & menu
 
-By default, it will build the binary native for your platform.
-
-    make gui	# builds the default linux binary
-    make gui.exe	# builds the default windows binary
-    make gui.app	# builds the default OSX binary
-    make voxel.zip	# builds the distributable
-
-Usage
-=====
-
-Keys
-----
-* ESC quits.
-* WASD keys move around.
-* CTRL goes down, SPACE goes up.
-* Holding Right Mouse aims the camera.
-* F11 toggles Fullscreen. (⌃⌘F on Mac)
-* C regenerate the voxel tree
-* V decrease the voxel tree depth
-* B increase the voxel tree depth
-
-General
--------
 Load a Wavefront model with the "Voxel Load" option, then press C to regenerate the tree. You can increase or decrease the depth of the tree with B or V respectively, after which you'll have to press C again to see the changes. It only attempts to populate the part of the tree that is visible to the camera.
 
+Usage
+-----
+* ESC - quits
+* WASD - move around
+* CTRL - mode down
+* SPACE - mode up
+* Holding Right Mouse aims the camera.
+* F11 - toggle Fullscreen (⌃⌘F on Mac)
+* C - regenerate the voxel tree
+* V - decrease the voxel tree depth
+* B - increase the voxel tree depth
+
+Build Environment
+-----------------
+### Windows
+* Install [mingw-w64-install.exe](http://sourceforge.net/projects/mingw-w64/files/) 8.1.0-x86_64-posix-seh
+* Add its ```bin``` directory to your path
+* Install current GPU drivers
+	* Nvidia 417.35
+* Install [ImageMagick](http://www.imagemagick.org/script/download.php#windows)
+
+### Linux
+* Install current GPU drivers, compiler, and libraries
+	* ```add-apt-repository ppa:graphics-drivers/ppa```
+	* ```apt-get update```
+	* ```apt-get install nvidia-410 vulkan-utils build-essential clang imagemagick a52 git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev```
+
+### MacOS
+* Install [XCode](https://developer.apple.com/xcode/downloads/)
 
 System Requirements
 -------------------
 * Needs OpenGL 4.3 or OpenCL 1.1
 * Wants 64bit, but it's not needed. Yet.
-* You'll need up to date drivers. As of now that means Nvidia 347.25
+* You'll need up to date drivers. As of now that means Nvidia 417.35
 
 The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
 
 
 Credits
 -------
+* [```deps/stb```](https://github.com/nothings/stb) - [Sean Barrett](http://nothings.org/)
+* [```deps/fast_atof.c```](http://www.leapsecond.com/tools/fast_atof.c) - [Tom Van Baak](http://www.leapsecond.com/)
+* [```deps/small-matrix-inverse```](https://github.com/niswegmann/small-matrix-inverse) - Nis Wegmann
+* [```deps/models```](https://github.com/burito/models) - [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data)
+* ```deps/*gl*``` - [GLEW 2.1.0](http://glew.sourceforge.net/)
+    * Add ```#define GLEW_STATIC``` to the top of ```glew.h```
 
-* ```deps/*stb*``` - Sean Barrett
-    * https://github.com/nothings/stb
-    * stb_image 2.19
-    * stb_truetype 1.19
 * ```deps/*fontstash*``` - Mikko Mononen
     * https://github.com/memononen/fontstash
-* ```deps/fast_atof.c``` - Tom Van Baak
-    * http://www.leapsecond.com/
-* ```deps/include/invert4x4_sse.h``` - Nis Wegmann
-    * https://github.com/niswegmann/small-matrix-inverse
-* ```deps/*gl*``` - GLEW 2.1.0
-    * http://glew.sourceforge.net/
-    * Add ```#define GLEW_STATIC``` to the top of glew.h
 * ```deps/include/CL/*``` - The Khronos Group
     * https://github.com/KhronosGroup/OpenCL-Headers
-
 
 * this is based losely on parts of the algorithm outlined by [Cyril Crassin](http://maverick.inria.fr/Members/Cyril.Crassin/) in his [PhD Thesis](http://maverick.inria.fr/Publications/2011/Cra11/CCrassinThesis_EN_Web.pdf).
 It is not a complete implementation, and diverges from it in a few ways. In other words, don't allow how bad this is to reflect on him.
 
 For everything else, I am to blame.
-
-Afterword
----------
-It's a tech demo, don't expect it to work fast or at all. It only works on NVidia GPU's, I'm told it works on a GT240, but I use a GTX680, and advise you use something faster. AMD support is almost
-totally broken. It needs a miracle from AMD's driver team, not likely.
-
--Dan
-
-Please refer to the articles at...
-
-http://danpburke.blogspot.com.au
-
-...for the complete set of ramblings.
-

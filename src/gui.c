@@ -43,7 +43,7 @@ freely, subject to the following restrictions:
 #include "3dmaths.h"
 #include "image.h"
 #include "text.h"
-#include "main.h"
+#include "global.h"
 #include "mesh.h"
 #include "gui.h"
 #include "ocl.h"
@@ -1211,7 +1211,7 @@ widget* widget_menu_item_add(widget *w, char* label, void (*action)(widget*))
 
 void widget_url_action(widget *w)
 {
-	shell_browser(w->data2);
+	sys_browser(w->data2);
 }
 
 widget* widget_url_new(int x, int y, char *label, char *url)

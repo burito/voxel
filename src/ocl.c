@@ -57,7 +57,7 @@ CGLContextObj CGLGetCurrentContext (void);
 #include "log.h"
 
 #include "3dmaths.h"
-#include "main.h"
+#include "global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -249,23 +249,23 @@ int ocl_init(void)
 	// Tell me about the selected platform
 	bs = _bs;
 	clGetPlatformInfo( *c->p, CL_PLATFORM_VENDOR, bs, b, &bs);
-	log_info("CL Vendor  : %s", b);
+	log_info("CL Vendor   : %s", b);
 	bs = _bs;
 	clGetPlatformInfo( *c->p, CL_PLATFORM_NAME, bs, b, &bs);
-	log_info("CL Platform: %s", b);
+	log_info("CL Platform : %s", b);
 	bs = _bs;
 	clGetPlatformInfo( *c->p, CL_PLATFORM_VERSION, bs, b, &bs);
-	log_info("CL Version : %s", b);
+	log_info("CL Version  : %s", b);
 	// Tell me about the selected device
 	bs = _bs;
 	clGetDeviceInfo(*c->d, CL_DEVICE_NAME, bs, b, &bs);
-	log_info("CL Dev Name: %s", b);
+	log_info("CL Dev Name : %s", b);
 	bs = _bs;
 	clGetDeviceInfo(*c->d, CL_DEVICE_VERSION, bs, b, &bs);
-	log_info("CL Dev Ver : %s", b);
+	log_info("CL Dev Ver  : %s", b);
 	bs = _bs;
 	clGetDeviceInfo(*c->d, CL_DRIVER_VERSION, bs, b, &bs);
-	log_info("CL Driv Ver: %s", b);
+	log_info("CL Driv Ver : %s", b);
 
 	// create the context
 	cl_context_properties properties[] = {
@@ -464,6 +464,8 @@ OCLPROGRAM* ocl_build(char *filename)
 	return clprog;
 }
 
+
+extern float time;
 void ocl_loop(void)
 {
 	if(!OpenCL)return;

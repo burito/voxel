@@ -37,7 +37,7 @@ freely, subject to the following restrictions:
 #include <string.h>
 
 #include "ocl.h"
-#include "main.h"
+#include "global.h"
 #include "3dmaths.h"
 #include "gui.h"
 #include "clvoxel.h"
@@ -169,7 +169,7 @@ static void voxel_FindKernels(void)
 	}
 }
 
-
+extern float time;
 static void clvox_ResetTime(void)
 {
 	// Tell the GPU to reset the time buffers

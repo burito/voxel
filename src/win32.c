@@ -26,45 +26,11 @@ freely, subject to the following restrictions:
 #include <GL/glew.h>
 #include <GL/wglew.h>
 #include <stdio.h>
-
 #include "log.h"
+#include "global.h"
 ///////////////////////////////////////////////////////////////////////////////
 //////// Public Interface to the rest of the program
 ///////////////////////////////////////////////////////////////////////////////
-
-#include "keyboard.h"
-
-int killme=0;
-int sys_width  = 1980;	/* dimensions of default screen */
-int sys_height = 1200;
-float sys_dpi = 1.0;
-int vid_width  = 1280;	/* dimensions of our part of the screen */
-int vid_height = 720;
-int mouse_x = 0;
-int mouse_y = 0;
-int mickey_x = 0;
-int mickey_y = 0;
-char mouse[] = {0,0,0,0,0,0,0,0};
-#define KEYMAX 512
-char keys[KEYMAX];
-
-int fullscreen = 0;
-int fullscreen_toggle = 0;
-
-int main_init(int argc, char *argv[]);
-void main_loop(void);
-void main_end(void);
-
-const int sys_ticksecond = 1000;
-long long sys_time(void)
-{
-	return timeGetTime();
-}
-
-void shell_browser(char *url)
-{
-	ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
-}
 
 struct fvec2
 {
@@ -94,6 +60,8 @@ HGLRC hGLRC;
 
 int win_width  = 0;	/* used for switching from fullscreen back to window */
 int win_height = 0;
+int fullscreen = 0;
+int fullscreen_toggle = 0;
 
 int window_maximized = 0;
 int focus = 1;
@@ -107,7 +75,7 @@ static void fail(const char * string)
 	err = GetLastError();
 	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0,
 		errStr, 1000, 0);
-	log_fatal("%s: %s", string, errStr);
+	log_error("%s: %s", string, errStr);
 }
 
 static void sys_input(void)
@@ -297,6 +265,7 @@ static LONG WINAPI wProc(HWND hWndProc, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return 0;
 
 	case WM_CLOSE:
+		log_info("Shutdown on : Window close");
 		killme=1;
 		return 0;
 	}
@@ -431,7 +400,7 @@ static void win_init(void)
 
 	if(!RegisterClassEx(&wc))
 	{
-		log_fatal("RegisterClassEx()");
+		log_fatal("RegisterClassEx() failed");
 		return;
 	}
 
@@ -442,7 +411,7 @@ static void win_init(void)
 	hDC = GetDC(hWnd);
 	if(!hWnd)
 	{
-		log_fatal("CreateWindowEx()");
+		log_fatal("CreateWindowEx() failed");
 		return;
 	}
 	ShowWindow(hWnd, CmdShow);
@@ -469,8 +438,8 @@ static void win_init(void)
 		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
 //		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
-//		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
+		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+//		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
 		0 };
 
 	if(1 == wglewIsSupported("WGL_ARB_create_context"))
@@ -482,7 +451,6 @@ static void win_init(void)
 	}
 	else hGLRC = tmpGLRC;
 //	ReleaseDC(hWnd, hDC);
-
 }
 
 static void win_end(void)
@@ -527,7 +495,9 @@ int APIENTRY WinMain(HINSTANCE hCurrentInst, HINSTANCE hPrev,
 {
 	hInst = hCurrentInst;
 	CmdShow = nCmdShow;
-
+	log_init();
+	log_info("Platform    : win32");
+	
 	/* Convert win32 style arguments to standard format */
 #define ARGC_MAX 10
 	int last=0;
