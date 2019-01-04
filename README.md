@@ -10,8 +10,7 @@ Quickstart
     make -j8                    # build it using 8 threads
     voxel.exe                           # windows
     ./voxel                             # linux
-    ./voxel.bin                         # osx
-    ./voxel.app/Contents/MacOS/voxel    # osx with keyboard & menu
+    ./voxel.bin     # MacOS version doesn't work
 
 Load a Wavefront model with the "Voxel Load" option, then press C to regenerate the tree. You can increase or decrease the depth of the tree with B or V respectively, after which you'll have to press C again to see the changes. It only attempts to populate the part of the tree that is visible to the camera.
 
