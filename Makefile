@@ -8,8 +8,8 @@ WIN_LIBS = `which opencl.dll` -luser32 -lwinmm -lgdi32 -lshell32 -lopengl32 -lws
 LIN_LIBS = -lm -lGL -lX11 -lGLU -lXi -ldl -lOpenCL
 MAC_LIBS = -F/System/Library/Frameworks -F. -framework OpenGL -framework CoreVideo -framework Cocoa -framework IOKit -framework OpenCL -framework ForceFeedback
 
-_WIN_OBJS = $(OBJS) glew.o win32.o win32.res
-_LIN_OBJS = $(OBJS) glew.o x11.o 
+_WIN_OBJS = $(OBJS) glew.o win32.o gfx_gl_win.o win32.res
+_LIN_OBJS = $(OBJS) glew.o linux_xlib.o gfx_gl_lin.o
 _MAC_OBJS = $(OBJS) osx.o
 
 
