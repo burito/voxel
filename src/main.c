@@ -60,6 +60,9 @@ void open_target(char * filename)
 
 }
 
+void gfx_init(void);
+void gfx_end(void);
+void gfx_swap(void);
 
 long long time_start = 0;
 float time = 0;
@@ -71,6 +74,7 @@ extern const char git_version[];
 
 int main_init(int argc, char *argv[])
 {
+	gfx_init();
 	log_info("Version     : %s", git_version);
 	log_info("GL Vendor   : %s", glGetString(GL_VENDOR) );
 	log_info("GL Renderer : %s", glGetString(GL_RENDERER) );
@@ -204,6 +208,8 @@ void main_loop(void)
 	ocl_loop();
 	gui_draw();
 	http_loop();
+
+	gfx_swap();
 }
 
 void main_end(void)
@@ -215,5 +221,6 @@ void main_end(void)
 	ocl_end();
 	gui_end();
 	http_end();
+	gfx_end();
 }
 
