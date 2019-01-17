@@ -13,7 +13,7 @@ _LIN_OBJS = $(OBJS) glew.o linux_xlib.o gfx_gl_lin.o
 _MAC_OBJS = $(OBJS) osx.o
 
 
-include deps/dpb/Makefile
+include deps/dpb/src/Makefile
 
 
 # this has to list everything inside the app bundle
