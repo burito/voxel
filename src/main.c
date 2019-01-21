@@ -70,12 +70,9 @@ float time = 0;
 OCLCONTEXT *ocl=NULL;
 GLSLSHADER *shader_default=NULL;
 
-extern const char git_version[];
-
 int main_init(int argc, char *argv[])
 {
 	gfx_init();
-	log_info("Version     : %s", git_version);
 	log_info("GL Vendor   : %s", glGetString(GL_VENDOR) );
 	log_info("GL Renderer : %s", glGetString(GL_RENDERER) );
 	log_info("GL Driver   : %s", glGetString(GL_VERSION) );
