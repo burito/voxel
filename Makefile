@@ -32,10 +32,3 @@ $(MAC_CONTENTS)/MacOS/$(BINARY_NAME): $(BINARY_NAME).bin
 	cp $< $@
 # end build the App Bundle
 
-
-# Housekeeping
-clean:
-	@rm -rf build $(BINARY_NAME) $(BINARY_NAME).exe $(BINARY_NAME).bin $(BINARY_NAME).app
-
-# Create build directories
-$(shell	mkdir -p build/lin/GL build/win/GL build/mac/AppIcon.iconset)
