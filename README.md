@@ -9,7 +9,7 @@ cd voxel
 make -j8        # Build it using 8 threads
 voxel.exe       # Windows
 ./voxel         # Linux
-./voxel.bin     # MacOS version doesn't work
+./voxel.bin     # MacOSX version doesn't work
 ```
 
 Load a Wavefront model with the "Voxel Load" option, then press `C` to regenerate the tree. You can increase or decrease the depth of the tree with `B` or `V` respectively, after which you'll have to press `C` again to see the changes. It only attempts to populate the part of the tree that is visible to the camera.
@@ -30,15 +30,15 @@ Load a Wavefront model with the "Voxel Load" option, then press `C` to regenerat
 * Install [mingw-w64-install.exe](http://sourceforge.net/projects/mingw-w64/files/) 8.1.0-x86_64-posix-seh
 * Add its `bin` directory to your path
 * Install current GPU drivers
-	* Nvidia 417.35
+	* Nvidia 430.39
 * Install [ImageMagick](http://www.imagemagick.org/script/download.php#windows)
 
 ### Linux
 * Install current GPU drivers, compiler, and libraries
 ```bash
 add-apt-repository ppa:graphics-drivers/ppa
-apt-get update
-apt-get install nvidia-410 vulkan-utils build-essential clang imagemagick a52 git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev
+apt update
+apt install nvidia-410 vulkan-utils build-essential clang imagemagick a52 git-core libglu1-mesa-dev libxi-dev ocl-icd-opencl-dev
 ```
 
 ### MacOS
@@ -63,7 +63,8 @@ The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](htt
     * https://github.com/memononen/fontstash
 * ```deps/include/CL/*``` - The Khronos Group
     * https://github.com/KhronosGroup/OpenCL-Headers
-* this is based losely on parts of the algorithm outlined by [Cyril Crassin](http://maverick.inria.fr/Members/Cyril.Crassin/) in his [PhD Thesis](http://maverick.inria.fr/Publications/2011/Cra11/CCrassinThesis_EN_Web.pdf).
+
+This is based losely on parts of the algorithm outlined by [Cyril Crassin](http://maverick.inria.fr/Members/Cyril.Crassin/) in his [PhD Thesis](http://maverick.inria.fr/Publications/2011/Cra11/CCrassinThesis_EN_Web.pdf).
 It is not a complete implementation, and diverges from it in a few ways. In other words, don't allow how bad this is to reflect on him.
 
 For everything else, I am to blame.
