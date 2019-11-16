@@ -1,12 +1,12 @@
 [submodule "deps/stb"]
 	path = deps/stb
-	url = https://github.com/nothings/stb
+	url = git@github.com:nothings/stb
 [submodule "deps/dpb"]
 	path = deps/dpb
-	url = https://github.com/burito/dpb
+	url = git@github.com:burito/dpb
 [submodule "deps/models"]
 	path = deps/models
-	url = https://github.com/burito/models
+	url = git@github.com:burito/models
 [submodule "deps/small-matrix-inverse"]
 	path = deps/small-matrix-inverse
-	url = https://github.com/niswegmann/small-matrix-inverse
+	url = git@github.com:niswegmann/small-matrix-inverse
