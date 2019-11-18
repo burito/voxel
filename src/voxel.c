@@ -36,7 +36,7 @@ freely, subject to the following restrictions:
 #define radians(X) ((3.14159265358979323846/180.0)*X)
 
 #include <zlib.h>
-#include "main.h"
+#include "global.h"
 #include "shader.h"
 #include "3dmaths.h"
 
@@ -87,7 +87,7 @@ void bp_add(float4 *data)
 	itmp = (brick_count-boff.x)/B_COUNT;
 	boff.y = itmp % B_COUNT;
 	boff.z = (itmp-boff.y) / B_COUNT;
-	F3MULS(boff, boff, B_SIZE);
+	boff = mul(boff, B_SIZE);
 	for(int z=0; z < B_SIZE; z++)
 	for(int y=0; y < B_SIZE; y++)
 	{
