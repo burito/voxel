@@ -129,7 +129,7 @@ void main_loop(void)
 
 	pos.w = 0.5 / (float)vid_width;
 
-	vect req = {0,0,0};
+	vec3 req = {0,0,0};
 	float nice = 0.007;
 
 	if(keys[KEY_ESCAPE])

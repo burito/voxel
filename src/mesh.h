@@ -28,7 +28,7 @@ freely, subject to the following restrictions:
 typedef struct WF_MTL
 {
 	float Ns, Ni;		// specular coefficient, ?
-	vect Ka, Kd, Ks, Ke;	// ambient, diffuse, specular, emmit
+	vec3 Ka, Kd, Ks, Ke;	// ambient, diffuse, specular, emmit
 	vec4 colour;		// colour + alpha
 	IMG *map_Ka, *map_Kd, *map_d, *map_bump;	// amb, spec, alpha, bump
 	char *name;
@@ -39,7 +39,7 @@ typedef struct WF_MTL
 typedef struct WF_FACE
 {
 	int3 f, t, n;
-	vect normal;
+	vec3 normal;
 	int s, g;
 	WF_MTL *m;
 } WF_FACE;
@@ -51,8 +51,8 @@ typedef struct WF_OBJ
 	WF_FACE *f;
 	int3 *vf;
 	int nv, nn, nt, nf, ng, ns, nm;
-	vect *v, *vt, *vn, *fn;
-	coord *uv;
+	vec3 *v, *vt, *vn, *fn;
+	vec2 *uv;
 	GLfloat *p;
 	char *filename;
 	char **groups;
@@ -64,8 +64,8 @@ typedef struct WF_OBJ
 
 typedef struct WF_ARRAY
 {
-	vect v, n;
-	coord t;
+	vec3 v, n;
+	vec2 t;
 } WF_ARRAY;
 
 void mtl_begin(WF_MTL *m);
