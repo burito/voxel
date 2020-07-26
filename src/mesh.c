@@ -53,7 +53,7 @@ void mtl_begin(WF_MTL *m)
 //	glMaterialfv(GL_FRONT, GL_EMISSION, emit);
 	glColor4fv(diff);
 //	glColor4f(m->colour.x, m->colour.y, m->colour.z, m->colour.w);
-	
+
 	glActiveTexture(GL_TEXTURE0);
 	if(m->map_Kd)
 	{	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, m->map_Kd->id); }
@@ -167,7 +167,8 @@ static WF_MTL* mtl_newmtl(char *hostpath, FILE *fptr, char *name)
 			default:  targeti = NULL; break;
 			}
 			if(!targeti)break;
-			while(!whitespace(buf[i]))i++;i++;
+			while(!whitespace(buf[i]))i++;
+			i++;
 			path = repath(hostpath, buf+i);
 			*targeti = img_load(path);
 			free(path);
@@ -308,7 +309,7 @@ void wf_buffer_drawarray(WF_OBJ *w)
 		}
 	}
 	log_trace("At nomtl we have %d/%d-%d", w->nv, o, w->nf);
-	
+
 	if(o < w->nf)
 	for(int i=0; i<w->nf; i++)
 	if(w->f[i].m == 0)
@@ -384,7 +385,7 @@ void wf_interleave(WF_OBJ *w)
 			m->nf++;
 		}
 	}
-	
+
 	for(;o < w->nf; o++)
 	for(int i=0; i<w->nf; i++)
 	if(w->f[i].m == 0)
@@ -459,7 +460,7 @@ static void wf_vertex_normals(WF_OBJ *w)
 	{
 		tmp = vert[i].next;
 		if(!tmp)continue;
-		vec3 t = {0,0,0};
+		vec3 t = {{0,0,0}};
 		while(tmp)
 		{
 			t = add(t, w->f[tmp->face].normal);
@@ -489,7 +490,7 @@ static void wf_normals(WF_OBJ *w)
 	w->vn = malloc(sizeof(vec3)*w->nv);
 	memset(w->vn, 0, sizeof(vec3)*w->nv);
 	w->nn = w->nv;
-	
+
 	wf_face_normals(w);
 	wf_vertex_normals(w);
 
@@ -624,7 +625,7 @@ void wf_drawelements(WF_OBJ *w)
 		mtl_end();
 		if(!m->nf)continue;
 		mtl_begin(m);
-		
+
 	glDrawElements(GL_TRIANGLES, m->nf*12, GL_UNSIGNED_INT, (GLvoid*)(12*i));
 		i += m->nf;
 		m = m->next;
@@ -741,7 +742,7 @@ WF_OBJ* wf_parse(char *filename)
 				target = &w->vn[ni++];
 				i++;
 				break;
-			case 't': 
+			case 't':
 				target = &w->vt[ti++];
 				i++;
 				break;
@@ -749,11 +750,13 @@ WF_OBJ* wf_parse(char *filename)
 
 			while(' '==buf[i])i++;
 			target->x = fast_atof(buf+i);
-			while(' '!=buf[i])i++; i++;
+			while(' '!=buf[i])i++;
+			i++;
 			target->y = fast_atof(buf+i);
 			if(buf[1]!='t')
 			{
-				while(' '!=buf[i])i++; i++;
+				while(' '!=buf[i])i++;
+				i++;
 				target->z = fast_atof(buf+i);
 			}
 			else
@@ -762,8 +765,8 @@ WF_OBJ* wf_parse(char *filename)
 
 			}
 			break;
-	
-		case 'u':	
+
+		case 'u':
 			tailchomp(buf);
 			lastmat = find_material(w->m, buf+7);
 			break;
@@ -797,13 +800,15 @@ WF_OBJ* wf_parse(char *filename)
 				w->f[fi].f.x = tmp;
 
 //					log_trace("%d/", g->f[g->nf].x);
-				while(' '!=buf[i])i++; i++;	//find next space
+				while(' '!=buf[i])i++;
+				i++;	//find next space
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.y = tmp;
 //					log_trace("%d/", g->f[g->nf].y);
-				while(' '!=buf[i])i++; i++;
+				while(' '!=buf[i])i++;
+				i++;
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
@@ -843,30 +848,35 @@ WF_OBJ* wf_parse(char *filename)
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.x = tmp;
-				while('/'!=buf[i])i++; i++;	//find next slash
+				while('/'!=buf[i])i++;
+				i++;	//find next slash
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nt;
 				else tmp--;
 				w->f[fi].t.x = tmp;
 
 //					log_trace("%d/", g->f[g->nf].x);
-				while(' '!=buf[i])i++; i++;	//find next space
+				while(' '!=buf[i])i++;
+				i++;	//find next space
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.y = tmp;
-				while('/'!=buf[i])i++; i++;	//find next slash
+				while('/'!=buf[i])i++;
+				i++;	//find next slash
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nt;
 				else tmp--;
 				w->f[fi].t.y = tmp;
 //					log_trace("%d/", g->f[g->nf].y);
-				while(' '!=buf[i])i++; i++;
+				while(' '!=buf[i])i++;
+				i++;
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nv;
 				else tmp--;
 				w->f[fi].f.z = tmp;
-				while('/'!=buf[i])i++; i++;	//find next slash
+				while('/'!=buf[i])i++;
+				i++;	//find next slash
 				tmp = atoi(buf+i);
 				if(tmp < 0)tmp += w->nt;
 				else tmp--;
@@ -894,7 +904,8 @@ WF_OBJ* wf_parse(char *filename)
 						if(tmp < 0) tmp += w->nv;
 						else tmp--;
 						w->f[fi].f.z = tmp;
-						while('/'!=buf[i])i++; i++;	//find next slash
+						while('/'!=buf[i])i++;
+						i++;	//find next slash
 						tmp = atoi(buf+i);
 						if(tmp < 0)tmp += w->nt;
 						else tmp--;
@@ -911,25 +922,31 @@ WF_OBJ* wf_parse(char *filename)
 				break;
 		case 3:
 				w->f[fi].f.x = abs(atoi(buf+i))-1;
-				while('/'!=buf[i])i++; i++;
+				while('/'!=buf[i])i++;
+				i++;
 				if(buf[i]!='/')w->f[fi].t.x = abs(atoi(buf+i))-1;
-//				while('/'!=buf[i])i++; i++;
+//				while('/'!=buf[i])i++;
+//				i++;
 //				if(buf[i]!=' ')w->f[fi].n.x = abs(atoi(buf+i))-1;
 
-				while(' '!=buf[i])i++; i++;	//find next space
+				while(' '!=buf[i])i++;
+				i++;	//find next space
 				w->f[fi].f.y = abs(atoi(buf+i))-1;
-				while('/'!=buf[i])i++; i++;
+				while('/'!=buf[i])i++;
+				i++;
 				if(buf[i]!='/')w->f[fi].t.y = abs(atoi(buf+i))-1;
 //				while('/'!=buf[i])i++; i++;
 //				if(buf[i]!=' ')w->f[fi].n.y = abs(atoi(buf+i))-1;
 
-				while(' '!=buf[i])i++; i++;	//find next space
+				while(' '!=buf[i])i++;
+				i++;	//find next space
 				w->f[fi].f.z = abs(atoi(buf+i))-1;
-				while('/'!=buf[i])i++; i++;
+				while('/'!=buf[i])i++;
+				i++;
 				if(buf[i]!='/')w->f[fi].t.z = abs(atoi(buf+i))-1;
 //				while('/'!=buf[i])i++; i++;
 //				if(buf[i]!=' ')w->f[fi].n.z = abs(atoi(buf+i))-1;
-				
+
 				w->f[fi].s = si;
 				w->f[fi].m = mi;
 				w->f[fi].g = gi;
@@ -950,7 +967,8 @@ WF_OBJ* wf_parse(char *filename)
 						w->f[fi].t.y = w->f[last].t.z;
 						w->f[fi].n.y = w->f[last].n.z;
 				w->f[fi].f.z = abs(atoi(buf+i))-1;
-				while('/'!=buf[i])i++; i++;
+				while('/'!=buf[i])i++;
+				i++;
 				if(buf[i]!='/')w->f[fi].t.z = abs(atoi(buf+i))-1;
 //				while('/'!=buf[i])i++; i++;
 //				if(buf[i]!=' ')w->f[fi].n.z = abs(atoi(buf+i))-1;
@@ -1044,7 +1062,7 @@ void wf_free(WF_OBJ *w)
 		m = mt;
 	}
 	if(w->filename)free(w->filename);
-	free(w); 
+	free(w);
 }
 
 #ifdef STATIC_TEST
@@ -1066,4 +1084,3 @@ int main(int argc, char *argv[])
 }
 
 #endif /* STATIC_TEST */
-

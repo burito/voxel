@@ -117,8 +117,8 @@ int main_init(int argc, char *argv[])
 int p_swim = 0;
 
 // last digit of angle is x-fov, in radians
-vec4 pos = {0.619069, 0.644001, 1.457747, 0.0};
-vec4 angle = {-0.126000, -3.261001, 0.000000, M_PI*0.5};
+vec4 pos = {{0.619069, 0.644001, 1.457747, 0.0}};
+vec4 angle = {{-0.126000, -3.261001, 0.000000, M_PI*0.5}};
 
 
 void main_loop(void)
@@ -129,7 +129,7 @@ void main_loop(void)
 
 	pos.w = 0.5 / (float)vid_width;
 
-	vec3 req = {0,0,0};
+	vec3 req = {{0,0,0}};
 	float nice = 0.007;
 
 	if(keys[KEY_ESCAPE])
@@ -174,8 +174,8 @@ void main_loop(void)
 	}
 	if(keys[KEY_P])
 	{
-		log_verbose("float4 pos = {%f, %f, %f, 0.0};", pos.x, pos.y, pos.z);
-		log_verbose("float4 angle = {%f, %f, %f, M_PI*0.5};", angle.x, angle.y, angle.z);
+		log_verbose("float4 pos = {{%f, %f, %f, 0.0}};", pos.x, pos.y, pos.z);
+		log_verbose("float4 angle = {{%f, %f, %f, M_PI*0.5}};", angle.x, angle.y, angle.z);
 	}
 
 	if(p_swim)
@@ -220,4 +220,3 @@ void main_end(void)
 	http_end();
 	gfx_end();
 }
-
