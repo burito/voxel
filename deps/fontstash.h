@@ -101,7 +101,7 @@ FONS_DEF void fonsDeleteInternal(FONScontext* s);
 FONS_DEF void fonsSetErrorCallback(FONScontext* s, void (*callback)(void* uptr, int error, int val), void* uptr);
 // Returns current atlas size.
 FONS_DEF void fonsGetAtlasSize(FONScontext* s, int* width, int* height);
-// Expands the atlas size. 
+// Expands the atlas size.
 FONS_DEF int fonsExpandAtlas(FONScontext* s, int width, int height);
 // Resets the whole stash.
 FONS_DEF int fonsResetAtlas(FONScontext* stash, int width, int height);
@@ -262,7 +262,11 @@ static void* fons__tmpalloc(size_t size, void* up);
 static void fons__tmpfree(void* ptr, void* up);
 #define STBTT_malloc(x,u)    fons__tmpalloc(x,u)
 #define STBTT_free(x,u)      fons__tmpfree(x,u)
-#include "stb_truetype.h"
+_Pragma("GCC diagnostic push")
+_Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+#include <stb/stb_truetype.h>
+_Pragma("GCC diagnostic pop")
+
 
 struct FONSttFontImpl {
 	stbtt_fontinfo font;
@@ -1486,7 +1490,7 @@ FONS_DEF void fonsDrawDebug(FONScontext* stash, float x, float y)
 }
 
 FONS_DEF float fonsTextBounds(FONScontext* stash,
-					 float x, float y, 
+					 float x, float y,
 					 const char* str, const char* end,
 					 float* bounds)
 {

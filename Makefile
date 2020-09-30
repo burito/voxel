@@ -4,7 +4,7 @@ COPYRIGHT = 2013-2019
 DESCRIPTION = Voxel Prototype
 BINARY_NAME = voxel
 OBJS = version.o log.o global.o stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o shader.o http.o ocl.o gpuinfo.o
-CFLAGS = -std=c11 -Ideps/include -Ideps/dpb/src -Wall
+CFLAGS = -std=c11 -Ideps -Ideps/dpb/src -Wall
 VPATH = src build deps deps/dpb/src
 
 WIN_LIBS = `which opencl.dll` -luser32 -lwinmm -lgdi32 -lshell32 -lopengl32 -lws2_32 -lxinput9_1_0

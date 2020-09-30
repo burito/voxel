@@ -1,2 +1,3 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+_Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")
+#include "stb/stb_image.h"
