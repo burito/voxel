@@ -262,10 +262,8 @@ static void* fons__tmpalloc(size_t size, void* up);
 static void fons__tmpfree(void* ptr, void* up);
 #define STBTT_malloc(x,u)    fons__tmpalloc(x,u)
 #define STBTT_free(x,u)      fons__tmpfree(x,u)
-_Pragma("GCC diagnostic push")
-_Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+
 #include <stb/stb_truetype.h>
-_Pragma("GCC diagnostic pop")
 
 
 struct FONSttFontImpl {
