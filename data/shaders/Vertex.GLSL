@@ -35,4 +35,3 @@ void main(void)
 	Position = gl_Vertex.xyz;
 	vColour = gl_Color;
 }
-

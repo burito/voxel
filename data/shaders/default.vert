@@ -15,4 +15,3 @@ void main()
 	v3camNormal = vec3(v3camNormal.xy, -v3camNormal.z);
 	gl_Position = camera * world * vec4(position.xyz, 1);
 }
-

@@ -195,6 +195,7 @@ void main_loop(void)
 
 	gui_input();
 	voxel_loop();
+
 	gui_draw();
 	gfx_swap();
 }

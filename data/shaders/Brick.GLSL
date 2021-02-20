@@ -146,7 +146,7 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 
 void main(void)
 {
-	
+
 	vec4 normal = vec4(Normal, 1.0);
 	vec4 colour;
 	ivec2 s = textureSize(tex,0);
@@ -165,7 +165,7 @@ void main(void)
 	float delta = (box.w / float(B_SIZE-1));
 	vec3 bpos = ((Position - box.xyz) / box.w)*float(B_SIZE-1);
 	ivec3 ibpos = ivec3(bpos);
-	vec3 palpha = bpos - vec3(ibpos);	
+	vec3 palpha = bpos - vec3(ibpos);
 
 	vec3 vsize = sign(Normal) * delta;
 	vec3 vstep = vec3(0);
@@ -224,5 +224,3 @@ void main(void)
 */
 	discard;
 }
-
-

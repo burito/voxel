@@ -40,7 +40,7 @@ freely, subject to the following restrictions:
 #include "clvoxel.h"
 #include "shader.h"
 #include "text.h"
-#include "mesh.h"
+#include "mesh_gl.h"
 
 
 int b_size = 8;
@@ -90,7 +90,7 @@ GLuint fbuffer;
 int frame = 0;
 int odd_frame = 0;
 
-WF_OBJ * vobj=NULL;
+struct MESH_OPENGL * vobj=NULL;
 
 int texdraw;
 int populate = 1;
@@ -588,7 +588,7 @@ void voxel_init(void)
 		strlen(include_string), include_string );
 
 	int cs = b_size * b_edge;
-	int3 cube = {cs, cs, cs};
+	int3 cube = {{cs, cs, cs}};
 	t3DBrick = vox_3Dtex(cube, GL_RGBA16F, GL_LINEAR);
 	t3DBrickColour = vox_3Dtex(cube, GL_RGBA8, GL_LINEAR);
 	bCamera = vox_glbuf(sizeof(float)*8, NULL);	// camera
@@ -828,16 +828,16 @@ void voxel_loop(void)
 		glViewport(0,0,vwidth, vwidth);
 		voxel_BrickDry(frame, vdepth);
 		// render
-		vobj->draw(vobj);
+		mesh_draw(vobj);
 		glTranslatef(0.5,0.5,0.5);
 		glRotatef(90, 0, 1.0, 0);
 		glTranslatef(-0.5,-0.5,-0.5);
-		vobj->draw(vobj);
+		mesh_draw(vobj);
 		glTranslatef(0.5,0.5,0.5);
 		glRotatef(90, 0, 0.0, 1.0);
 //		glRotatef(90, 0, 1, 0);
 		glTranslatef(-0.5,-0.5,-0.5);
-		vobj->draw(vobj);
+		mesh_draw(vobj);
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 //	if(vobj)
@@ -859,18 +859,18 @@ void voxel_loop(void)
 			glScalef(vwidth, vwidth, vwidth);
 			voxel_Brick(vdepth, frame);
 			glUniform1i(s_Brick->unif[4], 2);
-			vobj->draw(vobj);
+			mesh_draw(vobj);
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, 1, 0.0, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
 			glUniform1i(s_Brick->unif[4], 1);
-			vobj->draw(vobj);
+			mesh_draw(vobj);
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, -1, 0.0, 0);
 			glRotatef(90, 0, 1, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
 			glUniform1i(s_Brick->unif[4], 0);
-			vobj->draw(vobj);
+			mesh_draw(vobj);
 			vdepth++;
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -41,10 +41,9 @@ freely, subject to the following restrictions:
 
 
 #include "3dmaths.h"
-#include "image.h"
 #include "text.h"
 #include "global.h"
-#include "mesh.h"
+#include "mesh_gl.h"
 #include "gui.h"
 
 #include "clvoxel.h"
@@ -753,31 +752,10 @@ widget* widget_list_new(int x, int y, char **list, int count)
 }
 
 
-void widget_window_img_draw(widget *w)
-{
-	widget_window_draw(w);
-	IMG *i = w->data2;
-
-	float left=10, right=w->size.x - 10;
-	float top=-40, bottom = -w->size.y + 10;
-
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, i->id);
-	glColor4f(1,1,1,1);
-	glBegin(GL_QUADS);
-	glTexCoord2f(0, 0); glVertex2f(left, top);
-	glTexCoord2f(1, 0); glVertex2f(right, top);
-	glTexCoord2f(1, 1); glVertex2f(right, bottom);
-	glTexCoord2f(0, 1); glVertex2f(left, bottom);
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glDisable(GL_TEXTURE_2D);
-}
-
 void widget_window_obj_draw(widget *w)
 {
 	widget_window_draw(w);
-	WF_OBJ *m = w->data2;
+	struct MESH_OPENGL *m = w->data2;
 
 	glPushMatrix();
 	glClearDepth(5000.0f);
@@ -811,7 +789,7 @@ void widget_window_obj_draw(widget *w)
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_NORMALIZE);
-	m->draw(m);
+	mesh_draw(m);
 	glDisable(GL_NORMALIZE);
 	glDisable(GL_LIGHTING);
 	glPopMatrix();
@@ -820,8 +798,8 @@ void widget_window_obj_draw(widget *w)
 
 void widget_window_obj_free(widget *w)
 {
-	WF_OBJ *m = w->data2;
-	wf_free(m);
+	struct MESH_OPENGL *m = w->data2;
+	mesh_free(m);
 }
 
 void widget_window_obj_onclick(widget *w)
@@ -835,7 +813,7 @@ void widget_window_obj_onclick(widget *w)
 widget* spawn_obj(char* filename)
 {
 	widget *w = widget_window_new(100, 100, filename);
-	WF_OBJ *m = wf_load(filename);
+	struct MESH_OPENGL *m = mesh_load(filename);
 	w->data2 = m;
 	w->draw = widget_window_obj_draw;
 	w->free = widget_window_obj_free;
@@ -850,9 +828,9 @@ widget* spawn_obj(char* filename)
 widget* spawn_voxobj(char* filename)
 {
 //	widget *w = widget_window_new(100, 100, filename);
-	WF_OBJ *m = wf_load(filename);
-	extern WF_OBJ *vobj;
-	if(vobj)wf_free(vobj);
+	struct MESH_OPENGL *m = mesh_load(filename);
+	extern struct MESH_OPENGL *vobj;
+	if(vobj)mesh_free(vobj);
 	vobj = m;
 	voxel_open();
 

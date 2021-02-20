@@ -3,9 +3,11 @@ COMPANY = Daniel Burke
 COPYRIGHT = 2013-2019
 DESCRIPTION = Voxel Prototype
 BINARY_NAME = voxel
-OBJS = version.o log.o global.o stb_image.o stb_truetype.o fontstash.o fast_atof.o image.o main.o mesh.o 3dmaths.o gui.o text.o shader.o gpuinfo.o
+OBJS = version.o log.o global.o stb_truetype.o fontstash.o \
+	main.o mesh.o mesh_gl.o 3dmaths.o gui.o text.o shader.o \
+	gpuinfo.o stb_ds.o stb_image.o
 CFLAGS = -std=c11 -Wall -isystem deps -Ideps/dpb/src
-VPATH = src build deps deps/dpb/src
+VPATH = src build deps deps/dpb/src deps/dpb/deps
 
 WIN_LIBS = -luser32 -lwinmm -lgdi32 -lshell32 -lopengl32 -lws2_32 -lxinput9_1_0
 LIN_LIBS = -lm -lGL -lX11 -lGLU -lXi -ldl
