@@ -7,9 +7,9 @@ OBJS = version.o log.o global.o stb_image.o stb_truetype.o fontstash.o fast_atof
 CFLAGS = -std=c11 -Wall -isystem deps -Ideps/dpb/src
 VPATH = src build deps deps/dpb/src
 
-WIN_LIBS = `which opencl.dll` -luser32 -lwinmm -lgdi32 -lshell32 -lopengl32 -lws2_32 -lxinput9_1_0
-LIN_LIBS = -lm -lGL -lX11 -lGLU -lXi -ldl -lOpenCL
-MAC_LIBS = -F/System/Library/Frameworks -F. -framework OpenGL -framework CoreVideo -framework Cocoa -framework IOKit -framework OpenCL -framework ForceFeedback
+WIN_LIBS = -luser32 -lwinmm -lgdi32 -lshell32 -lopengl32 -lws2_32 -lxinput9_1_0
+LIN_LIBS = -lm -lGL -lX11 -lGLU -lXi -ldl
+MAC_LIBS = -F/System/Library/Frameworks -F. -framework OpenGL -framework CoreVideo -framework Cocoa -framework IOKit -framework ForceFeedback
 
 _WIN_OBJS = $(OBJS) glew.o win32.o gfx_gl_win.o win32.res clvoxel.o
 _LIN_OBJS = $(OBJS) glew.o linux_xlib.o gfx_gl_lin.o clvoxel.o
