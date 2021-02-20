@@ -48,7 +48,6 @@ int b_edge = 64;
 #define B_COUNT (b_edge*b_edge*b_edge)
 int np_size = 100000;
 
-int voxel_rebuildkernel_flag=0;
 int voxel_rebuildshader_flag=0;
 
 GLSLSHADER *s_Voxel=NULL;
@@ -102,10 +101,6 @@ void voxel_rebuildshader(widget* foo)
 	voxel_rebuildshader_flag = 1;
 }
 
-void voxel_rebuildkernel(widget* foo)
-{
-	voxel_rebuildkernel_flag = 1;
-}
 
 GLuint vox_3Dtex(int3 size, int format, int interp)
 {
