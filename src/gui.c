@@ -1509,12 +1509,6 @@ widget* widget_menu_separator_add(widget *item)
 }
 
 
-void menu_http_toggle(widget *w)
-{
-	http_accepting_new_clients = !http_accepting_new_clients;
-}
-
-
 int frame_number = 0;
 #define MAX_FRAMES 60
 long frame_time[MAX_FRAMES];
@@ -1581,14 +1575,6 @@ int gui_init(int argc, char *argv[])
 //	widget_menu_item_add(item, "Rebuild Kernels", voxel_rebuildkernel);
 //	widget_menu_item_add(item, "Rebuild Shaders", voxel_rebuildshader);
 
-	item = widget_menu_add(menu, "Input");
-	w = widget_menu_item_add(item, "     Accepting Tablets",
-		menu_http_toggle);
-	w->draw = widget_menu_bool_draw;
-	w->data2 = &http_accepting_new_clients;
-	w = widget_menu_item_add(item, "Authorised Devices", spawn_http_auth );
-	w = widget_menu_item_add(item, "Pending Authorisation", spawn_http_pend);
-
 	item = widget_menu_add(menu, "Help");
 	widget_menu_item_add(item, "Overview \u2560", 0);
 	widget_menu_item_add(item, "Wiki \u26a0", 0);
@@ -1603,70 +1589,6 @@ int gui_init(int argc, char *argv[])
 	last_time = sys_time();
 	return 0;
 }
-
-
-void gui_http_draw(void)
-{
-	if(!http_accepting_new_clients)return;
-
-	float shade = 0.1;
-
-	glColor4f(shade,shade,shade,0.5);
-	int x = 20;
-	int y = vid_height - 200;
-
-	int min_w = 10;
-
-	char stop[] = "Stop accepting connections";
-
-	fonsSetSize(fs, 20.0f);
-	fonsSetFont(fs, fontSansBold);
-	float width;
-	width = fonsTextBounds(fs, 0, 0, stop, NULL, NULL);
-
-	min_w = width;
-
-
-	for(int i=0; i< http_num_pending; i++)
-	{
-		width = fonsTextBounds(fs, 0, 0, http_get_name_pending(i), NULL, NULL);
-
-		int tmp_w = width;
-
-		if(min_w < tmp_w)min_w = tmp_w;
-	}
-
-	min_w += 20;
-
-	glLoadIdentity();
-	glTranslatef(x, y, 0);
-
-	draw_rect( min_w+20, 40 * (http_num_pending+1) + 20);
-	glTranslatef(10, -10, 0);
-
-	for(int i=0; i<= http_num_pending; i++)
-	{
-		draw_rect( min_w, 30);
-		glTranslatef(0, -40, 0);
-	}
-
-	glLoadIdentity();
-	glTranslatef(x, y, 0);
-
-
-	glColor4f(1,1,1,1);
-	fonsDrawText(fs, 20, -30, stop, NULL);
-
-	for(int i=0; i< http_num_pending; i++)
-	{
-		fonsDrawText(fs, 20, -i*40-70, http_get_name_pending(i), NULL);
-	}
-
-	glLoadIdentity();
-
-}
-
-
 
 
 void gui_input(void)
@@ -1739,7 +1661,6 @@ void gui_draw(void)
 	}
 #endif
 
-	gui_http_draw();
 }
 
 

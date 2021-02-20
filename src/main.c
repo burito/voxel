@@ -108,7 +108,6 @@ int main_init(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
 	time_start = sys_time();
-	http_init();
 	voxel_init();
 
 	return gui_init(argc, argv);
@@ -204,8 +203,6 @@ void main_loop(void)
 	voxel_loop();
 	ocl_loop();
 	gui_draw();
-	http_loop();
-
 	gfx_swap();
 }
 
@@ -217,6 +214,5 @@ void main_end(void)
 	voxel_end();
 	ocl_end();
 	gui_end();
-	http_end();
 	gfx_end();
 }
