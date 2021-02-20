@@ -30,14 +30,11 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <math.h>
 
-#include "ocl.h"
-
 #include "global.h"
 #include "mesh.h"
 #include "gui.h"
 #include "clvoxel.h"
 #include "gpuinfo.h"
-#include "http.h"
 #include "shader.h"
 
 
@@ -67,7 +64,6 @@ void gfx_swap(void);
 long long time_start = 0;
 float time = 0;
 
-OCLCONTEXT *ocl=NULL;
 GLSLSHADER *shader_default=NULL;
 
 int main_init(int argc, char *argv[])
@@ -96,8 +92,6 @@ int main_init(int argc, char *argv[])
 
 	shader_default = shader_load("data/shaders/default.vert",
 			"data/shaders/default.frag");
-
-	ocl_init();
 
 	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
@@ -201,7 +195,6 @@ void main_loop(void)
 
 	gui_input();
 	voxel_loop();
-	ocl_loop();
 	gui_draw();
 	gfx_swap();
 }
@@ -212,7 +205,6 @@ void main_end(void)
 	gpuinfo_end();
 #endif
 	voxel_end();
-	ocl_end();
 	gui_end();
 	gfx_end();
 }

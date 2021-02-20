@@ -21,9 +21,6 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-
-extern int use_glsl;
-
 void voxel_init(void);
 void voxel_loop(void);
 void voxel_end(void);
@@ -32,4 +29,3 @@ void voxel_open(void);
 
 void voxel_rebuildkernel(widget* foo);
 void voxel_rebuildshader(widget* foo);
-
