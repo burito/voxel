@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2012 Daniel Burke
+Copyright (c) 2012,2020 Daniel Burke
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -22,238 +22,463 @@ freely, subject to the following restrictions:
 */
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h>
 #else
 #include <GL/glew.h>
 #endif
-
-#include "log.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <string.h>
 
-#include "text.h"
+#include "glerror.h"
 #include "shader.h"
+#include "log.h"
 
+char *shader_header = NULL;
+char shader_empty[] = "";
 
-static void printShaderInfoLog(GLuint obj)
+/*
+ * Read a text file into a char* buffer, allocating the buffer
+ */
+char* textfile_load(char *filename)
 {
-	int infologLength = 0;
-	int charsWritten  = 0;
-	char *infoLog;
-
-	glGetShaderiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
-
-	if (infologLength > 0)
+	char *buffer = NULL;
+	// open the file
+	FILE *fptr = fopen(filename, "rb");
+	if(!fptr)
 	{
-		infoLog = (char *)malloc(infologLength);
-		glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-		log_warning("%s",infoLog);
-		free(infoLog);
+		log_error("fopen(%s) = %s", filename, strerror(errno));
+		goto TEXTFILE_LOAD_FOPEN;
 	}
+	// find the files size
+	struct stat stbuf;
+	stat(filename, &stbuf);
+	size_t size = stbuf.st_size;
+	if(size <= 0)
+	{
+		log_warning("file is empty");
+		goto TEXTFILE_LOAD_SUCCESS;
+	}
+	// allocate the buffer
+	buffer = malloc(size+1);
+	if( buffer == NULL )
+	{
+		log_fatal("malloc(buffer) = %s", strerror(errno));
+		goto TEXTFILE_LOAD_MALLOC;
+	}
+	// place the terminating null byte
+	buffer[size] = 0;
+	size_t bytes_read = fread(buffer, 1, size, fptr);
+	if( bytes_read == size )
+	{
+		goto TEXTFILE_LOAD_SUCCESS;
+	}
+
+	// something went wrong
+	log_warning("Read %d/%d bytes", (int)bytes_read, (int)size);
+
+	free(buffer);
+	buffer = NULL;
+TEXTFILE_LOAD_MALLOC:
+TEXTFILE_LOAD_SUCCESS:
+	fclose(fptr);
+TEXTFILE_LOAD_FOPEN:
+	return buffer;
 }
 
 
-static void printProgramInfoLog(GLuint obj)
+
+
+
+/*
+ * Load and compile a shader file
+ */
+static GLuint shader_fileload(GLenum shaderType, char * filename)
 {
-	int infologLength = 0;
-	int charsWritten  = 0;
-	char *infoLog;
-
-	glGetProgramiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
-
-	if (infologLength > 0)
+	GLuint id = 0;
+	// load the file
+	char *buffer;
+	buffer = textfile_load(filename);
+	if( buffer == NULL )
 	{
-		infoLog = (char *)malloc(infologLength);
-		glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-		log_warning("%s",infoLog);
-		free(infoLog);
+		log_error("Loading %d failed", filename);
+		goto SHADER_FILELOAD_TEXTFILE_LOAD;
 	}
+
+	// create the shader handle
+	id = glCreateShader(shaderType);
+	if( id == 0 )
+	{
+		log_error("glCreateShader(%s)", glerr_ShaderType(shaderType) );
+		goto SHADER_FILELOAD_CREATESHADER;
+	}
+
+	// give the shader source to OpenGL
+	glShaderSource(id, 1, (const GLchar**)&buffer, NULL);
+
+	// compile the shader
+	glCompileShader(id);
+
+	// get the compile status
+	GLint params = 0;
+	glGetShaderiv(id, GL_COMPILE_STATUS, &params);
+
+	// if it worked
+	if(params == GL_TRUE)
+	{
+		goto SHADER_FILELOAD_SUCCESS;
+	}
+
+	// it didn't work
+	char *infoLog = NULL;
+
+	// get the length of the error log
+	GLint infologLength = 0;
+	glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infologLength);
+	if( infologLength <= 0 )
+	{
+		log_warning("Infolog empty");
+		goto SHADER_FILELOAD_INFOLOG;
+	}
+
+	// allocate a buffer for the infolog
+	infoLog = malloc(infologLength);
+	if( infoLog == NULL )
+	{
+		log_fatal("malloc(infolog) = %s", strerror(errno));
+		goto SHADER_FILELOAD_INFOLOG;
+	}
+
+	// get the infolog into our buffer
+	GLsizei length;
+	glGetShaderInfoLog(id, infologLength, &length, infoLog);
+	if( infologLength != ((int)length + 1) )
+	{
+		log_warning("InfoLog was %d/%d", (int)length, (int)infologLength);
+	}
+
+	// output the infolog
+	log_warning("%s compile for \"%s\" failed\n%s", glerr_ShaderType(shaderType), filename, infoLog);
+
+	free(infoLog);
+
+	// clean everything up
+SHADER_FILELOAD_INFOLOG:
+	glDeleteShader(id);
+	id = 0;
+SHADER_FILELOAD_CREATESHADER:
+SHADER_FILELOAD_SUCCESS:
+	free(buffer);
+SHADER_FILELOAD_TEXTFILE_LOAD:
+	return id;
 }
 
-
-static GLuint shader_fileload(int type, char * filename)
+static void shader_unifind(struct GLSLSHADER *shader)
 {
-	GLuint x;
-	int param;
-	char *buf = loadTextFile(filename);
-
-	x = glCreateShader(type);
-	glShaderSource(x, 1, (const GLchar**)&buf, NULL);
-	free(buf);
-	glCompileShader(x);
-	glGetShaderiv(x, GL_COMPILE_STATUS, &param);
-	if(param == GL_FALSE)
+	if(!shader)return;
+	if(!shader->happy)return;
+	for(int i=0; i<shader->uniform_num; i++)
 	{
-		log_error("Shader compile of \"%s\" went as expected", filename);
-		printShaderInfoLog(x);
-		glDeleteShader(x);
-		x = 0;
-	}
-	return x;
-}
-
-static void shader_unifind(GLSLSHADER *s)
-{
-	if(!s)return;
-	if(!s->happy)return;
-	for(int i=0; i<s->unif_num; i++)
-	{
-		s->unif[i] = glGetUniformLocation(s->prog, s->unif_name[i]);
-		if(-1 == s->unif[i])
+		shader->uniforms[i] = glGetUniformLocation(shader->program, shader->uniform_names[i]);
+		if(-1 == shader->uniforms[i])
 		{
-			log_warning("\x1b[1m%s:\x1b[0m uniform \"%s\" not found",
-				s->fragfile, s->unif_name[i]);
+			printf("Shader(\"%s\")uniform(\"%s\"):Not Found\n",
+				shader->fragment_filename, shader->uniform_names[i]);
 		}
 	}
 }
 
 #ifndef __APPLE__
-static void shader_buffind(GLSLSHADER *s)
+static void shader_buffind(struct GLSLSHADER *shader)
 {
-	if(!s)return;
-	if(!s->happy)return;
-	for(int i=0; i<s->buf_num; i++)
+	if(!shader)return;
+	if(!shader->happy)return;
+	for(int i=0; i<shader->buffer_num; i++)
 	{
-		s->buf[i] = glGetUniformBlockIndex(s->prog, s->buf_name[i]);
-		glUniformBlockBinding(s->prog, s->buf[i], i);
-		if(-1 == s->buf[i])
+		shader->buffers[i] = glGetUniformBlockIndex(shader->program, shader->buffer_names[i]);
+		glUniformBlockBinding(shader->program, shader->buffers[i], i);
+		if(-1 == shader->buffers[i])
 		{
-			log_warning("Shader(\"%s\")block(\"%s\"):Not Found",
-				s->fragfile, s->buf_name[i]);
+			printf("Shader(\"%s\")block(\"%s\"):Not Found\n",
+				shader->fragment_filename, shader->buffer_names[i]);
 		}
 	}
 }
 #endif
 
 
-
-void shader_rebuild(GLSLSHADER *s)
+/*
+ * (Re)Loads and (Re)Builds the given shader.
+ */
+void shader_rebuild(struct GLSLSHADER *shader)
 {
-	if(s->vert) { glDeleteShader(s->vert); s->vert = 0; }
-	if(s->frag) { glDeleteShader(s->frag); s->frag = 0; }
-	if(s->prog) { glDeleteProgram(s->prog);s->prog = 0; }
-	s->happy = 0;
-
-	s->prog = glCreateProgram();
-	if(s->vertfile)
+	// if we're rebuilding, release the old shader first
+	if( shader->program )
 	{
-		s->vert = shader_fileload(GL_VERTEX_SHADER, s->vertfile);
-		s->frag = shader_fileload(GL_FRAGMENT_SHADER, s->fragfile);
-		if(!s->vert)return;
-		if(!s->frag)return;
-		glAttachShader(s->prog, s->vert);
-		glAttachShader(s->prog, s->frag);
+		glDeleteProgram(shader->program);
+		shader->program = 0;
+	}
+	if(shader->vertex)
+	{
+		glDeleteShader(shader->vertex);
+		shader->vertex = 0;
+	}
+	if(shader->fragment)
+	{
+		glDeleteShader(shader->fragment);
+		shader->fragment = 0;
+	}
+	shader->happy = 0;
+
+	// We need a program to attach the shaders to
+	shader->program = glCreateProgram();
+
+	// if there is a vertex shader, it's a normal shader
+	if(shader->vertex_filename)
+	{
+		shader->vertex = shader_fileload(GL_VERTEX_SHADER, shader->vertex_filename);
+		shader->fragment = shader_fileload(GL_FRAGMENT_SHADER, shader->fragment_filename);
+		if(!shader->vertex)return;
+		if(!shader->fragment)return;
+		glAttachShader(shader->program, shader->vertex);
+		glAttachShader(shader->program, shader->fragment);
 	}
 	else
-	{
+	{ // else it's a compute shader
 #ifndef __APPLE__
-		s->frag = shader_fileload(GL_COMPUTE_SHADER, s->fragfile);
+		shader->fragment = shader_fileload(GL_COMPUTE_SHADER, shader->fragment_filename);
 #endif
-		if(!s->frag)return;
-		glAttachShader(s->prog, s->frag);
+		if(!shader->fragment)return;
+		glAttachShader(shader->program, shader->fragment);
 	}
-	glLinkProgram(s->prog);
-	GLint param;
-	glGetProgramiv(s->prog, GL_LINK_STATUS, &param);
-	if(param == GL_FALSE)
+	// attempt to link the shaders into a program
+	glLinkProgram(shader->program);
+
+	// get the status of the linking
+	GLint params;
+	glGetProgramiv(shader->program, GL_LINK_STATUS, &params);
+
+	// if it worked
+	if(params == GL_TRUE)
 	{
-		log_error("Shader linking went as expected");
-		printProgramInfoLog(s->prog);
+		shader->happy = 1;
+		shader_unifind(shader);
+//		shader_buffind(shader);
+		return;
 	}
-	else
+
+	// it didn't work
+	char *infoLog = NULL;
+
+	// get the length of the error log
+	GLint infologLength = 0;
+	glGetProgramiv(shader->program, GL_INFO_LOG_LENGTH, &infologLength);
+	if( infologLength <= 0 )
 	{
-		s->happy = 1;
-		shader_unifind(s);
-//		shader_buffind(s);
+		log_warning("Link Infolog for (\"%s\", \"%s\") empty",
+			shader->vertex_filename,
+			shader->fragment_filename);
+		return;
 	}
+
+	// allocate a buffer for the infolog
+	infoLog = malloc(infologLength);
+	if( infoLog == NULL )
+	{
+		log_fatal("malloc(infolog) = %s", strerror(errno));
+		return;
+	}
+
+	// get the infolog into our buffer
+	GLsizei length;
+	glGetProgramInfoLog(shader->program, infologLength, &length, infoLog);
+	if( infologLength != ((int)length + 1) )
+	{
+		log_warning("InfoLog was %d/%d", (int)length, (int)infologLength);
+	}
+
+	// output the infolog
+	log_warning("Shader Linking for (%d, %d) failed\n%s", shader->vertex_filename, shader->fragment_filename, infoLog);
+
+	free(infoLog);
 }
 
-
-GLSLSHADER* shader_load(char *vertfile, char *fragfile)
+/*
+ * Load a Vertex & Fragment Shader, compile and link them
+ */
+struct GLSLSHADER* shader_load(char *vertex_filename, char *fragment_filename)
 {
-	GLSLSHADER *s = malloc(sizeof(GLSLSHADER));
-	if(s == NULL)
+	// allocate memory for the structure
+	struct GLSLSHADER *shader = NULL;
+	shader = malloc(sizeof(struct GLSLSHADER));
+	if( shader == NULL )
 	{
-		log_fatal("malloc()");
-		return 0;
+		log_error("malloc(shader) = %s", strerror(errno));
+		goto SHADER_LOAD_MALLOC;
 	}
-	memset(s, 0, sizeof(GLSLSHADER));
-	s->vertfile = hcopy(vertfile);
-	s->fragfile = hcopy(fragfile);
-	shader_rebuild(s);
-	return s;
+	// clear the newly allocated structure
+	memset(shader, 0, sizeof(struct GLSLSHADER));
+
+	// if present, copy the vertex shader filename
+	if( vertex_filename != NULL )
+	{
+		shader->vertex_filename = strdup(vertex_filename);
+		if( shader->vertex_filename == NULL )
+		{
+			log_error("strdup(vertex_filename) = %d", strerror(errno));
+			goto SHADER_LOAD_STRDUP_VERTEX;
+		}
+	}
+
+	// if present, copy the fragment shader filename
+	if( fragment_filename != NULL )
+	{
+		shader->fragment_filename = strdup(fragment_filename);
+		if( shader->fragment_filename == NULL )
+		{
+			log_error("strdup(fragment_filename) = %d", strerror(errno));
+			goto SHADER_LOAD_STRDUP_FRAGMENT;
+		}
+	}
+
+	// now build the shader
+	shader_rebuild(shader);
+
+	// everything worked
+	goto SHADER_LOAD_SUCCESS;
+
+	if( shader->fragment_filename != NULL)
+	{
+		free(shader->fragment_filename);
+		shader->fragment_filename = NULL;
+	}
+SHADER_LOAD_STRDUP_FRAGMENT:
+
+	if( shader->vertex_filename != NULL)
+	{
+		free(shader->vertex_filename);
+		shader->vertex_filename = NULL;
+	}
+SHADER_LOAD_STRDUP_VERTEX:
+	free(shader);
+	shader = NULL;
+SHADER_LOAD_MALLOC:
+SHADER_LOAD_SUCCESS:
+	return shader;
 }
 
-void shader_free(GLSLSHADER* s)
+/*
+ * Release the resources and memory associated with a shader
+ */
+void shader_free(struct GLSLSHADER* shader)
 {
-	if(!s)return;
+	if( shader == NULL )
+	{
+		log_warning("Tried to free NULL");
+		return;
+	}
 
-	if(s->vertfile)free(s->vertfile);
-	if(s->fragfile)free(s->fragfile);
+	if(shader->vertex_filename)free(shader->vertex_filename);
+	if(shader->fragment_filename)free(shader->fragment_filename);
 
-	if(s->vert)glDeleteShader(s->vert);
-	if(s->frag)glDeleteShader(s->frag);
-	if(s->prog)glDeleteProgram(s->prog);
+	if(shader->vertex)glDeleteShader(shader->vertex);
+	if(shader->fragment)glDeleteShader(shader->fragment);
+	if(shader->program)glDeleteProgram(shader->program);
 
-	if(s->unif_name)free(s->unif_name);
-	if(s->unif)free(s->unif);
-	if(s->buf_name)free(s->buf_name);
-	if(s->buf)free(s->buf);
+	if(shader->uniform_names)
+	{
+		for(int i=0; i<shader->uniform_num; i++)
+			if(shader->uniform_names[i] != NULL)
+				free(shader->uniform_names[i]);
 
-	free(s);
+		free(shader->uniform_names);
+	}
+	if(shader->uniforms)free(shader->uniforms);
+
+
+	if(shader->buffer_names)
+	{
+		for(int i=0; i<shader->buffer_num; i++)
+			if(shader->buffer_names[i] != NULL)
+				free(shader->buffer_names[i]);
+
+		free(shader->buffer_names);
+	}
+	if(shader->buffers)free(shader->buffers);
+
+	free(shader);
 }
 
-void shader_uniform(GLSLSHADER *s, char *name)
+/*
+ * Search for a Shader Uniform by name, adding it to a list of uniforms
+ * so that we can find it again if/when we recompile the shader
+ */
+void shader_uniform(struct GLSLSHADER *shader, char *name)
 {
-	if(!s)return;
-	int i = s->unif_num++;
+	if(!shader)return;
+	int i = shader->uniform_num++;
 	void* tmp;
 	// Realloc the name array
-	tmp = realloc(s->unif_name, sizeof(char*)*s->unif_num);
-	if(!tmp)log_fatal("realloc()");
-	s->unif_name = tmp;
-	s->unif_name[i] = hcopy(name);
-	// realloc the uniform location id array
-	tmp = realloc(s->unif, sizeof(GLint)*s->unif_num);
-	if(!tmp)log_fatal("realloc()");
-	s->unif = tmp;
-	s->unif[i] = glGetUniformLocation(s->prog, name);
-	// Check if we found the uniform
-	if(-1 == s->unif[i])
+	tmp = realloc(shader->uniform_names, sizeof(char*)*shader->uniform_num);
+	if(tmp == NULL)
 	{
-		log_warning("\x1b[1m%s:\x1b[0m uniform \"%s\" not found",
-				s->fragfile, s->unif_name[i]);
+		log_fatal("realloc(uniform_names) = %s", strerror(errno));
+	}
+	shader->uniform_names = tmp;
+	shader->uniform_names[i] = strdup(name);
+	// realloc the uniform location id array
+	tmp = realloc(shader->uniforms, sizeof(GLint)*shader->uniform_num);
+	if(tmp == NULL)
+	{
+		log_fatal("realloc(uniforms) = %s", strerror(errno));
+	}
+	shader->uniforms = tmp;
+	shader->uniforms[i] = glGetUniformLocation(shader->program, name);
+	// Check if we found the uniform
+	if(-1 == shader->uniforms[i])
+	{
+		log_warning("Shader(\"%s\")uniform(\"%s\"):Not Found",
+			shader->fragment_filename, shader->uniform_names[i]);
 	}
 }
 
 #ifndef __APPLE__
-void shader_buffer(GLSLSHADER *s, char *name)
+/*
+ * Search for a Shader Buffer by name, adding it to a list of uniforms
+ * so that we can find it again if/when we recompile the shader
+ */
+void shader_buffer(struct GLSLSHADER *shader, char *name)
 {
-	if(!s)return;
-	int i = s->buf_num++;
+	if(!shader)return;
+	int i = shader->buffer_num++;
 	void* tmp;
 	// Realloc the name array
-	tmp = realloc(s->buf_name, sizeof(char*)*s->buf_num);
-	if(!tmp)log_fatal("realloc()");
-	s->buf_name = tmp;
-	s->buf_name[i] = hcopy(name);
-	// realloc the uniform location id array
-	tmp = realloc(s->buf, sizeof(GLint)*s->buf_num);
-	if(!tmp)log_fatal("realloc()");
-	s->buf = tmp;
-	s->buf[i] = glGetUniformBlockIndex(s->prog, name);
-	// Check if we found the uniform
-	if(-1 == s->buf[i])
+	tmp = realloc(shader->buffer_names, sizeof(char*)*shader->buffer_num);
+	if(tmp == NULL)
 	{
-		log_error("Shader(\"%s\")buffer(\"%s\"):Not Found",
-				s->fragfile, s->buf_name[i]);
+		log_fatal("realloc(buffer_names) = %s", strerror(errno));
+	}
+	shader->buffer_names = tmp;
+	shader->buffer_names[i] = strdup(name);
+	// realloc the buffer location id array
+	tmp = realloc(shader->buffers, sizeof(GLint)*shader->buffer_num);
+	if(tmp == NULL)
+	{
+		log_fatal("realloc(buffers) = %s", strerror(errno));
+	}
+	shader->buffers = tmp;
+	shader->buffers[i] = glGetUniformBlockIndex(shader->program, name);
+	// Check if we found the buffer
+	if(-1 == shader->buffers[i])
+	{
+		log_warning("Shader(\"%s\")buffer(\"%s\"):Not Found",
+				shader->fragment_filename, shader->buffer_names[i]);
 	}
 	else
 	{
-		glUniformBlockBinding(s->prog, s->buf[i], i);
+		glUniformBlockBinding(shader->program, shader->buffers[i], i);
 	}
 }
 #endif
@@ -276,7 +501,7 @@ int available_vram(void)
 	}
 	else
 	{
-		log_warning("I don't know if there is VRAM available");
+		printf("I don't know if there is VRAM available\n");
 	}
 	return 0;
 }
@@ -458,34 +683,5 @@ GLint glBaseType(GLint SizedInternalFormat)
 	case GL_RGBA12:
 	default:
 		return 0;
-	}
-}
-
-/* Produces a string from the glGetError() return value */
-// http://www.opengl.org/sdk/docs/man4/xhtml/glGetError.xml
-char* glError(int error)
-{
-	switch(error)
-	{
-		case GL_NO_ERROR:
-			return "GL_NO_ERROR";
-		case GL_INVALID_ENUM:
-			return "GL_INVALID_ENUM";
-		case GL_INVALID_VALUE:
-			return "GL_INVALID_VALUE";
-		case GL_INVALID_OPERATION:
-			return "GL_INVALID_OPERATION";
-		case GL_INVALID_FRAMEBUFFER_OPERATION:
-			return "GL_INVALID_FRAMEBUFFER_OPERATION";
-		case GL_OUT_OF_MEMORY:
-			return "GL_OUT_OF_MEMORY";
-		case GL_STACK_UNDERFLOW:
-			return "GL_STACK_UNDERFLOW";
-		case GL_STACK_OVERFLOW:
-			return "GL_STACK_OVERFLOW";
-		case GL_TABLE_TOO_LARGE: // defined where?
-			return "GL_TABLE_TOO_LARGE";
-		default:
-			return "Unknown Error!";
 	}
 }

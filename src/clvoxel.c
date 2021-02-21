@@ -39,7 +39,6 @@ freely, subject to the following restrictions:
 #include "gui.h"
 #include "clvoxel.h"
 #include "shader.h"
-#include "text.h"
 #include "mesh_gl.h"
 
 
@@ -50,18 +49,18 @@ int np_size = 100000;
 
 int voxel_rebuildshader_flag=0;
 
-GLSLSHADER *s_Voxel=NULL;
+struct GLSLSHADER *s_Voxel=NULL;
 GLuint v_nn, v_nb, v_nut, v_nrt, v_brt, v_but;
-GLSLSHADER *s_Brick=NULL;
-GLSLSHADER *s_BrickDry=NULL;
-GLSLSHADER *s_NodeClear=NULL;
-GLSLSHADER *s_NodeTerminate=NULL;
-GLSLSHADER *s_NodeLRUReset=NULL;
-GLSLSHADER *s_NodeLRUSort=NULL;
-GLSLSHADER *s_BrickLRUReset=NULL;
-GLSLSHADER *s_BrickLRUSort=NULL;
-GLSLSHADER *s_NodeAlloc=NULL;
-GLSLSHADER *s_BrickAlloc=NULL;
+struct GLSLSHADER *s_Brick=NULL;
+struct GLSLSHADER *s_BrickDry=NULL;
+struct GLSLSHADER *s_NodeClear=NULL;
+struct GLSLSHADER *s_NodeTerminate=NULL;
+struct GLSLSHADER *s_NodeLRUReset=NULL;
+struct GLSLSHADER *s_NodeLRUSort=NULL;
+struct GLSLSHADER *s_BrickLRUReset=NULL;
+struct GLSLSHADER *s_BrickLRUSort=NULL;
+struct GLSLSHADER *s_NodeAlloc=NULL;
+struct GLSLSHADER *s_BrickAlloc=NULL;
 GLuint atomics;
 GLuint atomic_read;
 
@@ -176,7 +175,7 @@ void voxel_atom(int x, int y)
 
 void voxel_NodeClear(void)
 {
-	glUseProgram(s_NodeClear->prog);
+	glUseProgram(s_NodeClear->program);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNB); // nb
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bNL); // nl
@@ -186,7 +185,7 @@ void voxel_NodeClear(void)
 
 void voxel_NodeTerminate(void)
 {
-	glUseProgram(s_NodeTerminate->prog);
+	glUseProgram(s_NodeTerminate->program);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bNN); // nn
 	glDispatchCompute(np_size/10, 10, 8);
 	glUseProgram(0);
@@ -195,12 +194,12 @@ void voxel_NodeTerminate(void)
 
 void voxel_NodeLRUReset(int frame)
 {
-	glUseProgram(s_NodeLRUReset->prog);
+	glUseProgram(s_NodeLRUReset->program);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bNUT); // nut
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNLU); // nLRU
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bNRT); // nrt
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bBRT); // brq
-	glUniform1i(s_NodeLRUReset->unif[0], frame);
+	glUniform1i(s_NodeLRUReset->uniforms[0], frame);
 	glDispatchCompute(np_size / 10, 10, 1);
 	glUseProgram(0);
 }
@@ -208,11 +207,11 @@ void voxel_NodeLRUReset(int frame)
 
 void voxel_BrickLRUReset(int frame)
 {
-	glUseProgram(s_BrickLRUReset->prog);
+	glUseProgram(s_BrickLRUReset->program);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bBUT); // but
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bBLU); // bLRU
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bBL); // bL
-	glUniform1i(s_BrickLRUReset->unif[0], frame);
+	glUniform1i(s_BrickLRUReset->uniforms[0], frame);
 	glDispatchCompute(b_edge, b_edge, b_edge);
 	glUseProgram(0);
 }
@@ -220,7 +219,7 @@ void voxel_BrickLRUReset(int frame)
 
 void voxel_NodeLRUSort(int frame)
 {
-	glUseProgram(s_NodeLRUSort->prog);
+	glUseProgram(s_NodeLRUSort->program);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNUT); // nut
@@ -234,7 +233,7 @@ void voxel_NodeLRUSort(int frame)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bNLO); // nLRUo
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bNLU); // nLRU
 	}
-	glUniform1i(s_NodeLRUSort->unif[0], frame);
+	glUniform1i(s_NodeLRUSort->uniforms[0], frame);
 	glDispatchCompute(np_size/10, 10, 1);
 	glUseProgram(0);
 }
@@ -242,7 +241,7 @@ void voxel_NodeLRUSort(int frame)
 
 void voxel_BrickLRUSort(int frame)
 {
-	glUseProgram(s_BrickLRUSort->prog);
+	glUseProgram(s_BrickLRUSort->program);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bBUT); // but
@@ -256,7 +255,7 @@ void voxel_BrickLRUSort(int frame)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bBLO); // bLRUo
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bBLU); // bLRU
 	}
-	glUniform1i(s_BrickLRUSort->unif[0], frame);
+	glUniform1i(s_BrickLRUSort->uniforms[0], frame);
 	glDispatchCompute(b_edge, b_edge, b_edge);
 	glUseProgram(0);
 }
@@ -264,7 +263,7 @@ void voxel_BrickLRUSort(int frame)
 
 void voxel_NodeAlloc(int frame)
 {
-	glUseProgram(s_NodeAlloc->prog);
+	glUseProgram(s_NodeAlloc->program);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNN); // nn
@@ -279,7 +278,7 @@ void voxel_NodeAlloc(int frame)
 
 	}
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bNL); // nl
-	glUniform1i(s_NodeAlloc->unif[0], frame);
+	glUniform1i(s_NodeAlloc->uniforms[0], frame);
 	glDispatchCompute(np_size/10, 10, 8);
 	glUseProgram(0);
 }
@@ -287,7 +286,7 @@ void voxel_NodeAlloc(int frame)
 
 void voxel_BrickAlloc(int frame)
 {
-	glUseProgram(s_BrickAlloc->prog);
+	glUseProgram(s_BrickAlloc->program);
 	voxel_atom(0, 0);
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomics);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNB); // nb
@@ -301,19 +300,19 @@ void voxel_BrickAlloc(int frame)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bBLO); // bLRUo
 	}
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, bBL); // bl
-	glUniform1i(s_BrickAlloc->unif[0], frame);
+	glUniform1i(s_BrickAlloc->uniforms[0], frame);
 
 	glActiveTexture(GL_TEXTURE0 + 4);
 	glBindTexture(GL_TEXTURE_3D, t3DBrick);
 	glBindImageTexture(4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA16F);
-	glUniform1i(s_BrickAlloc->unif[1], 4);
+	glUniform1i(s_BrickAlloc->uniforms[1], 4);
 
 	glActiveTexture(GL_TEXTURE0 + 5);
 	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
 	glBindImageTexture(5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA8);
-	glUniform1i(s_BrickAlloc->unif[2], 5);
+	glUniform1i(s_BrickAlloc->uniforms[2], 5);
 
 	glDispatchCompute(np_size/10, 10, 8);
 	glUseProgram(0);
@@ -322,36 +321,36 @@ void voxel_BrickAlloc(int frame)
 
 void voxel_Brick(int depth, int pass)
 {
-	glUseProgram(s_Brick->prog);
+	glUseProgram(s_Brick->program);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNB); // nb
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bBRT); // nb
-	glUniform1i(s_Brick->unif[0], depth);
-	glUniform1i(s_Brick->unif[1], frame);
+	glUniform1i(s_Brick->uniforms[0], depth);
+	glUniform1i(s_Brick->uniforms[1], frame);
 	glActiveTexture(GL_TEXTURE0 + 4);
 	glBindTexture(GL_TEXTURE_3D, t3DBrick);
 	glBindImageTexture(4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA16F);
-	glUniform1i(s_Brick->unif[2], 4);
+	glUniform1i(s_Brick->uniforms[2], 4);
 
 	glActiveTexture(GL_TEXTURE0 + 5);
 	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
 	glBindImageTexture(5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
 	GL_WRITE_ONLY, GL_RGBA8);
-	glUniform1i(s_Brick->unif[3], 5);
+	glUniform1i(s_Brick->uniforms[3], 5);
 
 }
 
 
 void voxel_BrickDry(int frame, int depth)
 {
-	glUseProgram(s_BrickDry->prog);
+	glUseProgram(s_BrickDry->program);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bNN); // nn
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bNB); // nb
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, bNRT); // nrt
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, bBRT); // brt
-	glUniform1i(s_BrickDry->unif[0], frame);
-	glUniform1i(s_BrickDry->unif[1], depth);
+	glUniform1i(s_BrickDry->uniforms[0], frame);
+	glUniform1i(s_BrickDry->uniforms[1], depth);
 }
 
 
@@ -359,12 +358,12 @@ void voxel_Voxel(int frame)
 {
 	if(!s_Voxel)return;
 	if(!s_Voxel->happy)return;
-	glUseProgram(s_Voxel->prog);
+	glUseProgram(s_Voxel->program);
 
-	extern vec4 pos, angle;
+	extern vec4 position, angle;
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bCamera);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 16, &pos);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 16, &position);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, 16, &angle);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -378,14 +377,14 @@ void voxel_Voxel(int frame)
 	glBindBufferBase(ssb, 5, bBRT); // brt
 	glBindBufferBase(ssb, 6, bBUT); // but
 
-	glUniform1i(s_Voxel->unif[0], frame);
+	glUniform1i(s_Voxel->uniforms[0], frame);
 
 	glActiveTexture(GL_TEXTURE0 + 4);
 
 	glBindTexture(GL_TEXTURE_3D, t3DBrick);
 	glBindImageTexture(4, t3DBrick, 0, /*layered=*/GL_TRUE, 0,
 	GL_READ_ONLY, GL_RGBA16F);
-	glUniform1i(s_Voxel->unif[1], 4);
+	glUniform1i(s_Voxel->uniforms[1], 4);
 
 	glActiveTexture(GL_TEXTURE0 + 5);
 	glBindTexture(GL_TEXTURE_3D, t3DBrickColour);
@@ -393,7 +392,7 @@ void voxel_Voxel(int frame)
 	glBindImageTexture(5, t3DBrickColour, 0, /*layered=*/GL_TRUE, 0,
 	GL_READ_ONLY, GL_RGBA8);
 
-	glUniform1i(s_Voxel->unif[2], 5);
+	glUniform1i(s_Voxel->uniforms[2], 5);
 
 }
 
@@ -704,10 +703,6 @@ int2 get_atoms(void)
 }
 
 
-extern vec4 pos;
-extern vec4 angle;
-
-
 void voxel_loop(void)
 {
 	frame++;
@@ -858,18 +853,18 @@ void voxel_loop(void)
 			glLoadIdentity();
 			glScalef(vwidth, vwidth, vwidth);
 			voxel_Brick(vdepth, frame);
-			glUniform1i(s_Brick->unif[4], 2);
+			glUniform1i(s_Brick->uniforms[4], 2);
 			mesh_draw(vobj);
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, 1, 0.0, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
-			glUniform1i(s_Brick->unif[4], 1);
+			glUniform1i(s_Brick->uniforms[4], 1);
 			mesh_draw(vobj);
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, -1, 0.0, 0);
 			glRotatef(90, 0, 1, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
-			glUniform1i(s_Brick->unif[4], 0);
+			glUniform1i(s_Brick->uniforms[4], 0);
 			mesh_draw(vobj);
 			vdepth++;
 		}

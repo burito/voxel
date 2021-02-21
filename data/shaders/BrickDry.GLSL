@@ -84,8 +84,8 @@ void find_brick(in vec3 pos, inout vec4 box)
 			if( time-1 == NodeReqTime.i[parent][child])
 				if(i < depth-1)
 					NodeReqTime.i[parent][child] = time;
-			
-		
+
+
 			break;
 		}
 		parent = tmp;
@@ -122,7 +122,7 @@ void brick_mark(in vec3 position, out vec4 box)
 			if(0 != ibpos.z)continue;
 			posoff.z = boxw;
 		}
-		
+
 		find_brick(position - posoff, box);
 	}
 
@@ -136,5 +136,3 @@ void main(void)
 
 	discard;
 }
-
-

@@ -41,14 +41,13 @@ freely, subject to the following restrictions:
 
 
 #include "3dmaths.h"
-#include "text.h"
 #include "global.h"
 #include "mesh_gl.h"
 #include "gui.h"
 
 #include "clvoxel.h"
 #include "gpuinfo.h"
-#include "http.h"
+
 
 
 #include "fontstash.h"
@@ -287,7 +286,7 @@ widget* widget_button_new(int x, int y, const char* label)
 	{
 		printf("widget_new() failed\n");
 	}
-	w->data = hcopy(label);
+	w->data = strdup(label);
 	w->draw = widget_button_draw;
 	w->onclick = widget_button_onclick;
 	w->release = widget_button_release;
@@ -492,7 +491,7 @@ widget* widget_window_new(int x, int y, char* title)
 	int2 p = {x, y}, s = {400, 300};
 	widget *w = widget_new(p, s);
 	w->draw = widget_window_draw;
-	w->data = hcopy(title);
+	w->data = strdup(title);
 	w->click = widget_window_click;
 	w->onclick = widget_window_onclick;
 	w->release = widget_window_release;
@@ -956,7 +955,7 @@ void spawn_open(widget *x)
 				printf("dont forget to malloc some more\n");
 				return;
 			}
-			dirs[dcnt++] = hcopy(ent->d_name);
+			dirs[dcnt++] = strdup(ent->d_name);
 		} else
 		if( S_ISREG(s.st_mode) )
 		{
@@ -968,12 +967,12 @@ void spawn_open(widget *x)
 			if(x)
 			{
 				if(strstr(ent->d_name, ".obj"))
-					files[fcnt++] = hcopy(ent->d_name);
+					files[fcnt++] = strdup(ent->d_name);
 			}
 			else
 			{
 				if(strstr(ent->d_name, ".obj"))
-					files[fcnt++] = hcopy(ent->d_name);
+					files[fcnt++] = strdup(ent->d_name);
 			}
 		}
 		else printf("Unexpected Filetype= %d \"%s\"\n", s.st_mode, ent->d_name);
@@ -1103,16 +1102,16 @@ void spawn_gpuinfo(widget *x)
 	item->fontsize = 30.0f;
 	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
-	item = widget_text_new(20, 90, hcopy(
+	item = widget_text_new(20, 90, strdup(
 		(const char*)glGetString(GL_VENDOR) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 110, hcopy(
+	item = widget_text_new(20, 110, strdup(
 		(const char*)glGetString(GL_RENDERER) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 130, hcopy(
+	item = widget_text_new(20, 130, strdup(
 		(const char*)glGetString(GL_VERSION) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 150, hcopy(
+	item = widget_text_new(20, 150, strdup(
 		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
 	widget_child_add(w, item);
 
@@ -1129,16 +1128,16 @@ void spawn_http_auth(widget *x)
 	item->fontsize = 30.0f;
 	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
-	item = widget_text_new(20, 90, hcopy(
+	item = widget_text_new(20, 90, strdup(
 		(const char*)glGetString(GL_VENDOR) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 110, hcopy(
+	item = widget_text_new(20, 110, strdup(
 		(const char*)glGetString(GL_RENDERER) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 130, hcopy(
+	item = widget_text_new(20, 130, strdup(
 		(const char*)glGetString(GL_VERSION) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 150, hcopy(
+	item = widget_text_new(20, 150, strdup(
 		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
 	widget_child_add(w, item);
 
@@ -1155,16 +1154,16 @@ void spawn_http_pend(widget *x)
 	item->fontsize = 30.0f;
 	item->fontface = fontFixedBold;
 	widget_child_add(w, item);
-	item = widget_text_new(20, 90, hcopy(
+	item = widget_text_new(20, 90, strdup(
 		(const char*)glGetString(GL_VENDOR) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 110, hcopy(
+	item = widget_text_new(20, 110, strdup(
 		(const char*)glGetString(GL_RENDERER) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 130, hcopy(
+	item = widget_text_new(20, 130, strdup(
 		(const char*)glGetString(GL_VERSION) ));
 	widget_child_add(w, item);
-	item = widget_text_new(20, 150, hcopy(
+	item = widget_text_new(20, 150, strdup(
 		(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) ));
 	widget_child_add(w, item);
 

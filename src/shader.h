@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2012 Daniel Burke
+Copyright (c) 2012,2020 Daniel Burke
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -21,29 +21,39 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-typedef struct GLSLSHADER
+struct GLSLSHADER
 {
-	GLuint prog, frag, vert;
-	int unif_num;
-	GLint *unif;
-	char **unif_name;
-	int buf_num;
-	GLint *buf;
-	char **buf_name;
-	char *fragfile, *vertfile;
+	// A flag to let us know if everything is in order
 	int happy;
-} GLSLSHADER;
+
+	// for the GL id's of the 3 components
+	GLuint program;
+	GLuint fragment;
+	GLuint vertex;
+
+	// the paths to the fragment shader files
+	char *vertex_filename;
+	char *fragment_filename;
+
+	int uniform_num;
+	GLint *uniforms;
+	char **uniform_names;
+	int buffer_num;
+	GLint *buffers;
+	char **buffer_names;
+
+};
 
 
-GLSLSHADER* shader_load(char *vertfile, char * fragfile);
-void shader_uniform(GLSLSHADER *s, char *name);
-void shader_buffer(GLSLSHADER *s, char *name);
-void shader_rebuild(GLSLSHADER *s);
-void shader_free(GLSLSHADER *s);
+struct GLSLSHADER* shader_load(char *vertex_filename, char *fragment_filename);
+void shader_uniform(struct GLSLSHADER *s, char *name);
+void shader_buffer(struct GLSLSHADER *s, char *name);
+void shader_rebuild(struct GLSLSHADER *s);
+void shader_free(struct GLSLSHADER *s);
 
 char* glError(int error);
 
+extern char *shader_header;
 int available_vram(void);
 GLint glBaseFormat(GLint);
 GLint glBaseType(GLint);
-

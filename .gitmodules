@@ -10,3 +10,6 @@
 [submodule "deps/small-matrix-inverse"]
 	path = deps/small-matrix-inverse
 	url = git@github.com:niswegmann/small-matrix-inverse
+[submodule "deps/openvr"]
+	path = deps/openvr
+	url = git@github.com:ValveSoftware/openvr
