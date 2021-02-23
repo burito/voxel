@@ -33,8 +33,7 @@ uniform int time;
 uniform int depth;
 
 in vec3 Position;
-in vec3 Normal;
-in vec2 TexCoord;
+
 out vec4 Colour;
 
 int oct_child(in vec3 pos, inout vec4 vol)
@@ -131,8 +130,10 @@ void brick_mark(in vec3 position, out vec4 box)
 
 void main(void)
 {
+	vec3 fragPosition = vec3(1.0-Position.z, Position.y, 1.0-Position.x);
+
 	vec4 box;
-	brick_mark(Position, box);
+	brick_mark(fragPosition, box);
 
 	discard;
 }

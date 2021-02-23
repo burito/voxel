@@ -42,7 +42,7 @@ layout(shared, binding=6) buffer brick_usetime { int i[]; } BrickUseTime;
 
 uniform int time;
 
-in vec2 TexCoord;
+layout (location = 2) in vec2 fragUV;
 out vec4 Colour;
 
 /**
@@ -268,16 +268,32 @@ inout vec4 normal, inout float remainder)
 	// TODO: interpolate between different resolutions
 }
 
+mat2 rot(float a)
+{
+	float c = cos(a);
+	float s = sin(a);
+	return mat2( vec2(c,s), vec2(-s,c) );
+}
 
 void main(void)
 {
-	vec2 fpos = TexCoord.xy - 0.5;
+	vec2 fpos = fragUV.xy - 0.5;
 	float difference = cam.f[0].w;	// half the width of a pixel
 	fpos -= difference;	// correct for texel offset
 	vec3 p = cam.f[0].xyz;
 	vec3 angle = cam.f[1].xyz;
 	float fov = cam.f[1].w;
 	float prat = sin(fov * (difference*2));	// pixel ratio
+
+	p.x = cam.f[0].z - 1.5 ;
+	p.y = -p.y;
+	p.z =  cam.f[0].x + 0.5;
+	angle.y = 1.5*3.14159 - angle.y;
+	angle.x = -angle.x;
+	// correct for glFrustum
+	// p.x = 0.5-p.x;
+	// p.y = -p.y;
+	// p.z = 2.5-p.z;
 
 	fpos *= fov;
 
@@ -287,6 +303,7 @@ void main(void)
 	vec3 c = cos(angle);
 	vec3 s = sin(angle);
 	vec3 t;
+
 	t.x = n.x * c.z + n.y * s.z;	// around z
 	t.y = n.x * s.z - n.y * c.z;
 
@@ -363,7 +380,11 @@ void main(void)
 		ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
 		colour.rgb += vec3( ill * lpwr);
 	}
-	else colour.rgb = vec3(0);
+	else
+	{
+		colour = vec4(vec3(0.0), 0.1);
+//		colour = vec4(0);
+	}
 	// debug information
 //	colour.b += float(i) / 50.0;
 //	colour.r = float(ib) / 15.0;
@@ -372,4 +393,3 @@ void main(void)
 	Colour = colour; //abs(normal);
 	return;
 }
-

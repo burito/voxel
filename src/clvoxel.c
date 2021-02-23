@@ -394,6 +394,15 @@ void voxel_Voxel(int frame)
 
 	glUniform1i(s_Voxel->uniforms[2], 5);
 
+	// glMatrixMode(GL_PROJECTION);
+	// glLoadIdentity();
+	// glOrtho(0, vid_width, 0, vid_height, -1000, 5000);
+	// glMatrixMode(GL_MODELVIEW);
+	// glLoadIdentity();
+	mat4x4 model = mat4x4_identity();
+	mat4x4 projection = mat4x4_glortho(0, vid_width, 0, vid_height, -1000, 5000);
+	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_FALSE, model.f);
+	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
 }
 
 void print_int(GLuint id)
@@ -604,30 +613,36 @@ void voxel_init(void)
 	bBLO = vox_glbuf(B_COUNT*4, NULL);	// BrickLRUOut
 	bBL = vox_glbuf(B_COUNT*4, NULL);	// BrickLocality
 
-	s_Voxel = shader_load("data/shaders/Vertex.GLSL","data/shaders/Voxel.GLSL");
-	s_Brick = shader_load("data/shaders/Vertex.GLSL","data/shaders/Brick.GLSL");
-	s_BrickDry = shader_load("data/shaders/Vertex.GLSL",
-							"data/shaders/BrickDry.GLSL");
-	s_NodeClear = shader_load(0, "data/shaders/NodeClear.GLSL");
-	s_NodeTerminate = shader_load(0, "data/shaders/NodeTerminate.GLSL");
-	s_NodeLRUReset = shader_load(0, "data/shaders/NodeLRUReset.GLSL");
-	s_NodeLRUSort = shader_load(0, "data/shaders/NodeLRUSort.GLSL");
-	s_BrickLRUReset = shader_load(0, "data/shaders/BrickLRUReset.GLSL");
-	s_BrickLRUSort = shader_load(0, "data/shaders/BrickLRUSort.GLSL");
-	s_NodeAlloc = shader_load(0, "data/shaders/NodeAlloc.GLSL");
-	s_BrickAlloc = shader_load(0, "data/shaders/BrickAlloc.GLSL");
+	s_Voxel = shader_load("data/shaders/new_vertex.vert","data/shaders/voxel.frag");
+	s_Brick = shader_load("data/shaders/vertex.vert","data/shaders/brick.frag");
+	s_BrickDry = shader_load("data/shaders/vertex.vert",
+							"data/shaders/brick_dry.frag");
+	s_NodeClear = shader_load(0, "data/shaders/node_clear.frag");
+	s_NodeTerminate = shader_load(0, "data/shaders/node_terminate.frag");
+	s_NodeLRUReset = shader_load(0, "data/shaders/node_lru_reset.frag");
+	s_NodeLRUSort = shader_load(0, "data/shaders/node_lru_sort.frag");
+	s_BrickLRUReset = shader_load(0, "data/shaders/brick_lru_reset.frag");
+	s_BrickLRUSort = shader_load(0, "data/shaders/brick_lru_sort.frag");
+	s_NodeAlloc = shader_load(0, "data/shaders/node_alloc.frag");
+	s_BrickAlloc = shader_load(0, "data/shaders/brick_alloc.frag");
 
 
 	shader_uniform(s_Voxel, "time");
 	shader_uniform(s_Voxel, "bricks");
 	shader_uniform(s_Voxel, "brick_col");
+	shader_uniform(s_Voxel, "modelview");
+	shader_uniform(s_Voxel, "projection");
 	shader_uniform(s_Brick, "depth");
 	shader_uniform(s_Brick, "time");
 	shader_uniform(s_Brick, "bricks");
 	shader_uniform(s_Brick, "brick_col");
 	shader_uniform(s_Brick, "pass");
+	shader_uniform(s_Brick, "modelview");
+	shader_uniform(s_Brick, "projection");
 	shader_uniform(s_BrickDry, "time");
 	shader_uniform(s_BrickDry, "depth");
+	shader_uniform(s_BrickDry, "modelview");
+	shader_uniform(s_BrickDry, "projection");
 	shader_uniform(s_NodeLRUReset, "time");
 	shader_uniform(s_NodeLRUSort, "time");
 	shader_uniform(s_BrickLRUReset, "time");
@@ -819,11 +834,22 @@ void voxel_loop(void)
 		glLoadIdentity();
 		glScalef(vwidth, vwidth, vwidth);
 
+		mat4x4 model = mat4x4_scale_float(vwidth, vwidth, vwidth);
+		mat4x4 projection = mat4x4_glortho(0, vwidth, 0, vwidth, -4000, 4000);
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_FALSE, model.f);
+		glUniformMatrix4fv(s_BrickDry->uniforms[3], 1, GL_FALSE, projection.f);
+
+
 		glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
 		glViewport(0,0,vwidth, vwidth);
 		voxel_BrickDry(frame, vdepth);
 		// render
 		mesh_draw(vobj);
+		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+		model = mul(mat4x4_rot_y( 0.5 * 3.14159 ), model);
+		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_FALSE, model.f);
+
 		glTranslatef(0.5,0.5,0.5);
 		glRotatef(90, 0, 1.0, 0);
 		glTranslatef(-0.5,-0.5,-0.5);
@@ -832,6 +858,10 @@ void voxel_loop(void)
 		glRotatef(90, 0, 0.0, 1.0);
 //		glRotatef(90, 0, 1, 0);
 		glTranslatef(-0.5,-0.5,-0.5);
+		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+		model = mul(mat4x4_rot_z( 0.5 * 3.14159 ), model);
+		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_FALSE, model.f);
 		mesh_draw(vobj);
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);

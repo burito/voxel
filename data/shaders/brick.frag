@@ -146,6 +146,7 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 
 void main(void)
 {
+	vec3 fragPosition = vec3(1.0-Position.z, Position.y, 1.0-Position.x);
 
 	vec4 normal = vec4(Normal, 1.0);
 	vec4 colour;
@@ -158,12 +159,12 @@ void main(void)
 	{
 		colour = vColour;
 	}
-//	brick_write(Position, colour, normal);
+//	brick_write(fragPosition, colour, normal);
 	vec4 box;
-	int brick = find_brick(Position, box);
+	int brick = find_brick(fragPosition, box);
 	if(0 == brick)return;
 	float delta = (box.w / float(B_SIZE-1));
-	vec3 bpos = ((Position - box.xyz) / box.w)*float(B_SIZE-1);
+	vec3 bpos = ((fragPosition - box.xyz) / box.w)*float(B_SIZE-1);
 	ivec3 ibpos = ivec3(bpos);
 	vec3 palpha = bpos - vec3(ibpos);
 
@@ -185,10 +186,10 @@ void main(void)
 		break;
 	}
 
-	brick_write(Position, colour, normal);
+	brick_write(fragPosition, colour, normal);
 	normal.w = 1;
-	brick_write(Position+vstep, colour, normal);
-	brick_write(Position+vstep*2.0, colour, normal);
+	brick_write(fragPosition+vstep, colour, normal);
+	brick_write(fragPosition+vstep*2.0, colour, normal);
 
 /*	vec3 absNorm = abs(Normal);
 	if(absNorm.x > absNorm.y)
@@ -196,12 +197,12 @@ void main(void)
 		if(absNorm.x > absNorm.z)
 		{
 			delta *= sign(Normal.x);
-			brick_write(Position+vec3(delta,0,0), colour, normal);
+			brick_write(fragPosition+vec3(delta,0,0), colour, normal);
 		}
 		else
 		{
 			delta *= sign(Normal.z);
-			brick_write(Position+vec3(0,0,delta), colour, normal);
+			brick_write(fragPosition+vec3(0,0,delta), colour, normal);
 		}
 
 	}
@@ -210,14 +211,14 @@ void main(void)
 		if(absNorm.y > absNorm.z)
 		{
 			delta *= sign(Normal.y);
-			brick_write(Position+vec3(0,delta,0), colour, normal);
+			brick_write(fragPosition+vec3(0,delta,0), colour, normal);
 
 
 		}
 		else
 		{
 			delta *= sign(Normal.z);
-			brick_write(Position+vec3(0,0,delta), colour, normal);
+			brick_write(fragPosition+vec3(0,0,delta), colour, normal);
 		}
 
 	}
