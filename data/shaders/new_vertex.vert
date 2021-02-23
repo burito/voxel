@@ -13,7 +13,7 @@ out vec2 fragUV;
 
 void main(void)
 {
-	gl_Position = vec4(inPosition, 1) * modelview * projection;
+	gl_Position = vec4(inPosition, 1) * projection;
 	fragUV = gl_MultiTexCoord0.xy;
 //	fragUV = inUV;
 //	fragNormal = inNormal;

@@ -718,7 +718,7 @@ int2 get_atoms(void)
 }
 
 
-void voxel_loop(void)
+void voxel_loop(mat4x4 modelview, mat4x4 projection)
 {
 	frame++;
 
@@ -784,6 +784,9 @@ void voxel_loop(void)
 	glOrtho(0, vid_width, 0, vid_height, -1000, 5000);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_FALSE, modelview.f);
+//	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
 
 	glColor4f(1,1,1,1);
 	glBegin(GL_QUADS);

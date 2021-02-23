@@ -43,6 +43,7 @@ freely, subject to the following restrictions:
 #include "clvoxel.h"
 #include "gpuinfo.h"
 
+#include "fluidtest.h"
 
 void gfx_init(void);
 void gfx_end(void);
@@ -94,6 +95,7 @@ int main_init(int argc, char *argv[])
 
 	time_start = sys_time();
 	voxel_init();
+	fluidtest_init();
 
 //	vr_init();
 	spacemouse_init();
@@ -125,9 +127,16 @@ void main_end(void)
 int p_swim = 0;
 
 // last digit of angle is x-fov, in radians
-vec4 position = {{0.619069, 0.644001, 1.457747, 0.0}};
-vec4 angle = {{-0.126000, -3.261001, 0.000000, M_PI*0.5}};
+//vec4 position = {{0.619069, 0.644001, 1.457747, 0.0}};
+//vec4 angle = {{-0.126000, -3.261001, 0.000000, M_PI*0.5}};
 
+// fluid pos
+vec4 position = {{1.636183, -0.490000, 1.073543, 0.0}};
+vec4 angle = {{0.021000, 0.993001, 0.000000, M_PI*0.5}};
+
+// glFrustum fluid pos
+//vec4 position = {{1.562702, -0.869279, 3.507709, 0.0}};
+//vec4 angle = {{-0.213255, 11.815352, 0.000000, M_PI*0.5}};
 
 void render(mat4x4 view, mat4x4 projection)
 {
@@ -152,7 +161,12 @@ void render(mat4x4 view, mat4x4 projection)
 	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_FALSE, projection.f);
 	glColor4f( 1., 1., 1., 1.);
 
-	voxel_loop();
+	fluidtest_draw(modelview, projection);
+
+	glColor4f( 1., 1., 1., 1.);
+	glUseProgram(0);
+
+	voxel_loop(modelview, projection);
 
 //	glDrawElements( GL_LINES, (sim->cells+1)*(sim->cells+1), GL_UNSIGNED_INT, 0 );
 	glBindVertexArray( 0 );
@@ -162,7 +176,11 @@ void render(mat4x4 view, mat4x4 projection)
 
 void main_loop(void)
 {
+	glClearColor(0.2,0.2,0.2,1.0);
+	angle.z = 0;
 	spacemouse_tick();
+	fluidtest_tick();
+
 #ifndef __APPLE__
 	gpuinfo_tick();
 #endif
@@ -172,6 +190,8 @@ void main_loop(void)
 		mat4x4 projection;
 		projection = mat4x4_perspective(1, 30, 1, (float)vid_height / (float)vid_width);
 //		projection = mat4x4_orthographic(0.1, 30, 1, (float)vid_height / (float)vid_width);
+//		float ratio = (float)vid_height / (float)vid_width;
+//		projection = mat4x4_glfrustum(-0.5, 0.5, -(ratio*0.5), ratio*0.5, 1, 30);
 		mat4x4 view = mat4x4_translate_float(0, 0, 0); // move the camera 1m above ground
 		render(view, projection);
 	}

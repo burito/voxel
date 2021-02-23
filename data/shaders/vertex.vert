@@ -22,6 +22,7 @@ freely, subject to the following restrictions:
    distribution.
 */
 
+
 varying out vec3 Position;
 varying out vec3 Normal;
 varying out vec2 TexCoord;

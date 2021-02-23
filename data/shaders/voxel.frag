@@ -29,6 +29,8 @@ precision highp int;
 
 #define B_COUNT (B_EDGE*B_EDGE*B_EDGE)
 
+uniform mat4 modelview;
+uniform mat4 projection;
 
 uniform sampler3D bricks;
 uniform sampler3D brick_col;
@@ -44,6 +46,8 @@ uniform int time;
 
 layout (location = 2) in vec2 fragUV;
 out vec4 Colour;
+
+
 
 /**
  * inside - determines if a point is inside a box
@@ -367,6 +371,8 @@ void main(void)
 	if(colour.w > 0.01)
 	{
 		vec3 nc = normalize(normal.xyz);
+		colour.rgb = mat3(modelview) * nc;
+	/*
 //		float ratio = 1.0 / length(normal.zyx);
 //		colour = colour *ratio;
 		vec3 lamb = vec3(0.7);
@@ -379,6 +385,7 @@ void main(void)
 		vec3 h = normalize( ldir + n );
 		ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
 		colour.rgb += vec3( ill * lpwr);
+	*/
 	}
 	else
 	{

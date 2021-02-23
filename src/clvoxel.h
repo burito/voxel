@@ -22,7 +22,7 @@ freely, subject to the following restrictions:
 */
 
 void voxel_init(void);
-void voxel_loop(void);
+void voxel_loop(mat4x4 modelview, mat4x4 projection);
 void voxel_end(void);
 void voxel_rebuild(widget*);
 void voxel_open(void);
