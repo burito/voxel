@@ -27,11 +27,15 @@ Load a Wavefront model with the "Voxel Load" option, then press `C` to regenerat
 
 ## Build Environment
 ### Windows
-* Install current Nvidia drivers (451.67)
-* Install [msys2-x86_64-20200629.exe](https://www.msys2.org/)
+* Install current Nvidia drivers (461.72)
+* Install [git](git-scm.com)
+* Install [msys2-x86_64-20210215.exe](https://www.msys2.org/)
 ```bash
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra git msys/man-pages-posix --disable-download-timeout
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-imagemagick mingw-w64-x86_64-clang mingw-w64-x86_64-clang-tools-extra mingw-w64-x86_64-glslang make vim man-pages-posix mingw-w64-x86_64-lldb
 ```
+* Add the following to your path...
+    * `C:\msys64\mingw64\bin`
+    * `C:\msys64\usr\bin`
 
 ### Linux
 * Install current GPU drivers, compiler, and libraries
@@ -45,11 +49,11 @@ apt install nvidia-410 vulkan-utils build-essential clang imagemagick a52 git-co
 * Install [XCode](https://developer.apple.com/xcode/downloads/)
 
 ## System Requirements
-* Needs OpenGL 4.3 or OpenCL 1.1
+* Needs OpenGL 4.3
 * Wants 64bit, but it's not needed. Yet.
-* You'll need up to date drivers. As of now that means Nvidia 417.35
+* You'll need up to date drivers. As of now that means Nvidia 461.72
 
-The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](https://developer.apple.com/graphicsimaging/opengl/capabilities/).
+The Mac version is broken as [MacOS does not support OpenGL 4.3](https://support.apple.com/en-au/HT202823).
 
 
 ## Credits
@@ -64,7 +68,7 @@ The Mac version has no GL renderer mode as [OSX does not support OpenGL 4.3](htt
 * ```deps/include/CL/*``` - The Khronos Group
     * https://github.com/KhronosGroup/OpenCL-Headers
 
-This is based losely on parts of the algorithm outlined by [Cyril Crassin](http://maverick.inria.fr/Members/Cyril.Crassin/) in his [PhD Thesis](http://maverick.inria.fr/Publications/2011/Cra11/CCrassinThesis_EN_Web.pdf).
+This is based loosely on parts of the algorithm outlined by [Cyril Crassin](http://maverick.inria.fr/Members/Cyril.Crassin/) in his [PhD Thesis](http://maverick.inria.fr/Publications/2011/Cra11/CCrassinThesis_EN_Web.pdf).
 It is not a complete implementation, and diverges from it in a few ways. In other words, don't allow how bad this is to reflect on him.
 
 For everything else, I am to blame.
