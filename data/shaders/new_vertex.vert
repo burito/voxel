@@ -2,6 +2,7 @@
 
 uniform mat4 modelview;
 uniform mat4 projection;
+uniform mat4 window_projection;
 
 in vec3 inPosition;
 //in vec3 inNormal;
@@ -13,7 +14,7 @@ out vec2 fragUV;
 
 void main(void)
 {
-	gl_Position = vec4(inPosition, 1) * projection;
+	gl_Position = vec4(inPosition, 1) * window_projection;
 	fragUV = gl_MultiTexCoord0.xy;
 //	fragUV = inUV;
 //	fragNormal = inNormal;

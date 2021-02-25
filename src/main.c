@@ -163,8 +163,6 @@ void render(mat4x4 view, mat4x4 projection)
 
 	fluidtest_draw(modelview, projection);
 
-	glColor4f( 1., 1., 1., 1.);
-	glUseProgram(0);
 
 	voxel_loop(modelview, projection);
 

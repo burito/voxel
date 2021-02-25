@@ -7,7 +7,7 @@ OBJS = main.o version.o log.o global.o 3dmaths.o glerror.o vr.o \
 	shader.o fps_movement.o mesh.o mesh_gl.o shader.o \
 	stb_ds.o stb_image.o stb_truetype.o fontstash.o \
 	gpuinfo.o vr.o vr_helper.o fps_movement.o spacemouse.o \
-	clvoxel.o gui.o
+	clvoxel.o gui.o fluid.o fluidtest.o octtree.o
 
 CFLAGS = -std=c11 -Wall -isystem deps -Ideps/dpb/src -Ideps/dpb/deps/hidapi/hidapi
 VPATH = src build deps deps/dpb/src deps/dpb/deps deps/dpb/deps/hidapi/

@@ -281,43 +281,20 @@ mat2 rot(float a)
 
 void main(void)
 {
-	vec2 fpos = fragUV.xy - 0.5;
 	float difference = cam.f[0].w;	// half the width of a pixel
-	fpos -= difference;	// correct for texel offset
-	vec3 p = cam.f[0].xyz;
-	vec3 angle = cam.f[1].xyz;
 	float fov = cam.f[1].w;
 	float prat = sin(fov * (difference*2));	// pixel ratio
 
-	p.x = cam.f[0].z - 1.5 ;
-	p.y = -p.y;
-	p.z =  cam.f[0].x + 0.5;
-	angle.y = 1.5*3.14159 - angle.y;
-	angle.x = -angle.x;
-	// correct for glFrustum
-	// p.x = 0.5-p.x;
-	// p.y = -p.y;
-	// p.z = 2.5-p.z;
+	// use the modelview matrix to figure out where the camera is
+	vec3 ptmp = ( inverse(modelview) * vec4(0.,0.,0.,1.)).xyz;
+	vec3 p = ptmp;
 
-	fpos *= fov;
+	// and use the same, but on ray-normals, to do the projection
+	vec2 tmpUV = fragUV * 2.0 - 1.0;
+	vec3 ntmp = (inverse(modelview) * vec4(tmpUV.x, -tmpUV.y,-1., 1.)).xyz;
+	vec3 rd = ntmp - ptmp;
+	vec3 n = normalize(rd);
 
-	vec3 n = vec3( sin(fpos.x), sin(fpos.y),
-				cos(fpos.x) * cos(fpos.y) );
-	// rotate this normal to face the direction of the camera
-	vec3 c = cos(angle);
-	vec3 s = sin(angle);
-	vec3 t;
-
-	t.x = n.x * c.z + n.y * s.z;	// around z
-	t.y = n.x * s.z - n.y * c.z;
-
-	n.y = t.y * c.x + n.z * s.x;	// around x
-	t.z = t.y * s.x - n.z * c.x;
-
-	n.x = t.x * c.y + t.z * s.y;	// around y
-	n.z = t.x * s.y - t.z * c.y;
-
-	n = normalize(n);
 	vec3 invnorm = 1.0 / n;
 	vec3 normsign = sign(n);
 
@@ -345,6 +322,7 @@ void main(void)
 	vec4 normal = vec4(0);
 	int brick_id = find_brick(near, box, psize);
 	int i, ib=0;
+	// march through the volume until we have hit enough voxels
 	for(i=0; i<80 && colour.w < 1.0; i++)
 	{
 		vec3 axis;
@@ -368,6 +346,8 @@ void main(void)
 		brick_id = find_brick(tmp, box, psize);
 		near = far;
 	}
+
+	// if we hit enough voxels
 	if(colour.w > 0.01)
 	{
 		vec3 nc = normalize(normal.xyz);
@@ -387,7 +367,7 @@ void main(void)
 		colour.rgb += vec3( ill * lpwr);
 	*/
 	}
-	else
+	else // otherwise background colour
 	{
 		colour = vec4(vec3(0.0), 0.1);
 //		colour = vec4(0);

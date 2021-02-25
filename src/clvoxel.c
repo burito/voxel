@@ -399,10 +399,6 @@ void voxel_Voxel(int frame)
 	// glOrtho(0, vid_width, 0, vid_height, -1000, 5000);
 	// glMatrixMode(GL_MODELVIEW);
 	// glLoadIdentity();
-	mat4x4 model = mat4x4_identity();
-	mat4x4 projection = mat4x4_glortho(0, vid_width, 0, vid_height, -1000, 5000);
-	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_FALSE, model.f);
-	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
 }
 
 void print_int(GLuint id)
@@ -632,6 +628,7 @@ void voxel_init(void)
 	shader_uniform(s_Voxel, "brick_col");
 	shader_uniform(s_Voxel, "modelview");
 	shader_uniform(s_Voxel, "projection");
+	shader_uniform(s_Voxel, "window_projection");
 	shader_uniform(s_Brick, "depth");
 	shader_uniform(s_Brick, "time");
 	shader_uniform(s_Brick, "bricks");
@@ -785,8 +782,10 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
+	mat4x4 window_projection = mat4x4_glortho(0, vid_width, 0, vid_height, -1000, 5000);
 	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_FALSE, modelview.f);
-//	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(s_Voxel->uniforms[5], 1, GL_FALSE, window_projection.f);
 
 	glColor4f(1,1,1,1);
 	glBegin(GL_QUADS);
