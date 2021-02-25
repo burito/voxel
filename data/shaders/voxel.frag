@@ -43,8 +43,9 @@ layout(shared, binding=5) buffer brick_reqtime { int i[][8]; } BrickReqTime;
 layout(shared, binding=6) buffer brick_usetime { int i[]; } BrickUseTime;
 
 uniform int time;
+uniform float screen_aspect_ratio;
 
-layout (location = 2) in vec2 fragUV;
+noperspective in vec2 fragUV;
 out vec4 Colour;
 
 
@@ -290,8 +291,11 @@ void main(void)
 	vec3 p = ptmp;
 
 	// and use the same, but on ray-normals, to do the projection
-	vec2 tmpUV = fragUV * 2.0 - 1.0;
-	vec3 ntmp = (inverse(modelview) * vec4(tmpUV.x, -tmpUV.y,-1., 1.)).xyz;
+
+	vec2 tmpUV = fragUV;
+	tmpUV = tmpUV * 2.0 - 1.0;
+	tmpUV.y = tmpUV.y * screen_aspect_ratio;
+	vec3 ntmp = (inverse(modelview) * vec4(tmpUV.x, tmpUV.y,-1., 1.)).xyz;
 	vec3 rd = ntmp - ptmp;
 	vec3 n = normalize(rd);
 
@@ -378,5 +382,6 @@ void main(void)
 //	colour.a = 1;
 
 	Colour = colour; //abs(normal);
+	gl_FragDepth = far.z;
 	return;
 }

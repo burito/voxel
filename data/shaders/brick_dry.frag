@@ -130,7 +130,7 @@ void brick_mark(in vec3 position, out vec4 box)
 
 void main(void)
 {
-	vec3 fragPosition = vec3(1.0-Position.z, Position.y, 1.0-Position.x);
+	vec3 fragPosition = vec3(Position.x, Position.y, Position.z);
 
 	vec4 box;
 	brick_mark(fragPosition, box);

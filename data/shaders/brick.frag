@@ -146,7 +146,7 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 
 void main(void)
 {
-	vec3 fragPosition = vec3(1.0-Position.z, Position.y, 1.0-Position.x);
+	vec3 fragPosition = vec3(Position.x, Position.y, Position.z);
 
 	vec4 normal = vec4(Normal, 1.0);
 	vec4 colour;

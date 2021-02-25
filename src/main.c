@@ -159,11 +159,8 @@ void render(mat4x4 view, mat4x4 projection)
 	glUseProgram(mesh_shader->program);
 	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_FALSE, modelview.f);
 	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_FALSE, projection.f);
-	glColor4f( 1., 1., 1., 1.);
 
 	fluidtest_draw(modelview, projection);
-
-
 	voxel_loop(modelview, projection);
 
 //	glDrawElements( GL_LINES, (sim->cells+1)*(sim->cells+1), GL_UNSIGNED_INT, 0 );
@@ -174,7 +171,7 @@ void render(mat4x4 view, mat4x4 projection)
 
 void main_loop(void)
 {
-	glClearColor(0.2,0.2,0.2,1.0);
+	glClearColor(0.2,0.2,0.3,1.0);
 	angle.z = 0;
 	spacemouse_tick();
 	fluidtest_tick();

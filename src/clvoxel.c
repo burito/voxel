@@ -551,6 +551,71 @@ int vdepth = 0;
 int total_vram = 0;
 
 
+GLuint window_VAO = 0;
+GLuint window_VBO = 0;
+GLuint window_EAB = 0;
+/*
+ * Load the two triangles into the GPU for drawing the voxels
+ */
+static int voxel_window_init(void)
+{
+	GLfloat window_verts[] = {
+		//  x,     y,    u,    v,
+		-1.0f, -1.0f, 0.0f, 0.0f,
+		 1.0f, -1.0f, 1.0f, 0.0f,
+		 1.0f,  1.0f, 1.0f, 1.0f,
+		-1.0f,  1.0f, 0.0f, 1.0f,
+	};
+
+	GLushort window_indicies[]  = { 0, 1, 2,   0, 2, 3};
+
+	glGenVertexArrays( 1, &window_VAO );
+	glBindVertexArray( window_VAO );
+
+	glGenBuffers( 1, &window_VBO );
+	glBindBuffer( GL_ARRAY_BUFFER, window_VBO );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(window_verts), &window_verts[0], GL_STATIC_DRAW );
+
+	glGenBuffers( 1, &window_EAB );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, window_EAB );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(window_indicies), &window_indicies[0], GL_STATIC_DRAW );
+
+	// verticies
+	glEnableVertexAttribArray( 0 );
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void *)0 );
+
+	// texture coords
+	glEnableVertexAttribArray( 1 );
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 16, (void *)8 );
+
+	glBindVertexArray( 0 );
+//	glBindBuffer(GL_ARRAY_BUFFER, 0);
+//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+/*
+ * Load the two triangles into the GPU for drawing the voxels
+ */
+void voxel_window_end(void)
+{
+	glDeleteBuffers(1, &window_EAB);
+	window_EAB = 0;
+	glDeleteBuffers(1, &window_VBO);
+	window_VBO = 0;
+	glDeleteVertexArrays(1, &window_VAO);
+	window_VAO = 0;
+}
+
+/*
+ * Draw the two triangles for drawing voxels.
+ */
+void voxel_window_draw(void)
+{
+	glBindVertexArray( window_VAO );
+	glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0 );
+	glBindVertexArray( 0 );
+}
+
 void voxel_init(void)
 {
 	frame = 1;
@@ -628,7 +693,7 @@ void voxel_init(void)
 	shader_uniform(s_Voxel, "brick_col");
 	shader_uniform(s_Voxel, "modelview");
 	shader_uniform(s_Voxel, "projection");
-	shader_uniform(s_Voxel, "window_projection");
+	shader_uniform(s_Voxel, "screen_aspect_ratio");
 	shader_uniform(s_Brick, "depth");
 	shader_uniform(s_Brick, "time");
 	shader_uniform(s_Brick, "bricks");
@@ -678,6 +743,9 @@ void voxel_init(void)
 
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	voxel_window_init();
 }
 
 void print_atoms(void)
@@ -760,41 +828,13 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 	}
 
 
-
-	float tleft, tright;
-	float ttop, tbottom;
-
-	{	/* GLSL Rendering */
-		voxel_Voxel(frame);
-
-		tleft = 0; tright = 1;
-		float srat = ((float)vid_height / (float)vid_width) * 0.5;
-		ttop = 0.5 - srat;
-		tbottom = 0.5 + srat;
-	}
-
-	/* Output the Quad that covers the screen */
-	float left = 0, right = vid_width;
-	float top = 0, bottom = vid_height;
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, vid_width, 0, vid_height, -1000, 5000);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	mat4x4 window_projection = mat4x4_glortho(0, vid_width, 0, vid_height, -1000, 5000);
+	voxel_Voxel(frame);
 	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_FALSE, modelview.f);
 	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
-	glUniformMatrix4fv(s_Voxel->uniforms[5], 1, GL_FALSE, window_projection.f);
+	float screen_aspect_ratio = (float)vid_height / (float)vid_width;
+	glUniform1f(s_Voxel->uniforms[5], screen_aspect_ratio);
 
-	glColor4f(1,1,1,1);
-	glBegin(GL_QUADS);
-	glTexCoord2f(tleft, tbottom); glVertex2f(left, top);
-	glTexCoord2f(tright, tbottom); glVertex2f(right, top);
-	glTexCoord2f(tright, ttop); glVertex2f(right, bottom);
-	glTexCoord2f(tleft, ttop); glVertex2f(left, bottom);
-	glEnd();
-
+	voxel_window_draw();
 
 	glUseProgram(0);
 
@@ -921,6 +961,8 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 
 void voxel_end(void)
 {
+	voxel_window_end();
+
 	shader_free(s_Voxel);
 	shader_free(s_Brick);
 	shader_free(s_BrickDry);

@@ -1,22 +1,11 @@
-#version 130
+#version 410 core
 
-uniform mat4 modelview;
-uniform mat4 projection;
-uniform mat4 window_projection;
+in vec4 position;
+in vec2 v2UVIn;
+noperspective out vec2 fragUV;
 
-in vec3 inPosition;
-//in vec3 inNormal;
-in vec2 inUV;
-
-out vec3 fragPosition;
-out vec3 fragNormal;
-out vec2 fragUV;
-
-void main(void)
+void main()
 {
-	gl_Position = vec4(inPosition, 1) * window_projection;
-	fragUV = gl_MultiTexCoord0.xy;
-//	fragUV = inUV;
-//	fragNormal = inNormal;
-	fragPosition = inPosition;
+	fragUV = v2UVIn;
+	gl_Position = position;
 }
