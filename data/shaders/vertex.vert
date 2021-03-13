@@ -1,38 +1,33 @@
 #version 130
-/*
-Copyright (c) 2013 Daniel Burke
 
-This software is provided 'as-is', without any express or implied
-warranty. In no event will the authors be held liable for any damages
-arising from the use of this software.
+uniform mat4 modelview;
+uniform mat4 projection;
 
-Permission is granted to anyone to use this software for any purpose,
-including commercial applications, and to alter it and redistribute it
-freely, subject to the following restrictions:
+in vec3 inPosition;
+in vec2 inUV;
+in vec3 inNormal;
 
-   1. The origin of this software must not be misrepresented; you must not
-   claim that you wrote the original software. If you use this software
-   in a product, an acknowledgment in the product documentation would be
-   appreciated but is not required.
-
-   2. Altered source versions must be plainly marked as such, and must not be
-   misrepresented as being the original software.
-
-   3. This notice may not be removed or altered from any source
-   distribution.
-*/
-
-
-varying out vec3 Position;
-varying out vec3 Normal;
-varying out vec2 TexCoord;
-varying out vec4 vColour;
+out vec3 fragPosition;
+noperspective out vec2 fragUV;
+out vec3 fragNormal;
+//out vec4 vColour;
 
 void main(void)
 {
-	gl_Position = ftransform();
-	TexCoord = gl_MultiTexCoord0.xy;
-	Normal = gl_Normal;
-	Position = gl_Vertex.xyz;
-	vColour = gl_Color;
+//	gl_Position = ftransform();
+//	gl_Position = gl_ModelViewMatrix * gl_Vertex;
+	gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * gl_Vertex;
+//	gl_Position = projection * gl_ModelViewMatrix * gl_Vertex;
+//	gl_Position = gl_ProjectionMatrix * modelview * gl_Vertex;
+
+//	gl_Position = vec4(gl_Vertex.xyz, 1) * modelview * projection;
+//	gl_Position = projection * modelview * vec4(gl_Vertex.xyz, 1);
+//	gl_Position = projection * modelview * vec4(inPosition, 1);
+	fragUV = inUV;
+	fragNormal = inNormal;
+	fragPosition = gl_Vertex.xyz;
+//	fragPosition = inPosition;
+//	gl_Position = projection * gl_Vertex;
+//	fragPosition = gl_Position.xyz;
+//	vColour = gl_Color;
 }

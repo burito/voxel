@@ -557,7 +557,7 @@ GLuint window_EAB = 0;
 /*
  * Load the two triangles into the GPU for drawing the voxels
  */
-static int voxel_window_init(void)
+static void voxel_window_init(void)
 {
 	GLfloat window_verts[] = {
 		//  x,     y,    u,    v,
@@ -589,8 +589,6 @@ static int voxel_window_init(void)
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 16, (void *)8 );
 
 	glBindVertexArray( 0 );
-//	glBindBuffer(GL_ARRAY_BUFFER, 0);
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 /*
@@ -924,14 +922,30 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			glScalef(vwidth, vwidth, vwidth);
+
+			model = mat4x4_scale_float(vwidth, vwidth, vwidth);
+			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_FALSE, model.f);
+			glUniformMatrix4fv(s_Brick->uniforms[6], 1, GL_FALSE, projection.f);
 			voxel_Brick(vdepth, frame);
 			glUniform1i(s_Brick->uniforms[4], 2);
 			mesh_draw(vobj);
+
+			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+			model = mul(mat4x4_rot_y( 0.5 * 3.14159 ), model);
+			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_FALSE, model.f);
+
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, 1, 0.0, 0);
 			glTranslatef(-0.5,-0.5,-0.5);
 			glUniform1i(s_Brick->uniforms[4], 1);
 			mesh_draw(vobj);
+
+			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+			model = mul(mat4x4_rot_z( 0.5 * 3.14159 ), model);
+			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
+			glUniformMatrix4fv(s_BrickDry->uniforms[5], 1, GL_FALSE, model.f);
+
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, -1, 0.0, 0);
 			glRotatef(90, 0, 1, 0);

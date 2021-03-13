@@ -45,7 +45,7 @@ layout(shared, binding=6) buffer brick_usetime { int i[]; } BrickUseTime;
 uniform int time;
 uniform float screen_aspect_ratio;
 
-noperspective in vec2 fragUV;
+layout (location = 0) noperspective in vec2 fragUV;
 out vec4 Colour;
 
 
@@ -355,8 +355,8 @@ void main(void)
 	if(colour.w > 0.01)
 	{
 		vec3 nc = normalize(normal.xyz);
-		colour.rgb = mat3(modelview) * nc;
-	/*
+//		colour.rgb = mat3(modelview) * nc;
+
 //		float ratio = 1.0 / length(normal.zyx);
 //		colour = colour *ratio;
 		vec3 lamb = vec3(0.7);
@@ -369,7 +369,7 @@ void main(void)
 		vec3 h = normalize( ldir + n );
 		ill = clamp( pow( dot( nc, h ), 15 ), 0, 1);
 		colour.rgb += vec3( ill * lpwr);
-	*/
+
 	}
 	else // otherwise background colour
 	{

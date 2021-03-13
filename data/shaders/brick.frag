@@ -39,10 +39,10 @@ uniform int time;
 uniform int pass;
 
 //in bool gl_FrontFacing;
-in vec3 Position;
-in vec3 Normal;
-in vec2 TexCoord;
-in vec4 vColour;
+in vec3 fragPosition;
+noperspective in vec2 fragUV;
+in vec3 fragNormal;
+//in vec4 vColour;
 out vec4 Colour;
 
 ivec3 brick_origin(in int brick_id)
@@ -146,18 +146,16 @@ void brick_write(in vec3 position, vec4 colour, vec4 normal)
 
 void main(void)
 {
-	vec3 fragPosition = vec3(Position.x, Position.y, Position.z);
-
-	vec4 normal = vec4(Normal, 1.0);
+	vec4 normal = vec4(fragNormal, 1.0);
 	vec4 colour;
 	ivec2 s = textureSize(tex,0);
 	if(s.x > 10)
 	{
-		colour = texture(tex, TexCoord) * vColour;
+		colour = texture(tex, fragUV);
 	}
 	else
 	{
-		colour = vColour;
+		colour = vec4(1);
 	}
 //	brick_write(fragPosition, colour, normal);
 	vec4 box;
@@ -168,7 +166,7 @@ void main(void)
 	ivec3 ibpos = ivec3(bpos);
 	vec3 palpha = bpos - vec3(ibpos);
 
-	vec3 vsize = sign(Normal) * delta;
+	vec3 vsize = sign(fragNormal) * delta;
 	vec3 vstep = vec3(0);
 
 	switch(pass) {
@@ -191,17 +189,17 @@ void main(void)
 	brick_write(fragPosition+vstep, colour, normal);
 	brick_write(fragPosition+vstep*2.0, colour, normal);
 
-/*	vec3 absNorm = abs(Normal);
+/*	vec3 absNorm = abs(fragNormal);
 	if(absNorm.x > absNorm.y)
 	{
 		if(absNorm.x > absNorm.z)
 		{
-			delta *= sign(Normal.x);
+			delta *= sign(fragNormal.x);
 			brick_write(fragPosition+vec3(delta,0,0), colour, normal);
 		}
 		else
 		{
-			delta *= sign(Normal.z);
+			delta *= sign(fragNormal.z);
 			brick_write(fragPosition+vec3(0,0,delta), colour, normal);
 		}
 
@@ -210,14 +208,14 @@ void main(void)
 	{
 		if(absNorm.y > absNorm.z)
 		{
-			delta *= sign(Normal.y);
+			delta *= sign(fragNormal.y);
 			brick_write(fragPosition+vec3(0,delta,0), colour, normal);
 
 
 		}
 		else
 		{
-			delta *= sign(Normal.z);
+			delta *= sign(fragNormal.z);
 			brick_write(fragPosition+vec3(0,0,delta), colour, normal);
 		}
 
