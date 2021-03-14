@@ -685,7 +685,6 @@ void voxel_init(void)
 	s_NodeAlloc = shader_load(0, "data/shaders/node_alloc.frag");
 	s_BrickAlloc = shader_load(0, "data/shaders/brick_alloc.frag");
 
-
 	shader_uniform(s_Voxel, "time");
 	shader_uniform(s_Voxel, "bricks");
 	shader_uniform(s_Voxel, "brick_col");
@@ -716,7 +715,6 @@ void voxel_init(void)
 	voxel_NodeClear();
 	voxel_NodeLRUReset(frame);
 	voxel_BrickLRUReset(frame);
-
 	glGenBuffers(1, &atomics);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomics);
 	glBufferData(GL_ATOMIC_COUNTER_BUFFER,
@@ -741,7 +739,6 @@ void voxel_init(void)
 
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 
 	voxel_window_init();
 }
@@ -824,17 +821,27 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 		print_atoms();
 
 	}
+	int gl_error;
 
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
 
 	voxel_Voxel(frame);
-	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_TRUE, modelview.f);
+	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_TRUE, projection.f);
 	float screen_aspect_ratio = (float)vid_height / (float)vid_width;
 	glUniform1f(s_Voxel->uniforms[5], screen_aspect_ratio);
 
 	voxel_window_draw();
 
 	glUseProgram(0);
+
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
 
 
 	/* build the oct-tree */
@@ -857,6 +864,10 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 		odd_frame = !odd_frame;
 		frame++;
 	}
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
 
 	if(vobj && populate)
 	{
@@ -875,20 +886,33 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 		glScalef(vwidth, vwidth, vwidth);
 
 		mat4x4 model = mat4x4_scale_float(vwidth, vwidth, vwidth);
-		mat4x4 projection = mat4x4_glortho(0, vwidth, 0, vwidth, -4000, 4000);
-		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_FALSE, model.f);
-		glUniformMatrix4fv(s_BrickDry->uniforms[3], 1, GL_FALSE, projection.f);
+		mat4x4 camera = mat4x4_glortho(0, vwidth, 0, vwidth, -4000, 4000);
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
+		while( (gl_error = glGetError()) != GL_NO_ERROR )
+		{
+			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+		}
 
+		glUniformMatrix4fv(s_BrickDry->uniforms[3], 1, GL_TRUE, camera.f);
 
+		while( (gl_error = glGetError()) != GL_NO_ERROR )
+		{
+			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+		}
 		glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
 		glViewport(0,0,vwidth, vwidth);
 		voxel_BrickDry(frame, vdepth);
 		// render
 		mesh_draw(vobj);
+
+		while( (gl_error = glGetError()) != GL_NO_ERROR )
+		{
+			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+		}
 		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
 		model = mul(mat4x4_rot_y( 0.5 * 3.14159 ), model);
-		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_FALSE, model.f);
+		model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
 
 		glTranslatef(0.5,0.5,0.5);
 		glRotatef(90, 0, 1.0, 0);
@@ -900,8 +924,8 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 		glTranslatef(-0.5,-0.5,-0.5);
 		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
 		model = mul(mat4x4_rot_z( 0.5 * 3.14159 ), model);
-		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_FALSE, model.f);
+		model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
 		mesh_draw(vobj);
 
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
@@ -910,6 +934,10 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 //			print_breq(frame);
 //			print_balloc();
 //		}
+		while( (gl_error = glGetError()) != GL_NO_ERROR )
+		{
+			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+		}
 
 		if(!odd_frame)
 		{
@@ -924,16 +952,16 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 			glScalef(vwidth, vwidth, vwidth);
 
 			model = mat4x4_scale_float(vwidth, vwidth, vwidth);
-			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_FALSE, model.f);
-			glUniformMatrix4fv(s_Brick->uniforms[6], 1, GL_FALSE, projection.f);
+			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_TRUE, model.f);
+			glUniformMatrix4fv(s_Brick->uniforms[6], 1, GL_TRUE, camera.f);
 			voxel_Brick(vdepth, frame);
 			glUniform1i(s_Brick->uniforms[4], 2);
 			mesh_draw(vobj);
 
 			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
 			model = mul(mat4x4_rot_y( 0.5 * 3.14159 ), model);
-			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_FALSE, model.f);
+			model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_TRUE, model.f);
 
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, 1, 0.0, 0);
@@ -943,8 +971,8 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 
 			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
 			model = mul(mat4x4_rot_z( 0.5 * 3.14159 ), model);
-			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-			glUniformMatrix4fv(s_BrickDry->uniforms[5], 1, GL_FALSE, model.f);
+			model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_TRUE, model.f);
 
 			glTranslatef(0.5,0.5,0.5);
 			glRotatef(90, -1, 0.0, 0);
@@ -960,6 +988,10 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 
 	}
 	// all done
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
 
 	glUseProgram(0);
 	glDisable(GL_TEXTURE_3D);
@@ -970,6 +1002,10 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 //	log_trace("Nodes = %d, Bricks = %d", used_nodes, used_bricks);
 
 	if(texdraw)voxel_3dtexdraw();
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
 
 }
 

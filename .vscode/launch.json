@@ -6,25 +6,19 @@
 	"configurations": [
 		{
 			"name": "Launch",
-			"type": "cppdbg",
+			"type": "lldb",
 			"request": "launch",
 			"args": [],
-			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
-			"environment": [],
-			"externalConsole": true,
 			"linux": {
 				"program": "${workspaceRoot}/voxel",
-				"MIMode": "lldb"
 			},
 			"osx": {
 				"program": "${workspaceRoot}/voxel.app/Contents/MacOS/voxel",
-				"MIMode": "lldb",
 			},
 			"windows": {
-				"miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
-				"MIMode": "gdb",
 				"program": "${workspaceRoot}/voxel.exe",
+				"miDebuggerPath": "c:/msys64/mingw64/bin/lldb.exe"
 			},
 		}
 	]

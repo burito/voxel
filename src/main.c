@@ -56,13 +56,27 @@ float step = 0.0f;
 
 struct GLSLSHADER *mesh_shader;
 
+
+void GLAPIENTRY glerror_callback( GLenum source, GLenum type, GLuint id,
+ GLenum severity, GLsizei length, const GLchar* message, const void* userParam )
+{
+  log_error("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+             type, severity, message );
+}
+
 int main_init(int argc, char *argv[])
 {
+	int gl_error;
 	gfx_init();
 	log_info("GL Vendor   : %s", glGetString(GL_VENDOR) );
 	log_info("GL Renderer : %s", glGetString(GL_RENDERER) );
 	log_info("GL Driver   : %s", glGetString(GL_VERSION) );
 	log_info("SL Version  : %s", glGetString(GL_SHADING_LANGUAGE_VERSION) );
+
+	// During init, enable debug output
+	glEnable              ( GL_DEBUG_OUTPUT );
+//	glDebugMessageCallback( glerror_callback, 0 );
 
 	int gl_major_version = 0;
 	int gl_minor_version = 0;
@@ -79,11 +93,22 @@ int main_init(int argc, char *argv[])
 	gpuinfo_init();
 #endif
 
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
+
 	mesh_shader = shader_load(
 		"data/shaders/default.vert",
 		"data/shaders/default.frag" );
 	shader_uniform(mesh_shader, "modelview");
 	shader_uniform(mesh_shader, "projection");
+
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
+
 
 	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 50.0 };
@@ -92,13 +117,29 @@ int main_init(int argc, char *argv[])
 	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 	glEnable(GL_LIGHT0);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
 
 	time_start = sys_time();
 	voxel_init();
+
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
+
 	fluidtest_init();
 
 //	vr_init();
 	spacemouse_init();
+
+	while( (gl_error = glGetError()) != GL_NO_ERROR )
+	{
+		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
+	}
+
 
 	time_start = sys_time();
 	int ret =  gui_init(argc, argv);
@@ -151,14 +192,14 @@ void render(mat4x4 view, mat4x4 projection)
 	model = mul( mat4x4_translate_float( 0, 0, -2), model );	// move it 2 metres infront of the origin
 
 	model = mul(mat4x4_translate_vec3( position.xyz ), model);	// move to player position
-	model = mul(mat4x4_rot_y(angle.y ), model);
-	model = mul(mat4x4_rot_x(angle.x ), model);
+	model = mul(mat4x4_rot_y(-angle.y ), model);
+	model = mul(mat4x4_rot_x(-angle.x ), model);
 
 	mat4x4 modelview = mul( view, model);
 
 	glUseProgram(mesh_shader->program);
-	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_TRUE, modelview.f);
+	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_TRUE, projection.f);
 
 	fluidtest_draw(modelview, projection);
 	voxel_loop(modelview, projection);
@@ -183,7 +224,7 @@ void main_loop(void)
 	if(!vr_using)
 	{
 		mat4x4 projection;
-		projection = mat4x4_perspective(1, 30, 1, (float)vid_height / (float)vid_width);
+		projection = mat4x4_perspective(0.1, 300, ((float)vid_width / (float)vid_height)*0.1, 0.1);
 //		projection = mat4x4_orthographic(0.1, 30, 1, (float)vid_height / (float)vid_width);
 //		float ratio = (float)vid_height / (float)vid_width;
 //		projection = mat4x4_glfrustum(-0.5, 0.5, -(ratio*0.5), ratio*0.5, 1, 30);

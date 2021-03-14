@@ -113,11 +113,10 @@ void fluidtest_init(void)
 	shader_uniform(line_shader, "modelview");
 	shader_uniform(line_shader, "projection");
 
-
 	int cells = 1 << (sim->max_depth);
 	int line_vecs_size = (cells+1)*(cells+1)*6 * sizeof(vec3);
 	line_vecs = malloc(line_vecs_size);
-	fluidtest_build_lines(sim);
+
 	glGenVertexArrays(1, &va_fluid_line_vecs);
 	glBindVertexArray(va_fluid_line_vecs);
 	glGenBuffers(1, &b_fluid_line_vecs);
@@ -125,9 +124,9 @@ void fluidtest_init(void)
 	glBufferData(GL_ARRAY_BUFFER, line_vecs_size, line_vecs, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, (void*)0);
+	fluidtest_build_lines(sim);
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 }
 
 void fluidtest_tick(void)
@@ -218,8 +217,8 @@ void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 	// draw the tracers
 	glPointSize( 3.0 );
 	glUseProgram(particle_shader->program);
-	glUniformMatrix4fv(particle_shader->uniforms[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(particle_shader->uniforms[1], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(particle_shader->uniforms[0], 1, GL_TRUE, modelview.f);
+	glUniformMatrix4fv(particle_shader->uniforms[1], 1, GL_TRUE, projection.f);
 	glBindVertexArray(va_fluid);
 	glBindBuffer(GL_ARRAY_BUFFER, b_fluid);
 	glBufferData(GL_ARRAY_BUFFER, n_part * sizeof(struct particle), particles, GL_DYNAMIC_DRAW);
@@ -229,8 +228,8 @@ void fluidtest_draw(mat4x4 modelview, mat4x4 projection)
 	// draw a bounding volume
 	int cells = 1 << (sim->max_depth);
 	glUseProgram(line_shader->program);
-	glUniformMatrix4fv(line_shader->uniforms[0], 1, GL_FALSE, modelview.f);
-	glUniformMatrix4fv(line_shader->uniforms[1], 1, GL_FALSE, projection.f);
+	glUniformMatrix4fv(line_shader->uniforms[0], 1, GL_TRUE, modelview.f);
+	glUniformMatrix4fv(line_shader->uniforms[1], 1, GL_TRUE, projection.f);
 	glBindVertexArray( va_fluid_line_vecs );
 	fluidtest_build_lines(sim);
 	glDrawArrays( GL_LINES, 0, (cells+1)*(cells+1)*6);

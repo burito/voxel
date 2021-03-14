@@ -285,20 +285,24 @@ void main(void)
 	float difference = cam.f[0].w;	// half the width of a pixel
 	float fov = cam.f[1].w;
 	float prat = sin(fov * (difference*2));	// pixel ratio
-
+/*
 	// use the modelview matrix to figure out where the camera is
 	vec3 ptmp = ( inverse(modelview) * vec4(0.,0.,0.,1.)).xyz;
 	vec3 p = ptmp;
 
 	// and use the same, but on ray-normals, to do the projection
-
 	vec2 tmpUV = fragUV;
 	tmpUV = tmpUV * 2.0 - 1.0;
 	tmpUV.y = tmpUV.y * screen_aspect_ratio;
 	vec3 ntmp = (inverse(modelview) * vec4(tmpUV.x, tmpUV.y,-1., 1.)).xyz;
 	vec3 rd = ntmp - ptmp;
 	vec3 n = normalize(rd);
-
+*/
+	vec4 ro = inverse(modelview) * vec4(0,0,0,1);
+	vec4 rd = inverse(projection ) * vec4(fragUV*2.-1., 1, 1);;
+	rd.xyz = inverse(mat3(modelview)) * rd.xyz;
+	vec3 n = normalize( rd.xyz );
+	vec3 p = ro.xyz;
 	vec3 invnorm = 1.0 / n;
 	vec3 normsign = sign(n);
 
@@ -373,7 +377,7 @@ void main(void)
 	}
 	else // otherwise background colour
 	{
-		colour = vec4(vec3(0.0), 0.1);
+		colour = vec4(vec3(0.0), 0.3);
 //		colour = vec4(0);
 	}
 	// debug information

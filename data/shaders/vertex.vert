@@ -23,6 +23,8 @@ void main(void)
 //	gl_Position = vec4(gl_Vertex.xyz, 1) * modelview * projection;
 //	gl_Position = projection * modelview * vec4(gl_Vertex.xyz, 1);
 //	gl_Position = projection * modelview * vec4(inPosition, 1);
+
+
 	fragUV = inUV;
 	fragNormal = inNormal;
 	fragPosition = gl_Vertex.xyz;
