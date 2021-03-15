@@ -199,7 +199,7 @@ void render(mat4x4 view, mat4x4 projection)
 
 	glUseProgram(mesh_shader->program);
 	glUniformMatrix4fv(mesh_shader->uniforms[0], 1, GL_TRUE, modelview.f);
-	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_TRUE, projection.f);
+	glUniformMatrix4fv(mesh_shader->uniforms[1], 1, GL_FALSE, projection.f);
 
 	fluidtest_draw(modelview, projection);
 	voxel_loop(modelview, projection);
@@ -212,14 +212,16 @@ void render(mat4x4 view, mat4x4 projection)
 
 void main_loop(void)
 {
-	glClearColor(0.2,0.2,0.3,1.0);
-	angle.z = 0;
-	spacemouse_tick();
-	fluidtest_tick();
-
 #ifndef __APPLE__
 	gpuinfo_tick();
 #endif
+
+	spacemouse_tick();
+	fluidtest_tick();
+
+	glClearColor(0.3f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
 
 	if(!vr_using)
 	{

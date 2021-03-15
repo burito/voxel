@@ -379,7 +379,7 @@ void hmd_eye_calc(EVREye eye, mat4x4 * dest_pose, mat4x4 *dest_proj)
 	float fnear = 0.1;
 	float ffar = 30.0f;
 
-	mat4x4 proj = mov( OVR->GetProjectionMatrix( eye, fnear, ffar ) );
+	mat4x4 proj = mat4x4_transpose( mov( OVR->GetProjectionMatrix( eye, fnear, ffar ) ));
 	mat4x4 pos = mat4x4_invert( mov( OVR->GetEyeToHeadTransform( eye ) ) );
 	*dest_pose = pos;
 	*dest_proj = proj;
