@@ -32,7 +32,7 @@ layout(shared, binding=3) buffer brick_reqtime { int i[][8]; } BrickReqTime;
 uniform int time;
 uniform int depth;
 
-in vec3 fragPosition;
+layout (location = 0) in vec3 fragPosition;
 
 out vec4 Colour;
 

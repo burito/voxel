@@ -39,9 +39,9 @@ uniform int time;
 uniform int pass;
 
 //in bool gl_FrontFacing;
-in vec3 fragPosition;
-noperspective in vec2 fragUV;
-in vec3 fragNormal;
+layout (location = 0) in vec3 fragPosition;
+layout (location = 1) noperspective in vec2 fragUV;
+layout (location = 2) in vec3 fragNormal;
 //in vec4 vColour;
 out vec4 Colour;
 

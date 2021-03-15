@@ -394,11 +394,6 @@ void voxel_Voxel(int frame)
 
 	glUniform1i(s_Voxel->uniforms[2], 5);
 
-	// glMatrixMode(GL_PROJECTION);
-	// glLoadIdentity();
-	// glOrtho(0, vid_width, 0, vid_height, -1000, 5000);
-	// glMatrixMode(GL_MODELVIEW);
-	// glLoadIdentity();
 }
 
 void print_int(GLuint id)
@@ -672,7 +667,7 @@ void voxel_init(void)
 	bBLO = vox_glbuf(B_COUNT*4, NULL);	// BrickLRUOut
 	bBL = vox_glbuf(B_COUNT*4, NULL);	// BrickLocality
 
-	s_Voxel = shader_load("data/shaders/new_vertex.vert","data/shaders/voxel.frag");
+	s_Voxel = shader_load("data/shaders/voxel.vert","data/shaders/voxel.frag");
 	s_Brick = shader_load("data/shaders/vertex.vert","data/shaders/brick.frag");
 	s_BrickDry = shader_load("data/shaders/vertex.vert",
 							"data/shaders/brick_dry.frag");
@@ -690,7 +685,6 @@ void voxel_init(void)
 	shader_uniform(s_Voxel, "brick_col");
 	shader_uniform(s_Voxel, "modelview");
 	shader_uniform(s_Voxel, "projection");
-	shader_uniform(s_Voxel, "screen_aspect_ratio");
 	shader_uniform(s_Brick, "depth");
 	shader_uniform(s_Brick, "time");
 	shader_uniform(s_Brick, "bricks");
@@ -831,17 +825,8 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 	voxel_Voxel(frame);
 	glUniformMatrix4fv(s_Voxel->uniforms[3], 1, GL_TRUE, modelview.f);
 	glUniformMatrix4fv(s_Voxel->uniforms[4], 1, GL_TRUE, projection.f);
-	float screen_aspect_ratio = (float)vid_height / (float)vid_width;
-	glUniform1f(s_Voxel->uniforms[5], screen_aspect_ratio);
-
 	voxel_window_draw();
-
 	glUseProgram(0);
-
-	while( (gl_error = glGetError()) != GL_NO_ERROR )
-	{
-		log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
-	}
 
 
 	/* build the oct-tree */
@@ -878,53 +863,29 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 //		float scale = FBUFFER_SIZE;
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, vwidth, 0, vwidth, -4000, 4000);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glScalef(vwidth, vwidth, vwidth);
-
 		mat4x4 model = mat4x4_scale_float(vwidth, vwidth, vwidth);
 		mat4x4 camera = mat4x4_glortho(0, vwidth, 0, vwidth, -4000, 4000);
+		voxel_BrickDry(frame, vdepth);
 		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
-		while( (gl_error = glGetError()) != GL_NO_ERROR )
-		{
-			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
-		}
-
 		glUniformMatrix4fv(s_BrickDry->uniforms[3], 1, GL_TRUE, camera.f);
-
-		while( (gl_error = glGetError()) != GL_NO_ERROR )
-		{
-			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
-		}
 		glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
 		glViewport(0,0,vwidth, vwidth);
-		voxel_BrickDry(frame, vdepth);
 		// render
 		mesh_draw(vobj);
-
 		while( (gl_error = glGetError()) != GL_NO_ERROR )
 		{
 			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
 		}
-		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-		model = mul(mat4x4_rot_y( 0.5 * 3.14159 ), model);
-		model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
-		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
 
-		glTranslatef(0.5,0.5,0.5);
-		glRotatef(90, 0, 1.0, 0);
-		glTranslatef(-0.5,-0.5,-0.5);
+		model = mul(model, mat4x4_translate_float( 0.5, 0.5, 0.5 ));
+		model = mul(model, mat4x4_rot_y( 0.5 * 3.14159 ));
+		model = mul(model, mat4x4_translate_float( -0.5, -0.5, -0.5 ));
+		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
 		mesh_draw(vobj);
-		glTranslatef(0.5,0.5,0.5);
-		glRotatef(90, 0, 0.0, 1.0);
-//		glRotatef(90, 0, 1, 0);
-		glTranslatef(-0.5,-0.5,-0.5);
-		model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-		model = mul(mat4x4_rot_z( 0.5 * 3.14159 ), model);
-		model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+
+		model = mul(model, mat4x4_translate_float( 0.5, 0.5, 0.5 ));
+		model = mul(model, mat4x4_rot_z( 0.5 * 3.14159 ));
+		model = mul(model, mat4x4_translate_float( -0.5, -0.5, -0.5 ));
 		glUniformMatrix4fv(s_BrickDry->uniforms[2], 1, GL_TRUE, model.f);
 		mesh_draw(vobj);
 
@@ -934,10 +895,7 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 //			print_breq(frame);
 //			print_balloc();
 //		}
-		while( (gl_error = glGetError()) != GL_NO_ERROR )
-		{
-			log_warning("glGetError() = %d:%s", gl_error, glError(gl_error));
-		}
+
 
 		if(!odd_frame)
 		{
@@ -947,39 +905,28 @@ void voxel_loop(mat4x4 modelview, mat4x4 projection)
 		{
 			voxel_BrickAlloc(frame);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-			glScalef(vwidth, vwidth, vwidth);
 
 			model = mat4x4_scale_float(vwidth, vwidth, vwidth);
+			voxel_Brick(vdepth, frame);
 			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_TRUE, model.f);
 			glUniformMatrix4fv(s_Brick->uniforms[6], 1, GL_TRUE, camera.f);
-			voxel_Brick(vdepth, frame);
 			glUniform1i(s_Brick->uniforms[4], 2);
 			mesh_draw(vobj);
 
-			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-			model = mul(mat4x4_rot_y( 0.5 * 3.14159 ), model);
-			model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+			model = mul(model, mat4x4_translate_float( 0.5, 0.5, 0.5 ));
+			model = mul(model, mat4x4_rot_y( 0.5 * 3.14159 ));
+			model = mul(model, mat4x4_translate_float( -0.5, -0.5, -0.5 ));
 			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_TRUE, model.f);
-
-			glTranslatef(0.5,0.5,0.5);
-			glRotatef(90, 1, 0.0, 0);
-			glTranslatef(-0.5,-0.5,-0.5);
 			glUniform1i(s_Brick->uniforms[4], 1);
 			mesh_draw(vobj);
 
-			model = mul(mat4x4_translate_float( 0.5, 0.5, 0.5 ), model);
-			model = mul(mat4x4_rot_z( 0.5 * 3.14159 ), model);
-			model = mul(mat4x4_translate_float( -0.5, -0.5, -0.5 ), model);
+			model = mul(model, mat4x4_translate_float( 0.5, 0.5, 0.5 ));
+			model = mul(model, mat4x4_rot_z( 0.5 * 3.14159 ));
+			model = mul(model, mat4x4_translate_float( -0.5, -0.5, -0.5 ));
 			glUniformMatrix4fv(s_Brick->uniforms[5], 1, GL_TRUE, model.f);
-
-			glTranslatef(0.5,0.5,0.5);
-			glRotatef(90, -1, 0.0, 0);
-			glRotatef(90, 0, 1, 0);
-			glTranslatef(-0.5,-0.5,-0.5);
 			glUniform1i(s_Brick->uniforms[4], 0);
 			mesh_draw(vobj);
+
 			vdepth++;
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
