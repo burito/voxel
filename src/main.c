@@ -28,6 +28,7 @@ freely, subject to the following restrictions:
 #endif
 
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 
 #include "global.h"
@@ -45,6 +46,12 @@ freely, subject to the following restrictions:
 
 #include "fluidtest.h"
 
+#ifdef _WIN32
+// export these to ask for discrete graphics (on dual gpu systems)
+__declspec(dllexport) uint32_t NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) uint32_t AmdPowerXpressRequestHighPerformance = 1;
+#endif
+
 void gfx_init(void);
 void gfx_end(void);
 void gfx_swap(void);
@@ -55,6 +62,7 @@ float time = 0;
 float step = 0.0f;
 
 struct GLSLSHADER *mesh_shader;
+
 
 
 void GLAPIENTRY glerror_callback( GLenum source, GLenum type, GLuint id,
